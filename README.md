@@ -1,8 +1,8 @@
-[![.NET Build and Release](https://github.com/Guy1414/Vext/actions/workflows/dotnet.yml/badge.svg)](https://github.com/Guy1414/Vext/actions/workflows/dotnet.yml)
-
 # Vext Programming Language
 
 Created by [Guy Slutzker](https://github.com/Guy1414)
+
+[![Current Version](https://img.shields.io/github/v/release/Guy1414/Vext?include_prereleases&color=28A745&label=Version)](https://github.com/Guy1414/Vext/releases/latest)
 
 ---
 
@@ -16,6 +16,24 @@ Currently, this project has **No License**.
 * **Derivatives:** You may not build or distribute modified versions of the Vext language.
 
 © 2025 Guy Slutzker
+
+---
+
+## 🚀 How To Run
+
+1. **Download the latest version:**
+   [![Download Latest EXE](https://img.shields.io/badge/Download%20Latest%20.exe-28A745)](https://github.com/Guy1414/Vext/releases/latest)  
+   *(Download the `.exe` file from the **Assets** section at the bottom of the page)*
+
+2. **Launch:** Run the downloaded `.exe` file.
+3. **Edit Code:** Press **Enter** to open a Notepad window. Edit the code as you like, then **Save and Close** the Notepad window.
+4. **Load:** The application will automatically ingest the code you just saved and display it.
+5. **Compile:** Press **Enter** to compile the code.
+6. **Execute:** Press **Enter** again to execute.
+7. **Done!**
+
+> [!TIP]
+> If you see a "Windows protected your PC" popup, click **More info** and then **Run anyway**.
 
 ---
 
@@ -61,7 +79,7 @@ Vext is a programming language designed for performance, simplicity, and express
 ### Standard Library
 - `print()` for console output
 - `len()` for getting length of string
-- 
+
 - Math functions: `Math.pow(float num, float power)`, `Math.sqrt(float num)`, `Math.sin()`, `Math.cos()`, `Math.tan()`, `Math.log()`, `Math.exp()`, `Math.random()`, `Math.random(float min, float max)`, `Math.abs(float num)`, `Math.round(float num)`, `Math.floor(float num)`, `Math.ceil(float num)`, `Math.min(float num)`, `Math.max(float num)`
 
 ### Compiler Architecture
@@ -70,7 +88,7 @@ Vext features a **full compilation pipeline**:
 2. **Parser:** Builds an abstract syntax tree (AST)  
 3. **Semantic Pass:** Type checking, variable resolution, constant folding  
 4. **Bytecode Generator:** Converts AST into Vext bytecode  
-5. **VextVM:** Executes bytecode efficiently  
+5. **VextVM:** Executes bytecode  
 
 ---
 
