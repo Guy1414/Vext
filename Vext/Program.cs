@@ -9,9 +9,9 @@ using Vext.VM;
 
 class Program
 {
-    static void Main()
+    static string DefaultCode()
     {
-        string code = """
+        return """
         // --- 1. Basic Types & Declarations ---
         int i = 42;
         float f = 3.14159;
@@ -131,32 +131,71 @@ class Program
         print("falseVal: " + falseVal + ", trueVal: " + trueVal + ", specialChars: " + specialChars);
         print("Big While Loop: " + x);
         """;
+    }
+    static void Main()
+    {
+        string tempPath = Path.Combine(Path.GetTempPath(), "VextUserCode.vext");
+        File.WriteAllText(tempPath, DefaultCode());
 
-        Stopwatch globalSw = Stopwatch.StartNew();
+        Console.WriteLine("A notepad window will open with default code. Edit it as you like, save it, and close notepad.");
+        Console.WriteLine("Press Enter to open the editor...");
+        Console.ReadLine();
 
+        Process editor = Process.Start("notepad.exe", tempPath);
+        editor.WaitForExit();
+
+        string userCode = File.ReadAllText(tempPath);
+
+        Console.WriteLine("\n--- USER CODE START ---");
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.WriteLine(userCode);
+        Console.ResetColor();
+        Console.WriteLine("--- USER CODE END ---\n");
+
+        Console.WriteLine("Press Enter to start the compilation proccess...");
+        Console.ReadLine();
+
+        RunVext(userCode);
+
+        Console.WriteLine("\nPress Enter to exit...");
+        Console.ReadLine();
+    }
+
+    static void RunVext(string code)
+    {
         string phase = "";
+        List<Instruction> instructions = [];
+
+        double compileTime;
+        double executionTime = 0;
+
+        // --- COMPILATION PHASE ---
+        Stopwatch compileSw = Stopwatch.StartNew();
+
+        SemanticPass semanticPass;
+
         try
         {
             PrintHeader("COMPILATION PHASE");
 
-            // --- Lexing ---
+            // Lexing
             phase = "Lexer";
             var sw = Stopwatch.StartNew();
             Lexer lexer = new Lexer(code);
             List<Token> tokens = lexer.Tokenize();
             PrintStat("Lexing", tokens.Count, "tokens", sw.Elapsed.TotalMilliseconds);
 
-            // --- Parsing ---
+            // Parsing
             phase = "Parser";
             sw.Restart();
             Parser parser = new Parser(tokens);
             List<StatementNode> statements = parser.Parse();
             PrintStat("Parsing", statements.Count, "nodes", sw.Elapsed.TotalMilliseconds);
 
-            // --- Semantic Analysis ---
+            // Semantic Analysis
             phase = "Semantic";
             sw.Restart();
-            SemanticPass semanticPass = new SemanticPass(statements);
+            semanticPass = new SemanticPass(statements);
 
             var mathModule = new MathFunctions { Name = "Math" }.Initialize();
             foreach (var funcList in mathModule.Functions.Values)
@@ -179,44 +218,94 @@ class Program
                 return;
             }
 
-            // --- Code Generation ---
-            phase = "CodeGen";
+            // Bytecode Generation
+            phase = "Bytecode Gen";
             sw.Restart();
-            List<Instruction> instructions = [];
             foreach (var stmt in statements)
                 BytecodeGenerator.EmitStatement(stmt, instructions);
-            PrintStat("CodeGen", instructions.Count, "ops", sw.Elapsed.TotalMilliseconds);
 
-            // --- Execution ---
+            PrintStat("Bytecode Gen", instructions.Count, "ops", sw.Elapsed.TotalMilliseconds);
+
+            compileSw.Stop();
+            compileTime = compileSw.Elapsed.TotalMilliseconds;
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine($"\n[✓] Compilation finished in {compileTime:F4} ms\n");
+            Console.ResetColor();
+
+            //foreach (var instr in instructions)
+            //    Console.WriteLine($"\u001b[32mOP:\u001b[0m {instr.Op,-15} | \u001b[36mARG:\u001b[0m {instr.Arg}");
+
+            // --- Print Instructions ---
+            PrintHeader("BYTECODE INSTRUCTIONS");
+            Console.WriteLine($" {"OP",-20} | {"ARG",-50}");
+            Console.WriteLine(new string('─', 45));
+            foreach (var instr in instructions)
+            {
+                // Column 1: Operation
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.Write($"{instr.Op,-20}");
+                Console.ResetColor();
+
+                // Separator
+                Console.Write(" │ ");
+
+                // Column 2: Argument
+                Console.ForegroundColor = ConsoleColor.Cyan;
+                Console.WriteLine($"{instr.Arg,-50}");
+                Console.ResetColor();
+
+                // Divider
+                Console.WriteLine(new string('─', 53));
+            }
+
+        } catch (Exception ex)
+        {
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine($"\nCRITICAL ERROR during {phase}: {ex.Message}");
+            Console.ResetColor();
+            return; // Stop if compilation fails
+        }
+
+        // --- EXECUTION PHASE ---
+        Console.WriteLine("Press Enter to start the execution proccess...");
+        Console.ReadLine();
+
+        Stopwatch execSw = Stopwatch.StartNew();
+        try
+        {
             phase = "Execution";
             PrintHeader("EXECUTION PHASE");
-            sw.Restart();
+
+            // Re-initialize modules for the VM
+            var mathModule = new MathFunctions { Name = "Math" }.Initialize();
+            var defaults = new DefaultFunctions();
+            defaults.Initialize();
+
             var vm = new VextVM(modulesList: [mathModule], defaults: defaults);
             int sp = 0;
             vm.Run(instructions, ref sp);
-            sw.Stop();
 
+            execSw.Stop();
+            executionTime = execSw.Elapsed.TotalMilliseconds;
             Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine($" [✓] VM finished in {sw.Elapsed.TotalMilliseconds:F4} ms\n");
+            Console.WriteLine($"\n[✓] Execution finished in {executionTime:F4} ms\n");
             Console.ResetColor();
 
-            // --- Results Table ---
+            // --- Final VM State ---
             PrintHeader("FINAL VM STATE");
-            Console.WriteLine($" {"Variable",-12} | {"Type",-10} | {"Value",-15}");
-            Console.WriteLine(new string('-', 45));
-
             var varMap = semanticPass.GetVariableMap();
             var values = vm.GetVariables();
 
-            Console.WriteLine($" {"Variable",-15} | {"Type",-10} | {"Value",-20}");
-            Console.WriteLine(new string('-', 50));
+            Console.WriteLine($" {"Variable",-20} │ {"Type",-10} │ {"Value",-30}");
+            Console.WriteLine(new string('─', 65));
 
             for (int i = 0; i < values.Length; i++)
             {
-                string name = varMap.TryGetValue(i, out var n) ? n : $"Slot {i}";
                 VextValue val = values[i]!;
+                if (!varMap.ContainsKey(i) || val.Type == VextType.Null)
+                    continue;
 
-                string typeName = val.Type.ToString();
+                string name = varMap[i];
                 string displayValue = val.Type switch
                 {
                     VextType.Number => val.AsNumber.ToString(),
@@ -225,24 +314,27 @@ class Program
                     VextType.Null => "null",
                     _ => "unknown"
                 };
-
-                Console.WriteLine($" {name,-15} | {typeName,-10} | {displayValue,-20}");
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.Write($"{name,-20}");
+                Console.ResetColor();
+                Console.Write(" │ ");
+                Console.ForegroundColor = ConsoleColor.Magenta;
+                Console.Write($"{val.Type,-10}");
+                Console.ResetColor();
+                Console.Write(" │ ");
+                Console.ForegroundColor = ConsoleColor.Cyan;
+                Console.WriteLine($"{displayValue,-30}");
+                Console.ResetColor();
+                Console.WriteLine(new string('─', 65));
             }
-
-            globalSw.Stop();
-            Console.WriteLine("\n" + new string('=', 45));
-            Console.WriteLine($"Total Process Time: {globalSw.Elapsed.TotalMilliseconds:F2} ms");
-            Console.WriteLine(new string('=', 45));
         } catch (Exception ex)
         {
             Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.WriteLine($"\nCRITICAL ERROR: {ex.Message}.");
-            Console.WriteLine($"Occurred during phase: {phase}");
+            Console.WriteLine($"\nCRITICAL ERROR during {phase}: {ex.Message}");
             Console.ResetColor();
         }
 
-        Console.WriteLine("\nPress Enter to exit...");
-        Console.ReadLine();
+        Console.WriteLine($"\nTotal Run Time: {(executionTime + compileTime):F4} ms");
     }
 
     static void PrintHeader(string title)
@@ -254,6 +346,6 @@ class Program
 
     static void PrintStat(string phase, int count, string label, double ms)
     {
-        Console.WriteLine($" {phase,-10}: {count,4} {label,-8} | {ms,8:F4} ms");
+        Console.WriteLine($" {phase,-10}: {count,5} {label,-8} | {ms,8:F4} ms");
     }
 }

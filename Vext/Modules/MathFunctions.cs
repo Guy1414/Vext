@@ -80,8 +80,8 @@ namespace Vext.Modules
             Add("random", new Function("random", 2, args => Convert.ToDouble(args[0]) + rng.NextDouble() * (Convert.ToDouble(args[1]) - Convert.ToDouble(args[0])))
             {
                 Parameters = [
-                    new FunctionParameterNode { Name = "min", Type = "float" },
-                    new FunctionParameterNode { Name = "max", Type = "float" }
+                    new FunctionParameterNode { Name = "min", Type = "numeral" },
+                    new FunctionParameterNode { Name = "max", Type = "numeral" }
                 ],
                 ReturnType = "float"
             });
