@@ -1,0 +1,53 @@
+name: .NET Build and Release
+
+on:
+  push:
+    branches: [ "master" ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 8.0.x
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build
+      run: dotnet build --configuration Release --no-restore
+
+    - name: Publish application
+      run: dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o ./publish
+
+    - name: Rename executable
+      shell: pwsh
+      run: |
+        $exe = Get-ChildItem ./publish/*.exe | Select-Object -First 1
+        Rename-Item $exe.FullName -NewName "Vext-v${{ github.run_number }}.exe"
+
+    - name: Zip publish folder
+      shell: pwsh
+      run: |
+        Compress-Archive -Path ./publish/* -DestinationPath ./publish/Vext-v${{ github.run_number }}.zip -Force
+
+    - name: Create GitHub Release and Upload Assets
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: latest
+        name: Vext Latest Build
+        draft: false
+        prerelease: false
+        make_latest: true
+        generate_release_notes: true
+        files: |
+          ./publish/Vext-v${{ github.run_number }}.exe
+          ./publish/Vext-v${{ github.run_number }}.zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
