@@ -1,3 +1,5 @@
+[![.NET Build and Release](https://github.com/Guy1414/Vext/actions/workflows/dotnet.yml/badge.svg)](https://github.com/Guy1414/Vext/actions/workflows/dotnet.yml)
+
 # Vext Programming Language
 
 Created by [Guy Slutzker](https://github.com/Guy1414)
