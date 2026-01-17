@@ -40,8 +40,8 @@ jobs:
     - name: Create GitHub Release and Upload Assets
       uses: softprops/action-gh-release@v2
       with:
-        tag_name: latest
-        name: Vext Latest Build
+        tag_name: v${{ github.run_number }}
+        name: Vext Build v${{ github.run_number }}
         draft: false
         prerelease: false
         make_latest: true
