@@ -1,0 +1,489 @@
+﻿using System.Runtime.InteropServices;
+using Vext.Modules;
+using Vext.Shared;
+
+namespace Vext.VM
+{
+    /// <summary>
+    /// Represents the type of a Vext value.
+    /// </summary>
+    public enum VextType : byte
+    {
+        /// <summary>
+        /// Represents a numeric type.
+        /// </summary>
+        Number,
+        /// <summary>
+        /// Represents a boolean type.
+        /// </summary>
+        Bool,
+        /// <summary>
+        /// Represents a string type.
+        /// </summary>
+        String,
+        /// <summary>
+        /// Represents a null type.
+        /// </summary>
+        Null
+    }
+
+    /// <summary>
+    /// Represents a value in the Vext virtual machine.
+    /// </summary>
+    public struct VextValue
+    {
+        /// <summary>
+        /// Represents the type of the value.
+        /// </summary>
+        public VextType Type;
+        /// <summary>
+        /// Represents the boolean value.
+        /// </summary>
+        public double AsNumber;
+        /// <summary>
+        /// Represents the numeric value.
+        /// </summary>
+        public bool AsBool;
+        /// <summary>
+        /// Represents the string value.
+        /// </summary>
+        public string AsString;
+
+        /// <summary>
+        /// Takes a number and returns a VextValue of type Number.
+        /// </summary>
+        /// <param name="n"></param>
+        /// <returns></returns>
+        public static VextValue FromNumber(double n) => new VextValue { Type = VextType.Number, AsNumber = n };
+        /// <summary>
+        /// Takes a boolean and returns a VextValue of type Bool.
+        /// </summary>
+        /// <param name="b"></param>
+        /// <returns></returns>
+        public static VextValue FromBool(bool b) => new VextValue { Type = VextType.Bool, AsBool = b };
+        /// <summary>
+        /// Takes a string and returns a VextValue of type String.
+        /// </summary>
+        /// <param name="s"></param>
+        /// <returns></returns>
+        public static VextValue FromString(string s) => new VextValue { Type = VextType.String, AsString = s };
+        /// <summary>
+        /// Takes no arguments and returns a VextValue of type Null.
+        /// </summary>
+        /// <returns></returns>
+        public static VextValue Null() => new VextValue { Type = VextType.Null };
+    }
+
+    internal class VextVM
+    {
+        //private readonly Stack<object?> runtimeStack = new();
+        private VextValue[] stack = new VextValue[256];
+        private VextValue[] variables = new VextValue[64];
+        private readonly Dictionary<string, object> functions = [];
+        private readonly Dictionary<string, Module> modules = [];
+
+        public VextVM(List<Module>? modulesList = null, DefaultFunctions? defaults = null)
+        {
+            // Load modules
+            if (modulesList != null)
+            {
+                foreach (var module in modulesList)
+                {
+                    modules[module.Name] = module;
+
+                    foreach (var funcList in module.Functions.Values)
+                        foreach (var fn in funcList)
+                            functions[fn.Name] = fn;
+                }
+            }
+
+            // Load default functions
+            if (defaults != null)
+            {
+                foreach (var funcList in defaults.Functions.Values)
+                {
+                    foreach (var fn in funcList)
+                    {
+                        functions[fn.Name] = fn;
+                    }
+                }
+            }
+        }
+
+        public VextValue Run(List<Instruction> instructions, ref int sp)
+        {
+            // sp = Stack Pointer
+            int ip = 0; // Instruction Pointer
+
+            ReadOnlySpan<Instruction> code = CollectionsMarshal.AsSpan(instructions);
+
+            while (ip < code.Length)
+            {
+                ref readonly var instr = ref code[ip];
+
+                //Console.WriteLine($"IP: {ip} | OP: {instr.Op} | SP: {sp}");
+
+                switch (instr.Op)
+                {
+                    case VextVMBytecode.LOAD_CONST:
+                        {
+                            VextValue val = default;
+                            switch (instr.Arg)
+                            {
+                                case int i:
+                                    val.Type = VextType.Number;
+                                    val.AsNumber = i;
+                                    break;
+                                case double d:
+                                    val.Type = VextType.Number;
+                                    val.AsNumber = d;
+                                    break;
+                                case bool b:
+                                    val.Type = VextType.Bool;
+                                    val.AsBool = b;
+                                    break;
+                                case string s:
+                                    val.Type = VextType.String;
+                                    val.AsString = s;
+                                    break;
+                                case null:
+                                    val.Type = VextType.Null;
+                                    break;
+                                default:
+                                    throw new Exception($"Unsupported constant type: {instr.Arg.GetType()}");
+                            }
+                            Push(ref sp, val);
+                            break;
+                        }
+
+
+                    case VextVMBytecode.LOAD_VAR:
+                        if (instr.ArgInt < 0 || instr.ArgInt >= variables.Length)
+                            throw new Exception($"Variable at index '{instr.ArgInt}' not defined/out of bounds.");
+
+                        Push(ref sp, variables[instr.ArgInt]);
+                        break;
+
+                    case VextVMBytecode.STORE_VAR:
+                        if (sp == 0)
+                        {
+                            Console.WriteLine($"ERROR: Tried to STORE_VAR {instr.Arg} but stack is empty!");
+                            break;
+                        }
+                        EnsureCapacity(instr.ArgInt);
+                        variables[instr.ArgInt] = Pop(ref sp);
+                        break;
+
+                    case VextVMBytecode.ADD:
+                    case VextVMBytecode.SUB:
+                    case VextVMBytecode.MUL:
+                    case VextVMBytecode.POW:
+                    case VextVMBytecode.DIV:
+                    case VextVMBytecode.MOD:
+                    case VextVMBytecode.EQ:
+                    case VextVMBytecode.NEQ:
+                    case VextVMBytecode.LT:
+                    case VextVMBytecode.LTE:
+                    case VextVMBytecode.GT:
+                    case VextVMBytecode.GTE:
+                        {
+                            if (sp < 2)
+                                throw new Exception($"Not enough operands for {instr.Op}.");
+
+                            VextValue right = Pop(ref sp);
+                            VextValue left = Pop(ref sp);
+
+                            // 1. Handle String Concatenation (Only for ADD)
+                            if (instr.Op == VextVMBytecode.ADD && left.Type == VextType.String)
+                            {
+                                string lStr = left.AsString;
+                                string rStr = right.Type == VextType.String ? right.AsString : right.AsNumber.ToString();
+
+                                VextValue res = new VextValue
+                                {
+                                    Type = VextType.String,
+                                    AsString = lStr + rStr
+                                };
+                                Push(ref sp, res);
+                            }
+                            // 2. Handle Numeric Operations
+                            else if (left.Type == VextType.Number && right.Type == VextType.Number)
+                            {
+                                double lNum = left.AsNumber;
+                                double rNum = right.AsNumber;
+                                var res = instr.Op switch
+                                {
+                                    VextVMBytecode.ADD => new VextValue { Type = VextType.Number, AsNumber = lNum + rNum },
+                                    VextVMBytecode.SUB => new VextValue { Type = VextType.Number, AsNumber = lNum - rNum },
+                                    VextVMBytecode.MUL => new VextValue { Type = VextType.Number, AsNumber = lNum * rNum },
+                                    VextVMBytecode.DIV => new VextValue { Type = VextType.Number, AsNumber = lNum / rNum },
+                                    VextVMBytecode.MOD => new VextValue { Type = VextType.Number, AsNumber = lNum % rNum },
+                                    VextVMBytecode.POW => new VextValue { Type = VextType.Number, AsNumber = Math.Pow(lNum, rNum) },
+                                    VextVMBytecode.EQ => new VextValue { Type = VextType.Bool, AsBool = lNum == rNum },
+                                    VextVMBytecode.NEQ => new VextValue { Type = VextType.Bool, AsBool = lNum != rNum },
+                                    VextVMBytecode.LT => new VextValue { Type = VextType.Bool, AsBool = lNum < rNum },
+                                    VextVMBytecode.LTE => new VextValue { Type = VextType.Bool, AsBool = lNum <= rNum },
+                                    VextVMBytecode.GT => new VextValue { Type = VextType.Bool, AsBool = lNum > rNum },
+                                    VextVMBytecode.GTE => new VextValue { Type = VextType.Bool, AsBool = lNum >= rNum },
+                                    _ => throw new Exception($"Unhandled numeric op {instr.Op}"),
+                                };
+                                Push(ref sp, res);
+
+                            }
+                            // 3. Handle Boolean Equality
+                            else if (left.Type == VextType.Bool && right.Type == VextType.Bool)
+                            {
+                                var res = instr.Op switch
+                                {
+                                    VextVMBytecode.EQ => new VextValue { Type = VextType.Bool, AsBool = left.AsBool == right.AsBool },
+                                    VextVMBytecode.NEQ => new VextValue { Type = VextType.Bool, AsBool = left.AsBool != right.AsBool },
+                                    _ => throw new Exception($"Operator {instr.Op} not supported for Booleans.")
+                                };
+                                Push(ref sp, res);
+                            } else
+                            {
+                                throw new Exception($"Type mismatch for {instr.Op}: {left.Type} and {right.Type}.");
+                            }
+                            break;
+                        }
+
+                    case VextVMBytecode.JMP:
+                        int target = instr.ArgInt;
+                        if (target < 0 || target >= instructions.Count)
+                            throw new Exception($"Invalid jump target {target}.");
+
+                        ip = instr.ArgInt;
+                        continue;
+
+                    case VextVMBytecode.JMP_IF_FALSE:
+                        {
+                            if (sp < 1)
+                                throw new Exception("Stack empty: cannot evaluate JMP_IF_FALSE.");
+
+                            bool cond = Pop(ref sp).AsBool;
+                            if (!cond)
+                            { ip = instr.ArgInt; continue; }
+                            break;
+                        }
+
+                    case VextVMBytecode.JMP_IF_TRUE:
+                        {
+                            if (sp < 1)
+                                throw new Exception("Stack empty: cannot evaluate JMP_IF_TRUE.");
+
+                            bool cond = Pop(ref sp).AsBool;
+
+                            if (cond)
+                            {
+                                ip = instr.ArgInt;
+                                continue;
+                            }
+                            break;
+                        }
+
+                    case VextVMBytecode.JMP_IF_VAR_OP_CONST:
+                        var (slot, op, limit, targetJMPIF) = ((int, string, double, int))instr.Arg!;
+                        if (variables[slot].Type != VextType.Number)
+                            throw new Exception($"JMP_IF_VAR_OP_CONST used on non-numeric variable at slot {slot}");
+
+                        double value = variables[slot].AsNumber;
+                        bool jump = op switch
+                        {
+                            "<" => value >= limit,
+                            "<=" => value > limit,
+                            ">" => value <= limit,
+                            ">=" => value < limit,
+                            _ => throw new Exception($"Unknown operator '{op}' in JMP_IF_VAR_OP_CONST")
+                        };
+
+                        if (jump)
+                        {
+                            ip = targetJMPIF;
+                            continue;
+                        }
+                        break;
+
+                    case VextVMBytecode.RET:
+                        if (sp < 1)
+                            throw new Exception("Stack empty: cannot RET value.");
+
+                        return Pop(ref sp);
+
+                    case VextVMBytecode.CALL:
+                        var (funcInfo, argCount) = ((object, int))instr.Arg!;
+                        VextValue callResult = ExecuteCall(funcInfo, argCount, ref sp);
+                        if (callResult.Type != VextType.Null)
+                            Push(ref sp, callResult);
+                        break;
+
+                    case VextVMBytecode.CALL_VOID:
+                        var (funcInfoV, argCountV) = ((object, int))instr.Arg!;
+                        ExecuteCall(funcInfoV, argCountV, ref sp);
+                        break;
+
+
+                    case VextVMBytecode.DEF_FUNC:
+                        var userFunc = (UserFunction)instr.Arg!;
+                        functions[userFunc.Name] = userFunc;
+                        break;
+
+                    case VextVMBytecode.POP:
+                        if (sp == 0)
+                            throw new Exception("Stack empty: cannot POP value.");
+                        sp--;
+                        break;
+
+                    case VextVMBytecode.NOT:
+                        if (sp == 0)
+                            throw new Exception("Stack empty: cannot NOT");
+                        var top = Pop(ref sp);
+                        top.AsBool = !top.AsBool;
+                        Push(ref sp, top);
+                        break;
+
+                    case VextVMBytecode.INC_VAR:
+                        if (instr.ArgInt < 0 || instr.ArgInt >= variables.Length)
+                            throw new Exception($"INC_VAR index out of bounds: {instr.ArgInt}");
+                        if (variables[instr.ArgInt].Type == VextType.Number)
+                            variables[instr.ArgInt].AsNumber++;
+                        break;
+
+                    case VextVMBytecode.DEC_VAR:
+                        if (instr.ArgInt < 0 || instr.ArgInt >= variables.Length)
+                            throw new Exception($"DEC_VAR index out of bounds: {instr.ArgInt}");
+                        if (variables[instr.ArgInt].Type == VextType.Number)
+                            variables[instr.ArgInt].AsNumber--;
+                        break;
+
+                }
+                ip++;
+            }
+
+            return new VextValue { Type = VextType.Null };
+        }
+
+        private VextValue ExecuteCall(object funcNode, int argCount, ref int sp)
+        {
+            if (sp < argCount)
+                throw new Exception($"Execution Error: function expected {argCount} args but stack has {sp}");
+
+            if (funcNode is string funcName)
+            {
+                // MODULE CALL
+                if (funcName.Contains('.'))
+                {
+                    var parts = funcName.Split('.');
+                    var moduleName = parts[0];
+                    var functionName = parts[1];
+
+                    if (!modules.TryGetValue(moduleName, out var module))
+                        throw new Exception($"Module '{moduleName}' not loaded.");
+
+                    if (!module.Functions.TryGetValue(functionName, out var candidates))
+                        throw new Exception($"Function '{functionName}' not found in module '{moduleName}'.");
+
+                    var matched = candidates.FirstOrDefault(fn => (fn.Parameters?.Count ?? 0) == argCount)
+                        ?? throw new Exception($"Module '{moduleName}' has no overload for '{functionName}' taking {argCount} args.");
+
+                    // Native functions consume arguments as objects
+                    var args = new object[argCount];
+                    for (int i = argCount - 1; i >= 0; i--)
+                    {
+                        var v = Pop(ref sp);
+                        args[i] = v.Type switch
+                        {
+                            VextType.Number => v.AsNumber,
+                            VextType.Bool => v.AsBool,
+                            VextType.String => v.AsString,
+                            _ => null!
+                        };
+                    }
+
+                    return MapToVextValue(matched.Native([.. args]));
+                }
+
+                // GLOBAL / USER FUNCTION
+                if (!functions.TryGetValue(funcName, out var funcObj))
+                    throw new Exception($"Function '{funcName}' not defined.");
+
+                // Native global
+                if (funcObj is Function nativeFunc)
+                {
+                    var args = new object[argCount];
+                    for (int i = argCount - 1; i >= 0; i--)
+                    {
+                        var v = Pop(ref sp);
+                        args[i] = v.Type switch
+                        {
+                            VextType.Number => v.AsNumber,
+                            VextType.Bool => v.AsBool,
+                            VextType.String => v.AsString,
+                            _ => null!
+                        };
+                    }
+
+                    return MapToVextValue(nativeFunc.Native([.. args]));
+                }
+
+                // USER FUNCTION
+                if (funcObj is UserFunction userFunc)
+                {
+                    //Console.WriteLine($"[CALL] Entering {userFunc.Name} with SP={sp}");
+
+                    // Snapshot locals
+                    var snapshot = (VextValue[])variables.Clone();
+
+                    // Run function body
+                    var ret = Run(userFunc.Body, ref sp);
+
+                    // Restore locals
+                    variables = snapshot;
+
+                    return ret;
+                }
+            }
+
+            return VextValue.Null();
+        }
+
+        private static VextValue MapToVextValue(object? value) => value switch
+        {
+            double d => new VextValue { Type = VextType.Number, AsNumber = d },
+            float f => new VextValue { Type = VextType.Number, AsNumber = f },
+            int i => new VextValue { Type = VextType.Number, AsNumber = i },
+            bool b => new VextValue { Type = VextType.Bool, AsBool = b },
+            string s => new VextValue { Type = VextType.String, AsString = s },
+            _ => new VextValue { Type = VextType.Null }
+        };
+
+        private void EnsureCapacity(int index)
+        {
+            if (index >= variables.Length)
+            {
+                // Double the size until it fits the index
+                int newSize = variables.Length * 2;
+                while (index >= newSize)
+                    newSize *= 2;
+
+                Array.Resize(ref variables, newSize);
+            }
+        }
+
+        private void Push(ref int sp, VextValue val)
+        {
+            if (sp >= stack.Length)
+                Array.Resize(ref stack, stack.Length * 2);
+
+            stack[sp++] = val;
+        }
+
+        private VextValue Pop(ref int sp)
+        {
+            if (sp == 0)
+                throw new Exception("Stack empty: cannot POP value.");
+            return stack[--sp];
+        }
+
+        public VextValue[] GetVariables() => variables;
+    }
+}
