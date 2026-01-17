@@ -19,9 +19,7 @@ Currently, this project has **No License**.
 
 ## Overview
 
-Vext is a statically typed, C-style programming language designed for performance, simplicity, and expressive syntax. It features **full expressions, deep function calls, constant folding**, and a custom virtual machine for execution.  
-
-Vext is suitable for **learning compiler design**, experimenting with language features, or building small interpreted programs.
+Vext is a programming language designed for performance, simplicity, and expressive syntax. It features full expressions, deep function calls, constant folding, and a custom virtual machine for execution.
 
 ---
 
@@ -59,8 +57,10 @@ Vext is suitable for **learning compiler design**, experimenting with language f
 - Strings and numeric types automatically folded  
 
 ### Standard Library
-- `print()` for console output  
-- Math functions: `Math.pow`, `Math.sqrt`, `Math.sin`, `Math.cos`, `Math.tan`  
+- `print()` for console output
+- `len()` for getting length of string
+- 
+- Math functions: `Math.pow(float num, float power)`, `Math.sqrt(float num)`, `Math.sin()`, `Math.cos()`, `Math.tan()`, `Math.log()`, `Math.exp()`, `Math.random()`, `Math.random(float min, float max)`, `Math.abs(float num)`, `Math.round(float num)`, `Math.floor(float num)`, `Math.ceil(float num)`, `Math.min(float num)`, `Math.max(float num)`
 
 ### Compiler Architecture
 Vext features a **full compilation pipeline**:
@@ -74,36 +74,34 @@ Vext features a **full compilation pipeline**:
 
 ## Abstract Syntax Tree (AST) Node Types
 
-Vext’s parser generates a structured AST:
-
 **Expressions:**
-ExpressionNode        // base type for all expressions
-BinaryExpressionNode  // binary ops: + - * / **
-UnaryExpressionNode   // unary ops: ++ -- - !
-LiteralNode           // numbers, strings, booleans
-VariableNode          // identifiers
-FunctionCallNode      // function calls
-ModuleAccessNode      // module functions
+- `ExpressionNode` — base type for all expressions  
+- `BinaryExpressionNode` — binary ops: `+ - * / **`  
+- `UnaryExpressionNode` — unary ops: `++ -- - !`  
+- `LiteralNode` — numbers, strings, booleans  
+- `VariableNode` — identifiers  
+- `FunctionCallNode` — function calls  
+- `ModuleAccessNode` — module functions  
 
 **Statements:**
-StatementNode              // base type
-ExpressionStatementNode    // e.g., x + 1;
-VariableDeclarationNode
-IfStatementNode
-WhileStatementNode
-ForStatementNode
-ReturnStatementNode
-AssignmentStatementNode
-IncrementStatementNode
-FunctionDefinitionNode
+- `StatementNode` — base type  
+- `ExpressionStatementNode` — e.g., `x + 1;`  
+- `VariableDeclarationNode`  
+- `IfStatementNode`  
+- `WhileStatementNode`  
+- `ForStatementNode`  
+- `ReturnStatementNode`  
+- `AssignmentStatementNode`  
+- `IncrementStatementNode`  
+- `FunctionDefinitionNode`  
 
 **Function Parameters:**
-FunctionParameterNode  // typed parameters with optional initializers
+- `FunctionParameterNode` — typed parameters with optional initializers  
 
 ---
 
 **Example Program**
-// --- 1. Basic Types & Declarations ---
+```// --- 1. Basic Types & Declarations ---
 int i = 42;
 float f = 3.14159;
 bool flag = true;
@@ -221,21 +219,24 @@ print("finalCalc: " + finalCalc + ", mixed: " + mixed);
 print("empty: '" + empty + "', zero: " + zero + ", negative: " + negative + ", negativeFloat: " + negativeFloat);
 print("falseVal: " + falseVal + ", trueVal: " + trueVal + ", specialChars: " + specialChars);
 print("Big While Loop: " + x);
+```
 
 **This program ran in:**
+```
 --- COMPILATION PHASE ---
- Lexing    :  783 tokens   |   3.1270 ms
- Parsing   :   68 nodes    |  37.1573 ms
- Semantics :    0 errors   |   8.8245 ms
- CodeGen   :  362 ops      |   2.9672 ms
+ Lexing    :  783 tokens   |   3.4101 ms
+ Parsing   :   68 nodes    |  13.7634 ms
+ Semantics :    0 errors   |   8.2346 ms
+ CodeGen   :  362 ops      |   2.8305 ms
 
 --- EXECUTION PHASE ---
- [√] VM finished in 11.1742 ms
+ [√] VM finished in 11.0824 ms
 
 =============================================
-Total Process Time: 123.44 ms
+Total Process Time: 53.68 ms
 =============================================
-
+```
+```
 --- FINAL VM STATE ---
  Variable     | Type       | Value
 ---------------------------------------------
@@ -305,3 +306,4 @@ Total Process Time: 123.44 ms
  Slot 61         | Number     | 0
  Slot 62         | Number     | 0
  Slot 63         | Number     | 0
+```
