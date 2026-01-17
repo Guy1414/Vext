@@ -17,6 +17,14 @@
         /// Reprsent Arg in integer form
         /// </summary>
         public int ArgInt => Arg is null ? 0 : (int)Arg;
+        /// <summary>
+        /// Represents the line number in the source code where this instruction was generated.
+        /// </summary>
+        public int LineNumber { get; set; }
+        /// <summary>
+        /// Represents the column number in the source code where this instruction was generated.
+        /// </summary>
+        public int ColumnNumber { get; set; }
     }
 
     /// <summary>

@@ -129,6 +129,7 @@ namespace Vext.SemanticPass
                         Name = param.Name,
                         VariableType = param.Type,
                         Line = func.Line,
+                        Column = func.Column,
                         SlotIndex = variableSlotIndex++
                     };
 
@@ -468,11 +469,11 @@ namespace Vext.SemanticPass
                             {
                                 "-" => r.Value switch
                                 {
-                                    int i => new LiteralNode { Value = -i, Line = u.Line },
-                                    double d => new LiteralNode { Value = -d, Line = u.Line },
+                                    int i => new LiteralNode { Value = -i, Line = u.Line, Column = u.Column },
+                                    double d => new LiteralNode { Value = -d, Line = u.Line, Column = u.Column },
                                     _ => u
                                 },
-                                "!" => r.Value is bool b ? new LiteralNode { Value = !b, Line = u.Line } : u,
+                                "!" => r.Value is bool b ? new LiteralNode { Value = !b, Line = u.Line, Column = u.Column } : u,
                                 _ => u
                             };
                         }
@@ -497,41 +498,42 @@ namespace Vext.SemanticPass
                                         return new LiteralNode
                                         {
                                             Value = leftValue?.ToString() + rightValue?.ToString(),
-                                            Line = b.Line
+                                            Line = b.Line,
+                                            Column = b.Column
                                         };
                                     }
 
                                     if (leftValue is int li && rightValue is int ri)
-                                        return new LiteralNode { Value = li + ri, Line = b.Line };
+                                        return new LiteralNode { Value = li + ri, Line = b.Line, Column = b.Column };
                                     if (leftValue is double ld && rightValue is double rd)
-                                        return new LiteralNode { Value = ld + rd, Line = b.Line };
+                                        return new LiteralNode { Value = ld + rd, Line = b.Line, Column = b.Column };
                                     if (leftValue is int li2 && rightValue is double rd2)
-                                        return new LiteralNode { Value = li2 + rd2, Line = b.Line };
+                                        return new LiteralNode { Value = li2 + rd2, Line = b.Line, Column = b.Column };
                                     if (leftValue is double ld2 && rightValue is int ri2)
-                                        return new LiteralNode { Value = ld2 + ri2, Line = b.Line };
+                                        return new LiteralNode { Value = ld2 + ri2, Line = b.Line, Column = b.Column };
 
                                     return b;
 
                                 case "-":
                                     if (leftValue is int li3 && rightValue is int ri3)
-                                        return new LiteralNode { Value = li3 - ri3, Line = b.Line };
+                                        return new LiteralNode { Value = li3 - ri3, Line = b.Line, Column = b.Column };
                                     if (leftValue is double ld3 && rightValue is double rd3)
-                                        return new LiteralNode { Value = ld3 - rd3, Line = b.Line };
+                                        return new LiteralNode { Value = ld3 - rd3, Line = b.Line, Column = b.Column };
                                     if (leftValue is int li4 && rightValue is double rd4)
-                                        return new LiteralNode { Value = li4 - rd4, Line = b.Line };
+                                        return new LiteralNode { Value = li4 - rd4, Line = b.Line, Column = b.Column };
                                     if (leftValue is double ld4 && rightValue is int ri4)
-                                        return new LiteralNode { Value = ld4 - ri4, Line = b.Line };
+                                        return new LiteralNode { Value = ld4 - ri4, Line = b.Line, Column = b.Column };
                                     break;
 
                                 case "*":
                                     if (leftValue is int li5 && rightValue is int ri5)
-                                        return new LiteralNode { Value = li5 * ri5, Line = b.Line };
+                                        return new LiteralNode { Value = li5 * ri5, Line = b.Line, Column = b.Column };
                                     if (leftValue is double ld5 && rightValue is double rd5)
-                                        return new LiteralNode { Value = ld5 * rd5, Line = b.Line };
+                                        return new LiteralNode { Value = ld5 * rd5, Line = b.Line, Column = b.Column };
                                     if (leftValue is int li6 && rightValue is double rd6)
-                                        return new LiteralNode { Value = li6 * rd6, Line = b.Line };
+                                        return new LiteralNode { Value = li6 * rd6, Line = b.Line, Column = b.Column };
                                     if (leftValue is double ld6 && rightValue is int ri6)
-                                        return new LiteralNode { Value = ld6 * ri6, Line = b.Line };
+                                        return new LiteralNode { Value = ld6 * ri6, Line = b.Line, Column = b.Column };
                                     break;
 
                                 case "/":
@@ -540,20 +542,20 @@ namespace Vext.SemanticPass
                                         ReportError("Division by zero is not allowed.", b.Line);
                                         return b;
                                     } else if (leftValue is int li7 && rightValue is int ri8)
-                                        return new LiteralNode { Value = (double)li7 / ri8, Line = b.Line };
+                                        return new LiteralNode { Value = (double)li7 / ri8, Line = b.Line, Column = b.Column };
                                     else if (leftValue is double ld7 && rightValue is double rd8)
-                                        return new LiteralNode { Value = ld7 / rd8, Line = b.Line };
+                                        return new LiteralNode { Value = ld7 / rd8, Line = b.Line, Column = b.Column };
                                     else if (leftValue is int li8 && rightValue is double rd9)
-                                        return new LiteralNode { Value = li8 / rd9, Line = b.Line };
+                                        return new LiteralNode { Value = li8 / rd9, Line = b.Line, Column = b.Column };
                                     else if (leftValue is double ld8 && rightValue is int ri9)
-                                        return new LiteralNode { Value = ld8 / ri9, Line = b.Line };
+                                        return new LiteralNode { Value = ld8 / ri9, Line = b.Line, Column = b.Column };
                                     break;
 
                                 case "**":
                                     if ((leftValue is int || leftValue is double) && (rightValue is int || rightValue is double) && Convert.ToDouble(rightValue) != 0)
                                     {
                                         double pow = Math.Pow(Convert.ToDouble(leftValue), Convert.ToDouble(rightValue));
-                                        return new LiteralNode { Value = pow, Line = b.Line };
+                                        return new LiteralNode { Value = pow, Line = b.Line, Column = b.Column };
                                     }
                                     break;
 
@@ -561,14 +563,14 @@ namespace Vext.SemanticPass
                                     if (leftValue is bool lb && !lb)
                                         return left; // short-circuit
                                     if (leftValue is bool lb2 && rightValue is bool rb2)
-                                        return new LiteralNode { Value = lb2 && rb2, Line = b.Line };
+                                        return new LiteralNode { Value = lb2 && rb2, Line = b.Line, Column = b.Column };
                                     break;
 
                                 case "||":
                                     if (leftValue is bool lb3 && lb3)
                                         return left; // short-circuit
                                     if (leftValue is bool lb4 && rightValue is bool rb4)
-                                        return new LiteralNode { Value = lb4 || rb4, Line = b.Line };
+                                        return new LiteralNode { Value = lb4 || rb4, Line = b.Line, Column = b.Column };
                                     break;
                             }
                         }

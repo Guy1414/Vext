@@ -169,6 +169,15 @@ class Program
         double compileTime;
         double executionTime = 0;
 
+        double lexTime;
+        int lexTokenCount;
+        double parsTime;
+        int parsStmtCount;
+        double semTime;
+        int semErrCount;
+        double bytGenTime;
+        int byteGenInstrCount;
+
         // --- COMPILATION PHASE ---
         Stopwatch compileSw = Stopwatch.StartNew();
 
@@ -183,14 +192,18 @@ class Program
             var sw = Stopwatch.StartNew();
             Lexer lexer = new Lexer(code);
             List<Token> tokens = lexer.Tokenize();
-            PrintStat("Lexing", tokens.Count, "tokens", sw.Elapsed.TotalMilliseconds);
+            lexTokenCount = tokens.Count;
+            lexTime = sw.Elapsed.TotalMilliseconds;
+            PrintStat("Lexing", lexTokenCount, "tokens", lexTime);
 
             // Parsing
             phase = "Parser";
             sw.Restart();
             Parser parser = new Parser(tokens);
             List<StatementNode> statements = parser.Parse();
-            PrintStat("Parsing", statements.Count, "nodes", sw.Elapsed.TotalMilliseconds);
+            parsStmtCount = statements.Count;
+            parsTime = sw.ElapsedMilliseconds;
+            PrintStat("Parsing", parsStmtCount, "nodes", parsTime);
 
             // Semantic Analysis
             phase = "Semantic";
@@ -207,7 +220,9 @@ class Program
                 semanticPass.RegisterBuiltInFunctions(funcList);
 
             List<string> errors = semanticPass.Pass();
-            PrintStat("Semantics", errors.Count, "errors", sw.Elapsed.TotalMilliseconds);
+            semErrCount = errors.Count;
+            semTime = sw.Elapsed.TotalMilliseconds;
+            PrintStat("Semantics", semErrCount, "errors", semTime);
 
             if (errors.Count > 0)
             {
@@ -224,7 +239,9 @@ class Program
             foreach (var stmt in statements)
                 BytecodeGenerator.EmitStatement(stmt, instructions);
 
-            PrintStat("Bytecode Gen", instructions.Count, "ops", sw.Elapsed.TotalMilliseconds);
+            byteGenInstrCount = instructions.Count;
+            bytGenTime = sw.Elapsed.TotalMilliseconds;
+            PrintStat("Bytecode Gen", byteGenInstrCount, "ops", bytGenTime);
 
             compileSw.Stop();
             compileTime = compileSw.Elapsed.TotalMilliseconds;
@@ -304,12 +321,12 @@ class Program
                 VextValue val = values[i]!;
                 if (!varMap.ContainsKey(i) || val.Type == VextType.Null)
                     continue;
-
                 string name = varMap[i];
                 string displayValue = val.Type switch
                 {
                     VextType.Number => val.AsNumber.ToString(),
                     VextType.Bool => val.AsBool ? "true" : "false",
+
                     VextType.String => val.AsString ?? "",
                     VextType.Null => "null",
                     _ => "unknown"
@@ -334,7 +351,37 @@ class Program
             Console.ResetColor();
         }
 
-        Console.WriteLine($"\nTotal Run Time: {(executionTime + compileTime):F4} ms");
+        Console.WriteLine(new string('=', 65));
+        Console.WriteLine($"\nTotal Run Time: {(executionTime + compileTime):F4} ms\n");
+        Console.WriteLine(new string('=', 65));
+
+        Console.WriteLine("Press Enter to continue...");
+        Console.ReadLine();
+
+        Console.ForegroundColor = ConsoleColor.Yellow;
+        Console.WriteLine($"\n\nSo, to recap:");
+        Console.ResetColor();
+
+        PrintHeader("COMPILATION PHASE");
+
+        PrintStat("Lexing", lexTokenCount, "tokens", lexTime);
+        PrintStat("Parsing", parsStmtCount, "nodes", parsTime);
+        PrintStat("Semantics", semErrCount, "errors", semTime);
+        PrintStat("Bytecode Gen", byteGenInstrCount, "ops", bytGenTime);
+
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.WriteLine($"\n[✓] Compilation finished in {compileTime:F4} ms\n");
+        Console.ResetColor();
+
+        PrintHeader("EXECUTION PHASE");
+
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.WriteLine($"\n[✓] Execution finished in {executionTime:F4} ms\n");
+        Console.ResetColor();
+
+        Console.WriteLine(new string('=', 65));
+        Console.WriteLine($"\nTotal Run Time: {(executionTime + compileTime):F4} ms\n");
+        Console.WriteLine(new string('=', 65));
     }
 
     static void PrintHeader(string title)
@@ -346,6 +393,7 @@ class Program
 
     static void PrintStat(string phase, int count, string label, double ms)
     {
-        Console.WriteLine($" {phase,-10}: {count,5} {label,-8} | {ms,8:F4} ms");
+        Console.WriteLine($" {phase,-15} | {count,-5} {label,-8} | {ms,8:F4} ms");
+        Console.WriteLine(new string('─', 50));
     }
 }
