@@ -2,6 +2,8 @@
 
 Created by [Guy Slutzker](https://github.com/Guy1414)
 
+[![Current Version](https://img.shields.io/github/v/release/Guy1414/Vext?include_prereleases&color=28A745&label=Version)](https://github.com/Guy1414/Vext/releases/latest)
+
 ---
 
 ## 🛑 License & Usage
