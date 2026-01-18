@@ -37,7 +37,7 @@ namespace Vext.Parser
                     stmt = ParseStatement();
                 } catch (Exception ex)
                 {
-                    // Shouldn't normally happen because Parse* methods report errors instead of throwing,
+                    // Shouldn't normally happen because Parse methods report errors instead of throwing,
                     // but catch any unexpected exception to convert into an error and attempt to continue.
                     var tok = currentToken < tokens.Count ? tokens[currentToken] : new Token(TokenType.EOF, "", 0, 0);
                     ReportError(ex.Message, tok.Line);

@@ -62,22 +62,24 @@ namespace Vext.Bytecode_Generator
                     // All other binary ops
                     EmitExpression(b.Left, instructions);
                     EmitExpression(b.Right, instructions);
-                    instructions.Add(b.Operator switch
+                    VextVMBytecode op = b.Operator switch
                     {
-                        "+" => new Instruction { Op = VextVMBytecode.ADD, LineNumber = b.Line, ColumnNumber = b.Column },
-                        "-" => new Instruction { Op = VextVMBytecode.SUB, LineNumber = b.Line, ColumnNumber = b.Column },
-                        "*" => new Instruction { Op = VextVMBytecode.MUL, LineNumber = b.Line, ColumnNumber = b.Column },
-                        "/" => new Instruction { Op = VextVMBytecode.DIV, LineNumber = b.Line, ColumnNumber = b.Column },
-                        "**" => new Instruction { Op = VextVMBytecode.POW, LineNumber = b.Line, ColumnNumber = b.Column },
-                        "%" => new Instruction { Op = VextVMBytecode.MOD, LineNumber = b.Line, ColumnNumber = b.Column },
-                        "==" => new Instruction { Op = VextVMBytecode.EQ, LineNumber = b.Line, ColumnNumber = b.Column },
-                        "!=" => new Instruction { Op = VextVMBytecode.NEQ, LineNumber = b.Line, ColumnNumber = b.Column },
-                        "<" => new Instruction { Op = VextVMBytecode.LT, LineNumber = b.Line, ColumnNumber = b.Column },
-                        ">" => new Instruction { Op = VextVMBytecode.GT, LineNumber = b.Line, ColumnNumber = b.Column },
-                        "<=" => new Instruction { Op = VextVMBytecode.LTE, LineNumber = b.Line, ColumnNumber = b.Column },
-                        ">=" => new Instruction { Op = VextVMBytecode.GTE, LineNumber = b.Line, ColumnNumber = b.Column },
+                        "+" => VextVMBytecode.ADD,
+                        "-" => VextVMBytecode.SUB,
+                        "*" => VextVMBytecode.MUL,
+                        "/" => VextVMBytecode.DIV,
+                        "**" => VextVMBytecode.POW,
+                        "%" => VextVMBytecode.MOD,
+                        "==" => VextVMBytecode.EQ,
+                        "!=" => VextVMBytecode.NEQ,
+                        "<" => VextVMBytecode.LT,
+                        ">" => VextVMBytecode.GT,
+                        "<=" => VextVMBytecode.LTE,
+                        ">=" => VextVMBytecode.GTE,
                         _ => throw new Exception($"Unknown operator {b.Operator}")
-                    });
+                    };
+
+                    instructions.Add(new Instruction { Op = op, LineNumber = b.Line, ColumnNumber = b.Column });
                 }
             } else if (expr is FunctionCallNode f)
             {
@@ -374,7 +376,7 @@ namespace Vext.Bytecode_Generator
                     LocalCount = func.Arguments.Count + CountLocals(func.Body)
                 };
 
-                // 3. Register the function in your VM functions dictionary
+                // 3. Register the function in VM functions dictionary
                 instructions.Add(new Instruction
                 {
                     Op = VextVMBytecode.DEF_FUNC,
