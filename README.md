@@ -120,7 +120,7 @@ Vext features a full compilation pipeline:
 
 ---
 
-**Example Program:**
+# **Example Program:**
 ```
 // --- 1. Basic Types & Declarations ---
 int i = 42;
