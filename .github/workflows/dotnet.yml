@@ -8,7 +8,7 @@ jobs:
   build:
     runs-on: windows-latest
     env:
-      PROJECT_PATH: './Vext/Vext.TestRunner.csproj'
+      PROJECT_PATH: './Vext.TestRunner/Vext.TestRunner.csproj'
 
     steps:
     - name: Checkout repository
@@ -31,11 +31,13 @@ jobs:
     - name: Rename TestRunner executable
       shell: pwsh
       run: |
-        Rename-Item ./publish/Vext.TestRunner.exe -NewName "Vext-v${{ github.run_number }}.exe"
+        $newExe = "Vext-v${{ github.run_number }}.exe"
+        Rename-Item ./publish/Vext.TestRunner.exe -NewName $newExe
 
-    - name: Zip entire publish folder
+    - name: Zip entire publish folder (including renamed exe)
       shell: pwsh
       run: |
+        $newExe = "Vext-v${{ github.run_number }}.exe"
         Compress-Archive -Path ./publish/* -DestinationPath ./publish/Vext-v${{ github.run_number }}.zip -Force
 
     - name: Create GitHub Release and Upload Assets
