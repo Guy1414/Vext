@@ -7,6 +7,8 @@ on:
 jobs:
   build:
     runs-on: windows-latest
+    env:
+      PROJECT_PATH: './Vext.TestRunner/Vext.TestRunner.csproj'
 
     steps:
     - name: Checkout repository
@@ -18,23 +20,24 @@ jobs:
         dotnet-version: 10.0.x
         
     - name: Restore dependencies
-      run: dotnet restore
+      run: dotnet restore ${{ env.PROJECT_PATH }}
 
     - name: Build
-      run: dotnet build --configuration Release --no-restore
+      run: dotnet build ${{ env.PROJECT_PATH }} --configuration Release --no-restore
 
-    - name: Publish application
-      run: dotnet publish ./Vext/Vext.TestRunner.csproj -c Release -r win-x64 --self-contained true -p:PublishAot=true -o ./publish
-    
-    - name: Rename executable
+    - name: Publish TestRunner
+      run: dotnet publish ${{ env.PROJECT_PATH }} -c Release -r win-x64 --self-contained true -p:PublishAot=true -o ./publish
+
+    - name: Rename TestRunner executable
       shell: pwsh
       run: |
-        $exe = Get-ChildItem ./publish/*.exe | Select-Object -First 1
-        Rename-Item $exe.FullName -NewName "Vext-v${{ github.run_number }}.exe"
+        $newExe = "Vext-v${{ github.run_number }}.exe"
+        Rename-Item ./publish/Vext.TestRunner.exe -NewName $newExe
 
-    - name: Zip publish folder
+    - name: Zip entire publish folder (including renamed exe)
       shell: pwsh
       run: |
+        $newExe = "Vext-v${{ github.run_number }}.exe"
         Compress-Archive -Path ./publish/* -DestinationPath ./publish/Vext-v${{ github.run_number }}.zip -Force
 
     - name: Create GitHub Release and Upload Assets
