@@ -24,7 +24,7 @@ jobs:
       run: dotnet build --configuration Release --no-restore
 
     - name: Publish application
-      run: dotnet publish ./Vext/Vext.csproj -c Release -r win-x64 --self-contained true -p:PublishAot=true -o ./publish
+      run: dotnet publish ./Vext/Vext.TestRunner.csproj -c Release -r win-x64 --self-contained true -p:PublishAot=true -o ./publish
     
     - name: Rename executable
       shell: pwsh
