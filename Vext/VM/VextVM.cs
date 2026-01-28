@@ -30,24 +30,25 @@ namespace Vext.VM
     /// <summary>
     /// Represents a value in the Vext virtual machine.
     /// </summary>
+    [StructLayout(LayoutKind.Explicit)]
     public struct VextValue
     {
         /// <summary>
         /// Represents the type of the value.
         /// </summary>
-        public VextType Type;
+        [FieldOffset(0)] public VextType Type;
         /// <summary>
         /// Represents the boolean value.
         /// </summary>
-        public double AsNumber;
+        [FieldOffset(8)] public double AsNumber;
         /// <summary>
         /// Represents the numeric value.
         /// </summary>
-        public bool AsBool;
+        [FieldOffset(8)] public bool AsBool;
         /// <summary>
         /// Represents the string value.
         /// </summary>
-        public string AsString;
+        [FieldOffset(16)] public string AsString;
 
         /// <summary>
         /// Takes a number and returns a VextValue of type Number.
@@ -127,35 +128,10 @@ namespace Vext.VM
                 {
                     case VextVMBytecode.LOAD_CONST:
                         {
-                            VextValue val = default;
-                            switch (instr.Arg)
-                            {
-                                case int i:
-                                    val.Type = VextType.Number;
-                                    val.AsNumber = i;
-                                    break;
-                                case double d:
-                                    val.Type = VextType.Number;
-                                    val.AsNumber = d;
-                                    break;
-                                case bool b:
-                                    val.Type = VextType.Bool;
-                                    val.AsBool = b;
-                                    break;
-                                case string s:
-                                    val.Type = VextType.String;
-                                    val.AsString = s;
-                                    break;
-                                case null:
-                                    val.Type = VextType.Null;
-                                    break;
-                                default:
-                                    throw new Exception($"Unsupported constant type: {instr.Arg.GetType()}");
-                            }
+                            VextValue val = instr.ArgVal;
                             Push(ref sp, val);
                             break;
                         }
-
 
                     case VextVMBytecode.LOAD_VAR:
                         if (instr.ArgInt < 0 || instr.ArgInt >= variables.Length)

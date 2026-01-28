@@ -1,5 +1,6 @@
 ﻿using Vext.Parser;
 using Vext.Shared;
+using Vext.VM;
 
 namespace Vext.Bytecode_Generator
 {
@@ -9,10 +10,21 @@ namespace Vext.Bytecode_Generator
         {
             if (expr is LiteralNode l)
             {
+                VextValue vl = l.Value switch
+                {
+                    int i => VextValue.FromNumber(i),
+                    double d => VextValue.FromNumber(d),
+                    bool b => VextValue.FromBool(b),
+                    string s => VextValue.FromString(s),
+                    null => VextValue.Null(),
+                    _ => throw new Exception($"Unsupported literal type {l.Value.GetType()}")
+                };
                 instructions.Add(new Instruction
                 {
                     Op = VextVMBytecode.LOAD_CONST,
-                    Arg = l.Value
+                    ArgVal = vl,
+                    LineNumber = l.Line,
+                    ColumnNumber = l.Column
                 });
             } else if (expr is VariableNode v)
             {
@@ -38,7 +50,7 @@ namespace Vext.Bytecode_Generator
 
                     // Target for jumpFalse
                     instructions[jumpFalse].Arg = instructions.Count;
-                    instructions.Add(new Instruction { Op = VextVMBytecode.LOAD_CONST, Arg = false, LineNumber = b.Line, ColumnNumber = b.Column });
+                    instructions.Add(new Instruction { Op = VextVMBytecode.LOAD_CONST, ArgVal = new VextValue { Type = VextType.Bool, AsBool = false }, LineNumber = b.Line, ColumnNumber = b.Column });
 
                     instructions[jumpEnd].Arg = instructions.Count;
                 } else if (b.Operator == "||")
@@ -54,7 +66,7 @@ namespace Vext.Bytecode_Generator
 
                     // Target for jumpTrue
                     instructions[jumpTrue].Arg = instructions.Count;
-                    instructions.Add(new Instruction { Op = VextVMBytecode.LOAD_CONST, Arg = true, LineNumber = b.Line, ColumnNumber = b.Column });
+                    instructions.Add(new Instruction { Op = VextVMBytecode.LOAD_CONST, ArgVal = new VextValue { Type = VextType.Bool, AsBool = true }, LineNumber = b.Line, ColumnNumber = b.Column });
 
                     instructions[jumpEnd].Arg = instructions.Count;
                 } else
@@ -117,7 +129,7 @@ namespace Vext.Bytecode_Generator
 
                 if (u.Operator == "-")
                 {
-                    instructions.Add(new Instruction { Op = VextVMBytecode.LOAD_CONST, Arg = -1, LineNumber = u.Line, ColumnNumber = u.Column });
+                    instructions.Add(new Instruction { Op = VextVMBytecode.LOAD_CONST, ArgVal = new VextValue { Type = VextType.Number, AsNumber = -1 }, LineNumber = u.Line, ColumnNumber = u.Column });
                     instructions.Add(new Instruction { Op = VextVMBytecode.MUL, LineNumber = u.Line, ColumnNumber = u.Column });
                 } else if (u.Operator == "!")
                 {
@@ -260,7 +272,7 @@ namespace Vext.Bytecode_Generator
                     instructions.Add(new Instruction
                     {
                         Op = VextVMBytecode.LOAD_CONST,
-                        Arg = null,
+                        ArgVal = VextValue.Null(),
                         LineNumber = varDecl.Line,
                         ColumnNumber = varDecl.Column
                     });
@@ -360,7 +372,7 @@ namespace Vext.Bytecode_Generator
                     funcInstructions.Add(new Instruction
                     {
                         Op = VextVMBytecode.LOAD_CONST,
-                        Arg = null,
+                        ArgVal = VextValue.Null(),
                         LineNumber = func.Line,
                         ColumnNumber = func.Column
                     });

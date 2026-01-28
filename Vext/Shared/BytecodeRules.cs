@@ -1,4 +1,6 @@
-﻿namespace Vext.Shared
+﻿using Vext.VM;
+
+namespace Vext.Shared
 {
     /// <summary>
     /// Represents a single bytecode instruction for the Vext virtual machine.
@@ -17,6 +19,11 @@
         /// Reprsent Arg in integer form
         /// </summary>
         public int ArgInt => Arg is null ? 0 : (int)Arg;
+
+        /// <summary>
+        /// Gets the argument value as a <see cref="VextValue"/> instance.
+        /// </summary>
+        public VextValue ArgVal { get; set; }
         /// <summary>
         /// Represents the line number in the source code where this instruction was generated.
         /// </summary>
