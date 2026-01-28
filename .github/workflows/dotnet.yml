@@ -33,29 +33,30 @@ jobs:
           -p:PublishSingleFile=true `
           -p:EnableCompressionInSingleFile=true `
           -p:IncludeAllContentForSelfExtract=false `
+          -p:IncludeNativeLibrariesForSelfExtract=false `
           -p:DebugType=None `
           -p:DebugSymbols=false `
           -o ./publish
 
-    - name: Rename TestRunner executable
+    - name: Rename TestRunner executable (stable name)
       shell: pwsh
       run: |
-        $exe = Get-ChildItem ./publish/*.exe | Select-Object -First 1
-        Rename-Item $exe.FullName -NewName "Vext-v${{ github.run_number }}.exe"
+        Rename-Item "./publish/Vext.TestRunner.exe" -NewName "Vext.exe"
 
     - name: Generate SHA256 checksum
       shell: pwsh
       run: |
-        $exe = "./publish/Vext-v${{ github.run_number }}.exe"
-        certutil -hashfile $exe SHA256 |
+        certutil -hashfile "./publish/Vext.exe" SHA256 |
           Select-Object -Skip 1 -First 1 |
-          Out-File "$exe.sha256" -Encoding ascii
+          Out-File "./publish/Vext.exe.sha256" -Encoding ascii
 
-    - name: Zip entire publish folder (including renamed exe)
+    - name: Zip entire publish folder (versioned)
       shell: pwsh
       run: |
-        $newExe = "Vext-v${{ github.run_number }}.exe"
-        Compress-Archive -Path ./publish/* -DestinationPath ./publish/Vext-v${{ github.run_number }}.zip -Force
+        Compress-Archive `
+          -Path ./publish/* `
+          -DestinationPath ./publish/Vext-v${{ github.run_number }}.zip `
+          -Force
 
     - name: Create GitHub Release and Upload Assets
       uses: softprops/action-gh-release@v2
@@ -67,8 +68,8 @@ jobs:
         make_latest: true
         generate_release_notes: true
         files: |
-          ./publish/Vext-v${{ github.run_number }}.exe
-          ./publish/Vext-v${{ github.run_number }}.exe.sha256
+          ./publish/Vext.exe
+          ./publish/Vext.exe.sha256
           ./publish/Vext-v${{ github.run_number }}.zip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
