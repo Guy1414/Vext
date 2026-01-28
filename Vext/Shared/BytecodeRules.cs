@@ -1,4 +1,4 @@
-﻿using Vext.VM;
+﻿using Vext.Compiler.VM;
 
 namespace Vext.Shared
 {
@@ -23,7 +23,7 @@ namespace Vext.Shared
         /// <summary>
         /// Gets the argument value as a <see cref="VextValue"/> instance.
         /// </summary>
-        public VextValue ArgVal { get; set; }
+        public VextValue ArgVal { get; set; } = VextValue.FromString("");
         /// <summary>
         /// Represents the line number in the source code where this instruction was generated.
         /// </summary>

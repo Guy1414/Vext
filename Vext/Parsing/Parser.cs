@@ -1,8 +1,8 @@
 ﻿using System.Globalization;
+using Vext.Compiler.Shared;
 using Vext.Lexer;
-using Vext.Shared;
 
-namespace Vext.Parser
+namespace Vext.Compiler.Parsing
 {
     internal class Parser(List<Token> tokens)
     {

@@ -1,9 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
-VisualStudioVersion = 18.1.11312.151 d18.0
+VisualStudioVersion = 18.1.11312.151
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Vext", "Vext\Vext.csproj", "{D78A720A-263F-42A6-A36A-E23386F7130D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Vext.Compiler", "Vext\Vext.Compiler.csproj", "{D78A720A-263F-42A6-A36A-E23386F7130D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Vext.TestRunner", "Vext.TestRunner\Vext.TestRunner.csproj", "{11C8CB6A-EFCE-4EBD-89A5-6945B77D390D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Vext.LSP", "Vext.LSP\Vext.LSP.csproj", "{1C0BFCD6-989B-41B3-B393-82A93AF4E51D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +19,14 @@ Global
 		{D78A720A-263F-42A6-A36A-E23386F7130D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D78A720A-263F-42A6-A36A-E23386F7130D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D78A720A-263F-42A6-A36A-E23386F7130D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{11C8CB6A-EFCE-4EBD-89A5-6945B77D390D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{11C8CB6A-EFCE-4EBD-89A5-6945B77D390D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{11C8CB6A-EFCE-4EBD-89A5-6945B77D390D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{11C8CB6A-EFCE-4EBD-89A5-6945B77D390D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1C0BFCD6-989B-41B3-B393-82A93AF4E51D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1C0BFCD6-989B-41B3-B393-82A93AF4E51D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1C0BFCD6-989B-41B3-B393-82A93AF4E51D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1C0BFCD6-989B-41B3-B393-82A93AF4E51D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

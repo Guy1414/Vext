@@ -1,6 +1,7 @@
-﻿using Vext.Parser;
+﻿using Vext.Compiler.Parsing;
+using Vext.Modules;
 
-namespace Vext.Modules
+namespace Vext.Compiler.Modules
 {
     internal class MathFunctions : Module
     {

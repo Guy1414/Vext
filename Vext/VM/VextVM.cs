@@ -1,8 +1,9 @@
 ﻿using System.Runtime.InteropServices;
+using Vext.Compiler.Modules;
 using Vext.Modules;
 using Vext.Shared;
 
-namespace Vext.VM
+namespace Vext.Compiler.VM
 {
     /// <summary>
     /// Represents the type of a Vext value.
@@ -73,8 +74,32 @@ namespace Vext.VM
         /// </summary>
         /// <returns></returns>
         public static VextValue Null() => new VextValue { Type = VextType.Null };
+
+        /// <summary>
+        /// Returns a string representation of the VextValue.
+        /// </summary>
+        /// <returns></returns>
+        public override readonly string ToString()
+        {
+            return Type switch
+            {
+                VextType.Number => AsNumber.ToString(),
+                VextType.Bool => AsBool.ToString(),
+                VextType.String => AsString ?? "null",
+                VextType.Null => "null",
+                _ => "unknown"
+            };
+        }
     }
 
+    /// <summary>
+    /// Represents a virtual machine for executing Vext bytecode instructions, supporting user-defined and built-in
+    /// functions, variables, and modules.
+    /// </summary>
+    /// <remarks>The VextVM class provides an execution environment for Vext scripts, managing the runtime
+    /// stack, variable storage, and function/module resolution. It supports both native and user-defined functions, as
+    /// well as module-based function organization. Instances of this class are not thread-safe and should not be shared
+    /// across threads without external synchronization.</remarks>
     internal class VextVM
     {
         //private readonly Stack<object?> runtimeStack = new();
@@ -83,6 +108,12 @@ namespace Vext.VM
         private readonly Dictionary<string, object> functions = [];
         private readonly Dictionary<string, Module> modules = [];
 
+        /// <summary>
+        /// Initializes a new instance of the VextVM class with the specified modules and default functions.
+        /// </summary>
+        /// <param name="modulesList">A list of modules to load into the virtual machine. If null, no modules are loaded.</param>
+        /// <param name="defaults">An object containing default functions to load into the virtual machine. If null, no default functions are
+        /// loaded.</param>
         public VextVM(List<Module>? modulesList = null, DefaultFunctions? defaults = null)
         {
             // Load modules
@@ -111,6 +142,21 @@ namespace Vext.VM
             }
         }
 
+        /// <summary>
+        /// Executes a sequence of virtual machine instructions and returns the result of the computation.
+        /// </summary>
+        /// <remarks>The method processes instructions sequentially, updating the stack and variable state
+        /// as required. The stack pointer parameter is modified to reflect the final stack state after execution. The
+        /// method supports a variety of operations, including arithmetic, logical, control flow, and function calls. If
+        /// a RET instruction is encountered, the value at the top of the stack is returned immediately.</remarks>
+        /// <param name="instructions">The list of instructions to execute. Each instruction represents an operation to be performed by the virtual
+        /// machine. Cannot be null.</param>
+        /// <param name="sp">A reference to the current stack pointer. This value is updated to reflect the stack state as instructions
+        /// are executed.</param>
+        /// <returns>The result value produced by the executed instructions. If the instruction sequence does not explicitly
+        /// return a value, a value of type Null is returned.</returns>
+        /// <exception cref="Exception">Thrown if an invalid operation is encountered during execution, such as stack underflow, invalid variable
+        /// access, type mismatch, or an invalid jump target.</exception>
         public VextValue Run(List<Instruction> instructions, ref int sp)
         {
             // sp = Stack Pointer
@@ -460,6 +506,11 @@ namespace Vext.VM
             return stack[--sp];
         }
 
+        /// <summary>
+        /// Gets the collection of variables associated with this instance.
+        /// </summary>
+        /// <returns>An array of <see cref="VextValue"/> objects representing the variables. The array may be empty if no
+        /// variables are defined.</returns>
         public VextValue[] GetVariables() => variables;
     }
 }

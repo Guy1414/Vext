@@ -1,4 +1,4 @@
-﻿using Vext.Parser;
+﻿using Vext.Compiler.Parsing;
 
 namespace Vext.Modules
 {

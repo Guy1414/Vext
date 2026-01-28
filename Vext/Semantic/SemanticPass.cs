@@ -1,9 +1,9 @@
 ﻿using System.Collections;
+using Vext.Compiler.Parsing;
+using Vext.Compiler.Shared;
 using Vext.Modules;
-using Vext.Parser;
-using Vext.Shared;
 
-namespace Vext.SemanticPass
+namespace Vext.Compiler.Semantic
 {
     internal class SemanticPass(List<StatementNode> statements)
     {
@@ -16,13 +16,13 @@ namespace Vext.SemanticPass
         private Scope? currentScope;
         private readonly Stack<BitArray> assignedSlots = new();
         private readonly Dictionary<int, VariableDeclarationNode> visibleVariables = [];
-        private readonly Dictionary<int, string> slotToVarNameMap = [];
+        private readonly Dictionary<int, string> slotToNameMap = [];
         private int variableSlotIndex = 0;
 
         private readonly List<string> _errors = [];
 
         public List<FunctionDefinitionNode> GetDiscoveredFunctions() => functions;
-        public Dictionary<int, string> GetVariableMap() => slotToVarNameMap;
+        public Dictionary<int, string> GetVariableMap() => slotToNameMap;
 
         public List<string> Pass()
         {
@@ -135,7 +135,7 @@ namespace Vext.SemanticPass
 
                     param.SlotIndex = decl.SlotIndex;
                     currentScope!.Variables[param.Name] = decl;
-                    slotToVarNameMap[decl.SlotIndex] = param.Name;
+                    slotToNameMap[decl.SlotIndex] = param.Name;
 
                     assignedSlots.Peek().Set(decl.SlotIndex, true);
                 }
@@ -787,7 +787,7 @@ namespace Vext.SemanticPass
 
             v.SlotIndex = variableSlotIndex++;
             currentScope.Variables[v.Name] = v;
-            slotToVarNameMap[v.SlotIndex] = v.Name;
+            slotToNameMap[v.SlotIndex] = v.Name;
 
             var currentBits = assignedSlots.Peek();
             if (v.SlotIndex >= currentBits.Length)

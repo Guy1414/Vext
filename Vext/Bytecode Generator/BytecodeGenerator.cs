@@ -1,8 +1,8 @@
-﻿using Vext.Parser;
+﻿using Vext.Compiler.Parsing;
+using Vext.Compiler.VM;
 using Vext.Shared;
-using Vext.VM;
 
-namespace Vext.Bytecode_Generator
+namespace Vext.Compiler.Bytecode_Generator
 {
     internal class BytecodeGenerator
     {

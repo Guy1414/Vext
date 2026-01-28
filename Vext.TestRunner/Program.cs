@@ -1,11 +1,6 @@
 ﻿using System.Diagnostics;
-using Vext.Bytecode_Generator;
-using Vext.Lexer;
-using Vext.Modules;
-using Vext.Parser;
-using Vext.SemanticPass;
-using Vext.Shared;
-using Vext.VM;
+using Vext.Compiler;
+using Vext.Compiler.VM;
 
 class Program
 {
@@ -132,17 +127,16 @@ class Program
         print("Big While Loop: " + x);
         """;
     }
+
     static void Main()
     {
-        string tempPath = Path.Combine(Path.GetTempPath(), "VextUserCode.vext");
-        File.WriteAllText(tempPath, DefaultCode());
-
         Console.WriteLine("A notepad window will open with default code. Edit it as you like, save it, and close notepad.");
         Console.WriteLine("Press Enter to open the editor...");
         Console.ReadLine();
+        string tempPath = Path.Combine(Path.GetTempPath(), "VextUserCode.vext");
+        File.WriteAllText(tempPath, DefaultCode());
 
-        Process editor = Process.Start("notepad.exe", tempPath);
-        editor.WaitForExit();
+        Process.Start("notepad.exe", tempPath).WaitForExit();
 
         string userCode = File.ReadAllText(tempPath);
 
@@ -152,198 +146,94 @@ class Program
         Console.ResetColor();
         Console.WriteLine("--- USER CODE END ---\n");
 
-        Console.WriteLine("Press Enter to start the compilation proccess...");
-        Console.ReadLine();
-
         RunVext(userCode);
-
-        Console.WriteLine("\nPress Enter to exit...");
-        Console.ReadLine();
     }
 
     static void RunVext(string code)
     {
         string phase = "";
-        List<Instruction> instructions = [];
 
+        // Variables for summary
         double compileTime;
         double executionTime = 0;
 
-        double lexTime;
-        int lexTokenCount;
-        double parsTime;
-        int parsStmtCount;
-        double semTime;
-        int semErrCount;
-        double bytGenTime;
-        int byteGenInstrCount;
-
         // --- COMPILATION PHASE ---
+        Console.WriteLine("Press Enter to start the compilation process...");
+        Console.ReadLine();
+
+        CompilationResult result;
         Stopwatch compileSw = Stopwatch.StartNew();
-
-        SemanticPass semanticPass;
-
         try
         {
+            phase = "Compilation";
             PrintHeader("COMPILATION PHASE");
 
-            // Lexing
-            phase = "Lexer";
-            var sw = Stopwatch.StartNew();
-            Lexer lexer = new Lexer(code);
-            List<Token> tokens = lexer.Tokenize();
-            lexTokenCount = tokens.Count;
-            lexTime = sw.Elapsed.TotalMilliseconds;
-            PrintStat("Lexing", lexTokenCount, "tokens", lexTime);
+            result = VextEngine.Compile(code);
 
-            // Parsing
-            phase = "Parser";
-            sw.Restart();
-            Parser parser = new Parser(tokens);
-            List<StatementNode> statements = parser.Parse();
-            parsStmtCount = statements.Count;
-            parsTime = sw.ElapsedMilliseconds;
-            PrintStat("Parsing", parsStmtCount, "nodes", parsTime);
+            PrintStat("Lexing", result.TokenCount, "tokens", result.LexTime);
+            PrintStat("Parsing", result.NodeCount, "nodes", result.ParseTime);
+            PrintStat("Semantics", result.Errors.Count, "errors", result.SemanticTime);
 
-            // Semantic Analysis
-            phase = "Semantic";
-            sw.Restart();
-            semanticPass = new SemanticPass(statements);
-
-            var mathModule = new MathFunctions { Name = "Math" }.Initialize();
-            foreach (var funcList in mathModule.Functions.Values)
-                semanticPass.RegisterBuiltInFunctions(funcList);
-
-            var defaults = new DefaultFunctions();
-            defaults.Initialize();
-            foreach (var funcList in defaults.Functions.Values)
-                semanticPass.RegisterBuiltInFunctions(funcList);
-
-            List<string> errors = semanticPass.Pass();
-            semErrCount = errors.Count;
-            semTime = sw.Elapsed.TotalMilliseconds;
-            PrintStat("Semantics", semErrCount, "errors", semTime);
-
-            if (errors.Count > 0)
+            if (result.Errors.Count > 0)
             {
                 Console.ForegroundColor = ConsoleColor.Red;
-                foreach (var e in errors)
+                foreach (var e in result.Errors)
                     Console.WriteLine($" [!] {e}");
                 Console.ResetColor();
                 return;
             }
 
-            // Bytecode Generation
-            phase = "Bytecode Gen";
-            sw.Restart();
-            foreach (var stmt in statements)
-                BytecodeGenerator.EmitStatement(stmt, instructions);
-
-            byteGenInstrCount = instructions.Count;
-            bytGenTime = sw.Elapsed.TotalMilliseconds;
-            PrintStat("Bytecode Gen", byteGenInstrCount, "ops", bytGenTime);
+            PrintStat("Bytecode Gen", result.Instructions.Count, "ops", result.BytecodeTime);
 
             compileSw.Stop();
             compileTime = compileSw.Elapsed.TotalMilliseconds;
+
             Console.ForegroundColor = ConsoleColor.Green;
             Console.WriteLine($"\n[✓] Compilation finished in {compileTime:F4} ms\n");
             Console.ResetColor();
 
-            //foreach (var instr in instructions)
-            //    Console.WriteLine($"\u001b[32mOP:\u001b[0m {instr.Op,-15} | \u001b[36mARG:\u001b[0m {instr.Arg}");
-
             // --- Print Instructions ---
             PrintHeader("BYTECODE INSTRUCTIONS");
             Console.WriteLine($" {"OP",-20} | {"ARG",-50}");
-            Console.WriteLine(new string('─', 45));
-            foreach (var instr in instructions)
+            Console.WriteLine(new string('─', 53));
+            foreach (var instr in result.Instructions)
             {
-                // Column 1: Operation
                 Console.ForegroundColor = ConsoleColor.Green;
                 Console.Write($"{instr.Op,-20}");
                 Console.ResetColor();
-
-                // Separator
                 Console.Write(" │ ");
-
-                // Column 2: Argument
                 Console.ForegroundColor = ConsoleColor.Cyan;
-                Console.WriteLine($"{instr.Arg,-50}");
+                Console.WriteLine($"{instr.ArgVal,-50}");
                 Console.ResetColor();
-
-                // Divider
                 Console.WriteLine(new string('─', 53));
             }
-
         } catch (Exception ex)
         {
             Console.ForegroundColor = ConsoleColor.Yellow;
             Console.WriteLine($"\nCRITICAL ERROR during {phase}: {ex.Message}");
             Console.ResetColor();
-            return; // Stop if compilation fails
+            return;
         }
 
         // --- EXECUTION PHASE ---
-        Console.WriteLine("Press Enter to start the execution proccess...");
+        Console.WriteLine("Press Enter to start the execution process...");
         Console.ReadLine();
 
+        VextValue[] finalState = null!;
         Stopwatch execSw = Stopwatch.StartNew();
         try
         {
             phase = "Execution";
             PrintHeader("EXECUTION PHASE");
 
-            // Re-initialize modules for the VM
-            var mathModule = new MathFunctions { Name = "Math" }.Initialize();
-            var defaults = new DefaultFunctions();
-            defaults.Initialize();
-
-            var vm = new VextVM(modulesList: [mathModule], defaults: defaults);
-            int sp = 0;
-            vm.Run(instructions, ref sp);
-
+            (double execTime, VextValue[] state) = VextEngine.Run(result.Instructions);
+            finalState = state;
             execSw.Stop();
             executionTime = execSw.Elapsed.TotalMilliseconds;
+
             Console.ForegroundColor = ConsoleColor.Green;
             Console.WriteLine($"\n[✓] Execution finished in {executionTime:F4} ms\n");
             Console.ResetColor();
-
-            // --- Final VM State ---
-            PrintHeader("FINAL VM STATE");
-            var varMap = semanticPass.GetVariableMap();
-            var values = vm.GetVariables();
-
-            Console.WriteLine($" {"Variable",-20} │ {"Type",-10} │ {"Value",-30}");
-            Console.WriteLine(new string('─', 65));
-
-            for (int i = 0; i < values.Length; i++)
-            {
-                VextValue val = values[i]!;
-                if (!varMap.ContainsKey(i) || val.Type == VextType.Null)
-                    continue;
-                string name = varMap[i];
-                string displayValue = val.Type switch
-                {
-                    VextType.Number => val.AsNumber.ToString(),
-                    VextType.Bool => val.AsBool ? "true" : "false",
-
-                    VextType.String => val.AsString ?? "",
-                    VextType.Null => "null",
-                    _ => "unknown"
-                };
-                Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.Write($"{name,-20}");
-                Console.ResetColor();
-                Console.Write(" │ ");
-                Console.ForegroundColor = ConsoleColor.Magenta;
-                Console.Write($"{val.Type,-10}");
-                Console.ResetColor();
-                Console.Write(" │ ");
-                Console.ForegroundColor = ConsoleColor.Cyan;
-                Console.WriteLine($"{displayValue,-30}");
-                Console.ResetColor();
-                Console.WriteLine(new string('─', 65));
-            }
         } catch (Exception ex)
         {
             Console.ForegroundColor = ConsoleColor.Yellow;
@@ -351,30 +241,35 @@ class Program
             Console.ResetColor();
         }
 
+        // --- Final VM State ---
+        PrintHeader("FINAL VM STATE");
+        DisplayState(result.VariableMap, finalState);
+
+        // --- Total Run Time ---
         Console.WriteLine(new string('=', 65));
         Console.WriteLine($"\nTotal Run Time: {(executionTime + compileTime):F4} ms\n");
         Console.WriteLine(new string('=', 65));
 
+        // --- Pause before recap ---
         Console.WriteLine("Press Enter to continue...");
         Console.ReadLine();
 
+        // --- Recap ---
         Console.ForegroundColor = ConsoleColor.Yellow;
         Console.WriteLine($"\n\nSo, to recap:");
         Console.ResetColor();
 
         PrintHeader("COMPILATION PHASE");
-
-        PrintStat("Lexing", lexTokenCount, "tokens", lexTime);
-        PrintStat("Parsing", parsStmtCount, "nodes", parsTime);
-        PrintStat("Semantics", semErrCount, "errors", semTime);
-        PrintStat("Bytecode Gen", byteGenInstrCount, "ops", bytGenTime);
+        PrintStat("Lexing", result.TokenCount, "tokens", result.LexTime);
+        PrintStat("Parsing", result.NodeCount, "nodes", result.ParseTime);
+        PrintStat("Semantics", result.Errors.Count, "errors", result.SemanticTime);
+        PrintStat("Bytecode Gen", result.Instructions.Count, "ops", result.BytecodeTime);
 
         Console.ForegroundColor = ConsoleColor.Green;
         Console.WriteLine($"\n[✓] Compilation finished in {compileTime:F4} ms\n");
         Console.ResetColor();
 
         PrintHeader("EXECUTION PHASE");
-
         Console.ForegroundColor = ConsoleColor.Green;
         Console.WriteLine($"\n[✓] Execution finished in {executionTime:F4} ms\n");
         Console.ResetColor();
@@ -382,6 +277,46 @@ class Program
         Console.WriteLine(new string('=', 65));
         Console.WriteLine($"\nTotal Run Time: {(executionTime + compileTime):F4} ms\n");
         Console.WriteLine(new string('=', 65));
+    }
+
+    static void DisplayState(Dictionary<int, string> varMap, VextValue[] values)
+    {
+        Console.WriteLine($" {"Variable",-20} │ {"Type",-10} │ {"Value",-30}");
+        Console.WriteLine(new string('─', 65));
+
+        for (int i = 0; i < values.Length; i++)
+        {
+            VextValue val = values[i]!;
+
+            if (!varMap.ContainsKey(i) || val.Type == VextType.Null)
+                continue;
+
+            string name = varMap[i];
+            string displayValue = val.Type switch
+            {
+                VextType.Number => val.AsNumber.ToString(),
+                VextType.Bool => val.AsBool ? "true" : "false",
+                VextType.String => val.AsString ?? "",
+                VextType.Null => "null",
+                _ => "unknown"
+            };
+
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.Write($"{name,-20}");
+            Console.ResetColor();
+            Console.Write(" │ ");
+
+            Console.ForegroundColor = ConsoleColor.Magenta;
+            Console.Write($"{val.Type,-10}");
+            Console.ResetColor();
+            Console.Write(" │ ");
+
+            Console.ForegroundColor = ConsoleColor.Cyan;
+            Console.WriteLine($"{displayValue,-30}");
+            Console.ResetColor();
+
+            Console.WriteLine(new string('─', 65));
+        }
     }
 
     static void PrintHeader(string title)

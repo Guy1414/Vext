@@ -1,7 +1,8 @@
 ﻿using System.Text;
-using Vext.Shared;
+using Vext.Compiler.Shared;
+using Vext.Lexer;
 
-namespace Vext.Lexer
+namespace Vext.Compiler.Lexing
 {
     internal class Lexer(string vextCode)
     {
@@ -34,8 +35,7 @@ namespace Vext.Lexer
                 {
                     tokens.Add(new Token(TokenType.Punctuation, current.ToString(), currentLine, currentColumn));
                     Advance();
-                }
-                else
+                } else
                 {
                     tokens.Add(new Token(TokenType.Unknown, current.ToString(), currentLine, currentColumn));
                     Advance();
@@ -55,12 +55,10 @@ namespace Vext.Lexer
                 if (c == '/' && Peek() == '/')
                 {
                     SkipSingleLineComment();
-                }
-                else if (char.IsWhiteSpace(c))
+                } else if (char.IsWhiteSpace(c))
                 {
                     HandleWhitespace(c);
-                }
-                else
+                } else
                     break;
             }
         }
@@ -122,13 +120,11 @@ namespace Vext.Lexer
                 if (char.IsDigit(c))
                 {
                     Advance();
-                }
-                else if (c == '.' && !hasDecimal && char.IsDigit(Peek()))
+                } else if (c == '.' && !hasDecimal && char.IsDigit(Peek()))
                 {
                     hasDecimal = true;
                     Advance();
-                }
-                else
+                } else
                     break;
             }
 
@@ -187,8 +183,7 @@ namespace Vext.Lexer
                         _ => escaped
                     });
                     Advance();
-                }
-                else if (c == '\n' || c == '\r')
+                } else if (c == '\n' || c == '\r')
                     throw new Exception($"Unterminated string literal at line {currentLine}, column {currentColumn}");
                 else
                 {
