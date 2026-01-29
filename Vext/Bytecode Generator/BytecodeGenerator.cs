@@ -125,6 +125,24 @@ namespace Vext.Compiler.Bytecode_Generator
                 }
             } else if (expr is UnaryExpressionNode u)
             {
+                if (u.Operator == "++" || u.Operator == "--")
+                {
+                    if (u.Right is VariableNode varNode)
+                    {
+                        instructions.Add(new Instruction
+                        {
+                            Op = u.Operator == "++" ? VextVMBytecode.INC_VAR : VextVMBytecode.DEC_VAR,
+                            Arg = varNode.SlotIndex,
+                            LineNumber = u.Line,
+                            ColumnNumber = u.Column
+                        });
+                        return;
+                    } else
+                    {
+                        throw new Exception("Postfix ++/-- can only be applied to variables");
+                    }
+                }
+
                 EmitExpression(u.Right, instructions);
 
                 if (u.Operator == "-")
@@ -209,6 +227,14 @@ namespace Vext.Compiler.Bytecode_Generator
                 instructions[jumpIndex].Arg = instructions.Count;
             } else if (stmt is ForStatementNode forStmt)
             {
+                forStmt.Initialization ??= new VariableDeclarationNode
+                {
+                    Name = "i",
+                    VariableType = "int",
+                    Initializer = new LiteralNode { Value = 0, Line = forStmt.Line, Column = forStmt.Column },
+                    Line = forStmt.Line,
+                    Column = forStmt.Column
+                };
                 EmitStatement(forStmt.Initialization, instructions);
 
                 var loopStart = instructions.Count;
@@ -235,6 +261,13 @@ namespace Vext.Compiler.Bytecode_Generator
                         EmitStatement(s, instructions);
 
                     // Increment
+                    forStmt.Increment ??= new IncrementStatementNode
+                    {
+                        VariableName = "i",
+                        IsIncrement = true,
+                        Line = forStmt.Line,
+                        Column = forStmt.Column
+                    };
                     EmitStatement(forStmt.Increment, instructions);
 
                     // Loop back
@@ -245,6 +278,8 @@ namespace Vext.Compiler.Bytecode_Generator
                     return;
                 }
 
+                forStmt.Condition ??= new BinaryExpressionNode { Left = new VariableNode { Name = "i" }, Operator = "<", Right = new LiteralNode { Value = 10 }, Line = forStmt.Line, Column = forStmt.Column };
+
                 EmitExpression(forStmt.Condition, instructions);
                 var jumpIndex = instructions.Count;
                 instructions.Add(new Instruction { Op = VextVMBytecode.JMP_IF_FALSE, Arg = -1, LineNumber = forStmt.Line, ColumnNumber = forStmt.Column });
@@ -252,6 +287,13 @@ namespace Vext.Compiler.Bytecode_Generator
                 foreach (var s in forStmt.Body)
                     EmitStatement(s, instructions);
 
+                forStmt.Increment ??= new IncrementStatementNode
+                {
+                    VariableName = "i",
+                    IsIncrement = true,
+                    Line = forStmt.Line,
+                    Column = forStmt.Column
+                };
                 EmitStatement(forStmt.Increment, instructions);
 
                 instructions.Add(new Instruction { Op = VextVMBytecode.JMP, Arg = loopStart, LineNumber = forStmt.Line, ColumnNumber = forStmt.Column });
@@ -444,6 +486,7 @@ namespace Vext.Compiler.Bytecode_Generator
             return expr switch
             {
                 FunctionCallNode call => call.ReturnType != "void",
+                UnaryExpressionNode u when u.Operator == "++" || u.Operator == "--" => false,
                 _ => true
             };
         }

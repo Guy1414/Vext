@@ -11,7 +11,14 @@ namespace Vext.Compiler.Lexing
         private int currentLine = 1;
         private int currentColumn = 1;
 
-        public List<Token> Tokenize()
+        private readonly List<(string, int, int)> _errors = [];
+
+        private void ReportError(string message, int line, int column)
+        {
+            _errors.Add(($"Line {line}, Column {column}: {message}", line, column));
+        }
+
+        public (List<Token>, List<(string, int, int)>) Tokenize()
         {
             var tokens = new List<Token>();
 
@@ -43,7 +50,7 @@ namespace Vext.Compiler.Lexing
             }
 
             tokens.Add(new Token(TokenType.EOF, string.Empty, currentLine, currentColumn));
-            return tokens;
+            return (tokens, _errors);
         }
 
         private void SkipTrivia()
@@ -159,40 +166,77 @@ namespace Vext.Compiler.Lexing
             {
                 char c = vextCode[currentIndex];
 
+                // End of string
                 if (c == quoteType)
                 {
                     Advance();
                     return new Token(TokenType.String, sb.ToString(), currentLine, startCol);
                 }
 
+                // Handle Escape Sequences
                 if (c == '\\')
                 {
-                    Advance();
-                    if (currentIndex >= vextCode.Length)
-                        throw new Exception($"Unterminated string escape at line {currentLine}, column {currentColumn}");
-
-                    char escaped = vextCode[currentIndex];
-                    sb.Append(escaped switch
-                    {
-                        'n' => '\n',
-                        'r' => '\r',
-                        't' => '\t',
-                        '\\' => '\\',
-                        '"' => '"',
-                        '\'' => '\'',
-                        _ => escaped
-                    });
-                    Advance();
-                } else if (c == '\n' || c == '\r')
-                    throw new Exception($"Unterminated string literal at line {currentLine}, column {currentColumn}");
-                else
-                {
-                    sb.Append(c);
-                    Advance();
+                    HandleEscapeSequence(sb);
+                    continue; // HandleEscapeSequence calls Advance() internally
                 }
+
+                // Newlines in strings (usually not allowed in non-verbatim strings)
+                if (c == '\n' || c == '\r')
+                {
+                    ReportError("Unterminated string literal", currentLine, startCol);
+                    break;
+                }
+
+                sb.Append(c);
+                Advance();
             }
 
-            throw new Exception($"Unterminated string literal at line {currentLine}, column {startCol}");
+            if (currentIndex >= vextCode.Length)
+            {
+                ReportError("Unterminated string literal at EOF", currentLine, startCol);
+            }
+
+            return new Token(TokenType.String, sb.ToString(), currentLine, startCol);
+        }
+
+        private void HandleEscapeSequence(StringBuilder sb)
+        {
+            Advance(); // skip '\'
+
+            if (currentIndex >= vextCode.Length)
+                return;
+
+            char escaped = vextCode[currentIndex];
+            switch (escaped)
+            {
+                case 'n':
+                    sb.Append('\n');
+                    break;
+                case 'r':
+                    sb.Append('\r');
+                    break;
+                case 't':
+                    sb.Append('\t');
+                    break;
+                case '\\':
+                    sb.Append('\\');
+                    break;
+                case '"':
+                    sb.Append('"');
+                    break;
+                case '\'':
+                    sb.Append('\'');
+                    break;
+                // Optional: Support for Unicode \uXXXX
+                case 'u':
+                    // Logic to parse 4 hex digits here
+                    break;
+                default:
+                    ReportError($"Invalid escape sequence '\\{escaped}'", currentLine, currentColumn);
+                    sb.Append(escaped); // Recovery
+                    break;
+            }
+            Advance();
         }
 
         private static bool IsOperator(char c) => LanguageSpecs.OperatorChars.Contains(c);

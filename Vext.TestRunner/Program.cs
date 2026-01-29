@@ -25,7 +25,6 @@ class Program
 
         // --- 3. Unary & Compound Operators ---
         i++;
-        --f;
         sum += 5;
         result *= 2.0;
         concat += "!";
@@ -178,7 +177,7 @@ class Program
             {
                 Console.ForegroundColor = ConsoleColor.Red;
                 foreach (var e in result.Errors)
-                    Console.WriteLine($" [!] {e}");
+                    Console.WriteLine($" [!] {e.Item1}");
                 Console.ResetColor();
                 return;
             }

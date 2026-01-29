@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace Vext.LSP.Handlers
+namespace Vext.LSP.Server
 {
-    internal class TextDocumentSyncHandler
+    internal class DocumentManager
     {
     }
 }
