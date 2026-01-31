@@ -10,7 +10,7 @@ jobs:
     env:
       PROJECT_PATH: './Vext.TestRunner/Vext.TestRunner.csproj'
       LSP_PROJECT_PATH: './Vext.LSP/Vext.LSP.csproj'
-      EXTENSION_DIR: '/Vext VSCode Extension/Vext'
+      EXTENSION_DIR: './Vext VSCode Extension/Vext'
 
     steps:
     - name: Checkout repository
