@@ -817,14 +817,7 @@ namespace Vext.Compiler.Parsing
                 var tok = currentToken < tokens.Count ? tokens[currentToken] : new Token(TokenType.EOF, "", 0, 0);
                 ReportError($"Expected {type}{(value != null ? $" '{value}'" : "")} at token {currentToken}, {CurrentToken().Value} {CurrentToken().TokenType}", tok.Line, tok.StartColumn, tok.Line, tok.EndColumn);
 
-                if (currentToken < tokens.Count &&
-                    tok.TokenType != TokenType.Punctuation)
-                {
-                    Advance(); //HEY CHECK THIS
-                }
-
                 // return a best-effort token so parsing can continue
-
                 return tok;
             }
             return tokens[currentToken - 1];

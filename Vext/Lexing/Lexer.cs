@@ -45,6 +45,7 @@ namespace Vext.Compiler.Lexing
                 } else
                 {
                     tokens.Add(new Token(TokenType.Unknown, current.ToString(), currentLine, currentColumn));
+                    ReportError($"Unexpected character '{current}'", currentLine, currentColumn, currentLine, currentColumn);
                     Advance();
                 }
             }
