@@ -78,9 +78,9 @@ class Program
 
             result.Tokens = compileResult.Tokens.ConvertAll(t => new TokenInfo
             {
-                Line = t.Line,
-                StartColumn = t.StartColumn,
-                EndColumn = t.EndColumn,
+                Line = t.Line - 1,
+                StartColumn = t.StartColumn - 1,
+                EndColumn = t.EndColumn - 1,
                 Type = t.TokenType.ToString().ToLower(),
             });
 

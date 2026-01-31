@@ -41,6 +41,21 @@ interface TokenInfo {
   IsDeclaration: boolean;
 }
 
+const enum TokenType {
+  keyword = 0,
+  variable = 1,
+  function = 2,
+  type = 3,
+  string = 4,
+  number = 5,
+  comment = 6,
+}
+
+const enum TokenModifier {
+  declaration = 1 << 0,
+  readonly    = 1 << 1,
+}
+
 interface CompileResult {
   Success: boolean;
   Errors: ErrorInfo[];
@@ -103,12 +118,12 @@ connection.onInitialize((_params: InitializeParams) => {
     capabilities: {
       textDocumentSync: TextDocumentSyncKind.Incremental,
       semanticTokensProvider: {
-      legend: {
-        tokenTypes: ["keyword","variable","function","type","string","number","comment"],
-        tokenModifiers: ["declaration","readonly"]
-      },
-      full: true
-    }
+        legend: {
+          tokenTypes: ["keyword","variable","function","type","string","number","comment"],
+          tokenModifiers: ["declaration","readonly"]
+        },
+        full: true
+      }
     },
   };
 });
@@ -146,17 +161,35 @@ connection.languages.semanticTokens.on(async (params) => {
     if (!result.Tokens) return builder.build();
 
     for (const t of result.Tokens) {
+      let tokenType: number | undefined;
+
+      switch (t.Type) {
+        case "keyword":  tokenType = TokenType.keyword; break;
+        case "variable": tokenType = TokenType.variable; break;
+        case "function": tokenType = TokenType.function; break;
+        case "type":     tokenType = TokenType.type; break;
+        case "string":   tokenType = TokenType.string; break;
+        case "number":   tokenType = TokenType.number; break;
+        case "comment":  tokenType = TokenType.comment; break;
+        default:
+          continue;
+      }
+
+      const modifiers =
+        t.IsDeclaration ? TokenModifier.declaration : 0;
+
       builder.push(
         t.Line,
         t.StartColumn,
         t.EndColumn - t.StartColumn,
-        t.Type,
-        t.IsDeclaration ? "declaration" : undefined
+        tokenType,
+        modifiers
       );
     }
 
     return builder.build();
-  } catch {
+  } catch (err) {
+    console.error("Error building semantic tokens:", err);
     return builder.build();
   }
 });
