@@ -79,7 +79,7 @@ namespace Vext.Compiler.Lexing
 
             Advance(2); // Skip the //
 
-            int start = currentIndex;
+            int start = currentColumn;
 
             while (currentIndex < vextCode.Length &&
                    vextCode[currentIndex] != '\n' &&
@@ -88,7 +88,7 @@ namespace Vext.Compiler.Lexing
                 Advance();
             }
 
-            string value = vextCode[start..currentIndex];
+            string value = vextCode[start..currentColumn];
             return new Token(TokenType.Comment, value, startLine, startCol);
         }
 
