@@ -7,7 +7,8 @@
     /// <param name="value"></param>
     /// <param name="line"></param>
     /// <param name="column"></param>
-    public class Token(TokenType type, string value, int line, int column)
+    /// <param name="eColumn"></param>
+    public class Token(TokenType type, string value, int line, int column, int eColumn = 0)
     {
         /// <summary>
         /// Represents the type of the token.
@@ -28,7 +29,7 @@
         /// <summary>
         /// Represents the ending column number of the token.
         /// </summary>
-        public int EndColumn => StartColumn + Value.Length + 1;
+        public int EndColumn => eColumn != 0 ? eColumn : StartColumn + Value.Length;
     }
 
     /// <summary>
