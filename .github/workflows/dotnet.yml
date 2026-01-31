@@ -9,6 +9,8 @@ jobs:
     runs-on: windows-latest
     env:
       PROJECT_PATH: './Vext.TestRunner/Vext.TestRunner.csproj'
+      LSP_PROJECT_PATH: './Vext.LSP/Vext.LSP.csproj'
+      EXTENSION_DIR: './Vext VSCode Extension'
 
     steps:
     - name: Checkout repository
@@ -18,30 +20,48 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 10.0.x
-        
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+
+    - name: Install vsce
+      run: npm install -g @vscode/vsce
+
     - name: Restore dependencies
       run: dotnet restore ${{ env.PROJECT_PATH }}
 
-    - name: Build
-      run: dotnet build ${{ env.PROJECT_PATH }} --configuration Release --no-restore
-
-    - name: Publish TestRunner
-      run: dotnet publish ${{ env.PROJECT_PATH }} `
+    - name: Publish LSP for Extension
+      run: |
+        dotnet publish ${{ env.LSP_PROJECT_PATH }} `
           -c Release `
           -r win-x64 `
           --self-contained true `
           -p:PublishSingleFile=true `
-          -p:EnableCompressionInSingleFile=true `
-          -p:IncludeAllContentForSelfExtract=false `
-          -p:IncludeNativeLibrariesForSelfExtract=false `
-          -p:DebugType=None `
-          -p:DebugSymbols=false `
-          -o ./publish
+          -o "${{ env.EXTENSION_DIR }}/Vext/compiler"
 
-    - name: Rename TestRunner executable (stable name)
+    - name: Package VS Code Extension
       shell: pwsh
       run: |
-        Rename-Item "./publish/Vext.TestRunner.exe" -NewName "Vext.exe"
+        cd "${{ env.EXTENSION_DIR }}"
+        npm install
+        # This creates a .vsix file in the extension directory
+        vsce package --out ../publish/vext-extension.vsix
+
+    - name: Build TestRunner
+      run: dotnet build ${{ env.PROJECT_PATH }} --configuration Release --no-restore
+
+    - name: Publish TestRunner
+      run: |
+        dotnet publish ${{ env.PROJECT_PATH }} `
+          -c Release -r win-x64 --self-contained true `
+          -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true `
+          -o ./publish
+
+    - name: Rename TestRunner executable
+      shell: pwsh
+      run: Rename-Item "./publish/Vext.TestRunner.exe" -NewName "Vext.exe"
 
     - name: Generate SHA256 checksum
       shell: pwsh
@@ -50,7 +70,7 @@ jobs:
           Select-Object -Skip 1 -First 1 |
           Out-File "./publish/Vext.exe.sha256" -Encoding ascii
 
-    - name: Zip entire publish folder (versioned)
+    - name: Zip entire publish folder
       shell: pwsh
       run: |
         Compress-Archive `
@@ -63,13 +83,10 @@ jobs:
       with:
         tag_name: v${{ github.run_number }}
         name: Vext Build v${{ github.run_number }}
-        draft: false
-        prerelease: false
-        make_latest: true
-        generate_release_notes: true
         files: |
           ./publish/Vext.exe
           ./publish/Vext.exe.sha256
           ./publish/Vext-v${{ github.run_number }}.zip
+          ./publish/vext-extension.vsix
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
