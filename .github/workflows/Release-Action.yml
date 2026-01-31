@@ -71,30 +71,40 @@ jobs:
       id: versioning
       shell: bash
       run: |
-        # Get the latest tag, default to v0 if none exist
-        LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0")
-        echo "Found latest tag: $LATEST_TAG"
+        # Fetch all tags to ensure we see everything
+        git fetch --tags --force
 
-        # Remove the 'v' prefix for calculation
+        # Get the highest version tag across the whole repo
+        # sort -V handles numeric ordering (so 10 > 2)
+        LATEST_TAG=$(git tag -l "v*" | sort -V | tail -n1)
+        
+        # If no tags exist, start at v0
+        if [ -z "$LATEST_TAG" ]; then
+          LATEST_TAG="v0"
+        fi
+
+        echo "Highest tag found: $LATEST_TAG"
+
+        # Strip 'v' and handle the math
         CLEAN_TAG=${LATEST_TAG#v}
 
-        if [[ $CLEAN_TAG =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
-            # Handle Semantic Versioning (e.g., 1.2.3)
+        if [[ $CLEAN_TAG =~ ^([0-9]+)$ ]]; then
+            # Simple integer: v41 -> v42
+            NEW_TAG="v$((CLEAN_TAG + 1))"
+        elif [[ $CLEAN_TAG =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+            # SemVer: v1.0.1 -> v1.0.2
             MAJOR=${BASH_REMATCH[1]}
             MINOR=${BASH_REMATCH[2]}
             PATCH=${BASH_REMATCH[3]}
             NEW_TAG="v$MAJOR.$MINOR.$((PATCH + 1))"
-        elif [[ $CLEAN_TAG =~ ^([0-9]+)$ ]]; then
-            # Handle Simple Integer Versioning (e.g., 41 -> 42)
-            NEW_TAG="v$((CLEAN_TAG + 1))"
         else
-            # Default fallback if format is weird
+            # Fallback if the tag is something weird like "v-beta"
             NEW_TAG="v1"
         fi
         
         echo "tag=$NEW_TAG" >> $GITHUB_OUTPUT
         echo "name=Vext Build $NEW_TAG" >> $GITHUB_OUTPUT
-        echo "Calculated new tag: $NEW_TAG"
+        echo "New tag will be: $NEW_TAG"
         
     - name: Rename and Checksum
       shell: pwsh
