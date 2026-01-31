@@ -365,5 +365,6 @@ FodyWeavers.xsd
 # Ignore Extension dependencies
 Vext VSCode Extension/node_modules/
 Vext VSCode Extension/out/
+Vext VSCode Extension/Vext/compiler/
 
 .exe
