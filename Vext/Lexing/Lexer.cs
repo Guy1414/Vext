@@ -200,7 +200,7 @@ namespace Vext.Compiler.Lexing
                 if (c == quoteType)
                 {
                     Advance();
-                    return new Token(TokenType.String, sb.ToString(), startLine, startCol + 1);
+                    return new Token(TokenType.String, sb.ToString(), startLine, startCol);
                 }
 
                 // Handle Escape Sequences

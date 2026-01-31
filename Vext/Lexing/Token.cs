@@ -28,7 +28,7 @@
         /// <summary>
         /// Represents the ending column number of the token.
         /// </summary>
-        public int EndColumn => StartColumn + Value.Length;
+        public int EndColumn => StartColumn + Value.Length + 1;
     }
 
     /// <summary>
