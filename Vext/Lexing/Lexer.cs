@@ -126,23 +126,6 @@ namespace Vext.Compiler.Lexing
             return currentIndex + offset < vextCode.Length ? vextCode[currentIndex + offset] : '\0';
         }
 
-        private void HandleWhitespace(char current)
-        {
-            if (current == '\r' && Peek() == '\n')
-                currentIndex += 2;
-            else
-                currentIndex++;
-
-            if (current == '\r' || current == '\n')
-            {
-                currentLine++;
-                currentColumn = 1;
-            } else
-            {
-                currentColumn++;
-            }
-        }
-
         private Token ReadNumber()
         {
             int startCol = currentColumn;
@@ -200,7 +183,7 @@ namespace Vext.Compiler.Lexing
                 if (c == quoteType)
                 {
                     Advance();
-                    return new Token(TokenType.String, sb.ToString(), startLine, startCol, startCol + sb.Length + 1);
+                    return new Token(TokenType.String, sb.ToString(), startLine, startCol, currentColumn);
                 }
 
                 // Handle Escape Sequences
