@@ -56,7 +56,6 @@ class Program
 
             if (compileResult.Errors.Count > 0)
             {
-                // Map tuple errors to ErrorInfo objects
                 foreach (ErrorDescriptor ed in compileResult.Errors)
                 {
                     result.Errors.Add(new ErrorInfo
