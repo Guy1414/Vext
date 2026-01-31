@@ -21,10 +21,8 @@ namespace Vext.Compiler.Lexing
             {
                 Token? tk = SkipTrivia();
                 if (tk != null)
-                {
                     tokens.Add(tk);
-                    continue;
-                }
+
                 if (currentIndex >= vextCode.Length)
                     break;
 
