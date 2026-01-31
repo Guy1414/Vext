@@ -87,16 +87,14 @@ jobs:
           -DestinationPath ./publish/Vext-v${{ github.run_number }}.zip `
           -Force
 
-      # 6. Zip everything
-    - name: Zip entire publish folder
+    # 6. Zip everything
+    - name: Zip entire project folder
       shell: pwsh
       run: |
-        Compress-Archive `
-          -Path ./
-          -DestinationPath ./publish/Source Code-v${{ github.run_number }}.zip `
-          -Force
-
-    # 6. Upload everything to the Release
+        Get-ChildItem -Path ./ -Exclude "publish", ".git", ".github" | 
+        Compress-Archive -DestinationPath "./publish/Source-Code-v${{ github.run_number }}.zip" -Force
+        
+    # 7. Upload everything to the Release
     - name: Create GitHub Release and Upload Assets
       uses: softprops/action-gh-release@v2
       with:
@@ -108,5 +106,6 @@ jobs:
           ./publish/vext-extension.vsix
           ./publish/vext-extension.vsix.sha256
           ./publish/Vext-v${{ github.run_number }}.zip
+          ./publish/Source-Code-v${{ github.run_number }}.zip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
