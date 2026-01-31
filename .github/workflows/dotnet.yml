@@ -75,7 +75,7 @@ jobs:
         certutil -hashfile "./publish/Vext.exe" SHA256 | Select-Object -Skip 1 -First 1 | Out-File "./publish/Vext.exe.sha256" -Encoding ascii
         certutil -hashfile "./publish/vext-extension.vsix" SHA256 | Select-Object -Skip 1 -First 1 | Out-File "./publish/vext-extension.vsix.sha256" -Encoding ascii
 
-    # 5. Zip everything (This zip will now contain Vext.exe AND vext-extension.vsix)
+    # 5. Zip almost everything (This zip will now contain Vext.exe AND vext-extension.vsix)
     - name: Zip entire publish folder
       shell: pwsh
       run: |
@@ -85,6 +85,15 @@ jobs:
                 ./publish/vext-extension.vsix,
                 ./publish/vext-extension.vsix.sha256 `
           -DestinationPath ./publish/Vext-v${{ github.run_number }}.zip `
+          -Force
+
+      # 6. Zip everything
+    - name: Zip entire publish folder
+      shell: pwsh
+      run: |
+        Compress-Archive `
+          -Path ./
+          -DestinationPath ./publish/Source Code-v${{ github.run_number }}.zip `
           -Force
 
     # 6. Upload everything to the Release
