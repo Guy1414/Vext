@@ -35,10 +35,10 @@ interface RunOutput {
 }
 
 interface TokenInfo {
-  Line: number;         // 0-based
-  StartColumn: number;  // 0-based
-  EndColumn: number;    // 0-based
-  Type: string;         // e.g., "keyword", "variable", "function", etc.
+  Line: number;
+  StartColumn: number;
+  EndColumn: number;
+  Type: string;
   IsDeclaration: boolean;
 }
 
@@ -49,12 +49,14 @@ const enum TokenType {
   type = 3,
   string = 4,
   number = 5,
-  comment = 6,
+  boolean = 6,
+  comment = 7,
+  operator = 8,
 }
 
 const enum TokenModifier {
   declaration = 1 << 0,
-  readonly    = 1 << 1,
+  readonly = 1 << 1,
 }
 
 interface CompileResult {
@@ -124,7 +126,17 @@ connection.onInitialize((_params: InitializeParams) => {
       textDocumentSync: TextDocumentSyncKind.Incremental,
       semanticTokensProvider: {
         legend: {
-          tokenTypes: ["keyword","variable","function","type","string","number","comment"],
+          tokenTypes: [
+            "keyword",    // 0
+            "variable",   // 1
+            "function",   // 2
+            "type",       // 3
+            "string",     // 4
+            "number",     // 5
+            "comment",    // 6
+            "boolean",    // 7
+            "operator"    // 8
+          ],
           tokenModifiers: ["declaration","readonly"]
         },
         full: true
@@ -171,16 +183,36 @@ connection.languages.semanticTokens.on(async (params) => {
     });
 
     for (const t of tokens) {
-      let tokenType: number | undefined;
+      let tokenType: number;
 
       switch (t.Type) {
-        case "keyword":  tokenType = TokenType.keyword; break;
-        case "variable": tokenType = TokenType.variable; break;
-        case "function": tokenType = TokenType.function; break;
-        case "type":     tokenType = TokenType.type; break;
-        case "string":   tokenType = TokenType.string; break;
-        case "number":   tokenType = TokenType.number; break;
-        case "comment":  tokenType = TokenType.comment; break;
+        case "keyword":
+          tokenType = TokenType.keyword;
+          break;
+        case "identifier":
+          tokenType = TokenType.variable;
+          break;
+        case "function":
+          tokenType = TokenType.function;
+          break;
+        case "type":
+          tokenType = TokenType.type;
+          break;
+        case "string":
+          tokenType = TokenType.string;
+          break;
+        case "numeric":
+          tokenType = TokenType.number;
+          break;
+        case "boolean":
+          tokenType = TokenType.boolean;
+          break;
+        case "comment":
+          tokenType = TokenType.comment;
+          break;
+        case "operator":
+          tokenType = TokenType.operator;
+          break;
         default:
           continue;
       }

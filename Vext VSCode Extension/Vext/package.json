@@ -26,7 +26,8 @@
       {"id": "string", "description": "String token type"},
       {"id": "number", "description": "Number token type"},
       {"id": "boolean", "description": "Boolean token type"},
-      {"id": "comment", "description": "Comment token type"}
+      {"id": "comment", "description": "Comment token type"},
+      {"id": "operator", "description": "Operator token type"}
     ],
     "semanticTokenModifiers": [
       {"id": "declaration", "description": "Declaration token modifier"},
