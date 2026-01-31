@@ -112,6 +112,7 @@ documents.onDidChangeContent(async (change) => {
     }
   } catch (err: any) {
     connection.window.showErrorMessage("Compiler error: " + err);
+    console.log(`Hello world!`);
   }
 });
 
