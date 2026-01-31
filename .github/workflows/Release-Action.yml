@@ -50,11 +50,9 @@ jobs:
         $null = New-Item -ItemType Directory -Force "${{ env.EXTENSION_ROOT }}/compiler"
 
     - name: Publish LSP
+      shell: pwsh
       run: |
-        dotnet publish ${{ env.LSP_PROJECT }} `
-          -c Release `
-          -r win-x64  `
-          -o "${{ env.EXTENSION_ROOT }}/compiler"
+        dotnet publish ${{ env.LSP_PROJECT }} -c Release -r win-x64 -p:PublishAot=true -o "${{ env.EXTENSION_ROOT }}/compiler"
 
     - name: Package VS Code Extension
       shell: pwsh
