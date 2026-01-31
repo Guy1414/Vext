@@ -21,8 +21,10 @@ namespace Vext.Compiler.Lexing
             {
                 Token? tk = SkipTrivia();
                 if (tk != null)
+                {
                     tokens.Add(tk);
-
+                    continue;
+                }
                 if (currentIndex >= vextCode.Length)
                     break;
 
@@ -90,10 +92,26 @@ namespace Vext.Compiler.Lexing
             return new Token(TokenType.Comment, value, startLine, startCol);
         }
 
-        private void Advance(int count = 1)
+        private void Advance()
         {
-            currentIndex += count;
-            currentColumn += count;
+            if (currentIndex >= vextCode.Length)
+                return;
+
+            char c = vextCode[currentIndex++];
+            if (c == '\n')
+            {
+                currentLine++;
+                currentColumn = 1;
+            } else
+            {
+                currentColumn++;
+            }
+        }
+
+        private void Advance(int count)
+        {
+            for (int i = 0; i < count; i++)
+                Advance();
         }
 
         private char Peek(int offset = 1)
