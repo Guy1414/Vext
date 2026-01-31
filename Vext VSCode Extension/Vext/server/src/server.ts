@@ -15,6 +15,7 @@ import {
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { spawn } from "child_process";
 import * as path from "path";
+import * as fs from 'fs';
 
 // --- Setup connection & documents ---
 const connection = createConnection(ProposedFeatures.all);
@@ -67,10 +68,14 @@ interface CompileResult {
 function compileVextFromText(code: string, run = false): Promise<CompileResult> {
     return new Promise((resolve, reject) => {
     const bridgePath = path.resolve(__dirname, '..', '..', 'compiler', 'Vext.LSP.exe');
+    if (!fs.existsSync(bridgePath)) {
+      connection.window.showErrorMessage(`Compiler missing at: ${bridgePath}`);
+      return reject(`File not found: ${bridgePath}`);
+  }
     const args = ["--stdin"];
     if (run) args.push("--run");
 
-    const proc = spawn(bridgePath, args, { windowsHide: true });
+    const proc = spawn(`"${bridgePath}"`, args, { windowsHide: true, shell: true });
 
     let stdout = "";
     let stderr = "";
