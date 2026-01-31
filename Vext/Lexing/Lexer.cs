@@ -55,20 +55,27 @@ namespace Vext.Compiler.Lexing
 
         private Token? SkipTrivia()
         {
-            while (currentIndex < vextCode.Length)
+            bool skipped;
+            do
             {
+                skipped = false;
+
+                if (currentIndex >= vextCode.Length)
+                    return null;
+
                 char c = vextCode[currentIndex];
 
                 if (c == '/' && Peek() == '/')
-                {
                     return ReadSingleLineComment();
-                } else if (char.IsWhiteSpace(c))
+
+                if (char.IsWhiteSpace(c))
                 {
-                    HandleWhitespace(c);
-                    return null;
-                } else
-                    break;
-            }
+                    Advance();
+                    skipped = true;
+                }
+
+            } while (skipped);
+
             return null;
         }
 
@@ -180,9 +187,9 @@ namespace Vext.Compiler.Lexing
 
         private Token ReadString(char quoteType)
         {
-            Advance(); // skip opening quote
             int startLine = currentLine;
             int startCol = currentColumn;
+            Advance(); // skip opening quote
             StringBuilder sb = new();
 
             while (currentIndex < vextCode.Length)
@@ -219,7 +226,7 @@ namespace Vext.Compiler.Lexing
                 ReportError("Unterminated string literal at EOF", startLine, startCol, currentLine, currentColumn);
             }
 
-            return new Token(TokenType.String, sb.ToString(), currentLine, startCol);
+            return new Token(TokenType.String, sb.ToString(), startLine, startCol);
         }
 
         private void HandleEscapeSequence(StringBuilder sb)
