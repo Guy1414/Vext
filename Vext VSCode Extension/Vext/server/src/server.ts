@@ -9,6 +9,8 @@ import {
   DiagnosticSeverity,
   Range,
   Position,
+  SemanticTokensBuilder,
+  SemanticTokens
 } from "vscode-languageserver/node";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { spawn } from "child_process";
@@ -31,10 +33,19 @@ interface RunOutput {
   FinalState: any[];
 }
 
+interface TokenInfo {
+  Line: number;         // 0-based
+  StartColumn: number;  // 0-based
+  EndColumn: number;    // 0-based
+  Type: string;         // e.g., "keyword", "variable", "function", etc.
+  IsDeclaration: boolean;
+}
+
 interface CompileResult {
   Success: boolean;
   Errors: ErrorInfo[];
   Output?: RunOutput;
+  Tokens?: TokenInfo[];
 }
 
 // --- Compile helper using stdin ---
@@ -91,6 +102,13 @@ connection.onInitialize((_params: InitializeParams) => {
   return <InitializeResult>{
     capabilities: {
       textDocumentSync: TextDocumentSyncKind.Incremental,
+      semanticTokensProvider: {
+      legend: {
+        tokenTypes: ["keyword","variable","function","type","string","number","comment"],
+        tokenModifiers: ["declaration","readonly"]
+      },
+      full: true
+    }
     },
   };
 });
@@ -113,6 +131,33 @@ documents.onDidChangeContent(async (change) => {
     }
   } catch (err: any) {
     connection.window.showErrorMessage("Compiler error: " + err);
+  }
+});
+
+connection.languages.semanticTokens.on(async (params) => {
+  const doc = documents.get(params.textDocument.uri);
+  if (!doc) return { data: [] };
+
+  const builder = new SemanticTokensBuilder();
+  const code = doc.getText();
+
+  try {
+    const result = await compileVextFromText(code, false);
+    if (!result.Tokens) return builder.build();
+
+    for (const t of result.Tokens) {
+      builder.push(
+        t.Line,
+        t.StartColumn,
+        t.EndColumn - t.StartColumn,
+        t.Type,
+        t.IsDeclaration ? "declaration" : undefined
+      );
+    }
+
+    return builder.build();
+  } catch {
+    return builder.build();
   }
 });
 

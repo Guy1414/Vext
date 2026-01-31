@@ -18,6 +18,7 @@ namespace Vext.Compiler
     /// <param name="ParsedStatements"></param>
     /// <param name="Instructions"></param>
     /// <param name="Errors"></param>
+    /// <param name="Tokens"></param>
     /// <param name="VariableMap"></param>
     /// <param name="LexTime"></param>
     /// <param name="ParseTime"></param>
@@ -30,6 +31,7 @@ namespace Vext.Compiler
         List<StatementNode> ParsedStatements,
         List<Instruction> Instructions,
         List<ErrorDescriptor> Errors,
+        List<Token> Tokens,
         Dictionary<int, string> VariableMap,
         double LexTime, double ParseTime, double SemanticTime, double BytecodeTime,
         int TokenCount, int NodeCount
@@ -71,7 +73,7 @@ namespace Vext.Compiler
             Dictionary<int, string> varMap = semanticPass.GetVariableMap();
 
             if (Diagnostic.GetErrors().Count > 0)
-                return new CompilationResult(code, statements, [], Diagnostic.GetErrors(), varMap, lexTime, parseTime, semTime, 0, tokens.Count, statements.Count);
+                return new CompilationResult(code, statements, [], Diagnostic.GetErrors(), tokens, varMap, lexTime, parseTime, semTime, 0, tokens.Count, statements.Count);
 
             // 4. Bytecode Generation
             sw.Restart();
@@ -79,7 +81,7 @@ namespace Vext.Compiler
                 BytecodeGenerator.EmitStatement(stmt, instructions);
             double bcTime = sw.Elapsed.TotalMilliseconds;
 
-            return new CompilationResult(code, statements, instructions, Diagnostic.GetErrors(), varMap, lexTime, parseTime, semTime, bcTime, tokens.Count, statements.Count);
+            return new CompilationResult(code, statements, instructions, Diagnostic.GetErrors(), tokens, varMap, lexTime, parseTime, semTime, bcTime, tokens.Count, statements.Count);
         }
 
         private static void RegisterBuiltIns(SemanticPass pass)

@@ -1,11 +1,33 @@
 ﻿namespace Vext.Compiler.Lexing
 {
-    internal class Token(TokenType type, string value, int line, int column)
+    /// <summary>
+    /// Represents a lexical token identified by the lexer.
+    /// </summary>
+    /// <param name="type"></param>
+    /// <param name="value"></param>
+    /// <param name="line"></param>
+    /// <param name="column"></param>
+    public class Token(TokenType type, string value, int line, int column)
     {
+        /// <summary>
+        /// Represents the type of the token.
+        /// </summary>
         public TokenType TokenType { get; set; } = type;
+        /// <summary>
+        /// Represents the value of the token.
+        /// </summary>
         public string Value { get; set; } = value;
+        /// <summary>
+        /// Represents the line number where the token is located.
+        /// </summary>
         public int Line { get; set; } = line;
+        /// <summary>
+        /// Represents the starting column number of the token.
+        /// </summary>
         public int StartColumn { get; set; } = column;
+        /// <summary>
+        /// Represents the ending column number of the token.
+        /// </summary>
         public int EndColumn => StartColumn + Value.Length;
     }
 

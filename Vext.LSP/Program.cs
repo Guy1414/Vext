@@ -26,6 +26,15 @@ class Program
         public int EndColumn { get; set; }
     }
 
+    public class TokenInfo
+    {
+        public int Line { get; set; }
+        public int StartColumn { get; set; }
+        public int EndColumn { get; set; }
+        public required string Type { get; set; } // e.g., "keyword", "identifier", "function", etc.
+        public bool IsDeclaration { get; set; } = false;
+    }
+
     // Output representation
     public class RunOutput
     {
@@ -39,6 +48,7 @@ class Program
         public bool Success { get; set; }
         public List<ErrorInfo> Errors { get; set; } = [];
         public RunOutput? Output { get; set; } = null;
+        public List<TokenInfo> Tokens { get; set; } = [];
     }
 
     static int Main(string[] args)
@@ -65,6 +75,14 @@ class Program
         try
         {
             var compileResult = VextEngine.Compile(code);
+
+            result.Tokens = compileResult.Tokens.ConvertAll(t => new TokenInfo
+            {
+                Line = t.Line,
+                StartColumn = t.StartColumn,
+                EndColumn = t.EndColumn,
+                Type = t.TokenType.ToString().ToLower(),
+            });
 
             if (compileResult.Errors.Count > 0)
             {

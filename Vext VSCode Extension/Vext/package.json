@@ -1,5 +1,5 @@
 {
-  "name": "Vext",
+  "name": "vext",
   "displayName": "Vext Language Support",
   "description": "Language Server Protocol support for the Vext language", 
   "license": "MIT",
@@ -17,6 +17,20 @@
         "extensions": [".vext", ".vxt"],
         "configuration": "./language-configuration.json"
       }
+    ],
+    "semanticTokenTypes": [
+      {"id": "keyword", "description": "Keyword token type"},
+      {"id": "variable", "description": "Variable token type"},
+      {"id": "function", "description": "Function token type"},
+      {"id": "type", "description": "Type token type"},
+      {"id": "string", "description": "String token type"},
+      {"id": "number", "description": "Number token type"},
+      {"id": "boolean", "description": "Boolean token type"},
+      {"id": "comment", "description": "Comment token type"}
+    ],
+    "semanticTokenModifiers": [
+      {"id": "declaration", "description": "Declaration token modifier"},
+      {"id": "readonly", "description": "Readonly token modifier"}
     ],
     "configuration": {}
   },
