@@ -30,7 +30,7 @@ jobs:
         node-version: 20
 
     - name: Install vsce
-      run: npm install -g @vscode/vsce
+      run: npm ci -g @vscode/vsce
 
     - name: Create Publish Directory
       run: mkdir publish
@@ -57,7 +57,7 @@ jobs:
       shell: pwsh
       run: |
         cd "${{ env.EXTENSION_ROOT }}"
-        npm install
+        npm ci
         vsce package --out ../../publish/vext-extension.vsix
 
     # 3. Build the standalone TestRunner (Vext.exe)
