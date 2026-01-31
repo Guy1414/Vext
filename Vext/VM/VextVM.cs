@@ -368,6 +368,8 @@ namespace Vext.Compiler.VM
                             throw new Exception($"INC_VAR index out of bounds: {instr.ArgInt}");
                         if (variables[instr.ArgInt].Type == VextType.Number)
                             variables[instr.ArgInt].AsNumber++;
+                        else
+                            throw new Exception($"INC_VAR applied to non-numeric variable at index {instr.ArgInt}");
                         break;
 
                     case VextVMBytecode.DEC_VAR:
@@ -375,6 +377,8 @@ namespace Vext.Compiler.VM
                             throw new Exception($"DEC_VAR index out of bounds: {instr.ArgInt}");
                         if (variables[instr.ArgInt].Type == VextType.Number)
                             variables[instr.ArgInt].AsNumber--;
+                        else
+                            throw new Exception($"DEC_VAR applied to non-numeric variable at index {instr.ArgInt}");
                         break;
 
                 }

@@ -852,7 +852,7 @@ namespace Vext.Compiler.Semantic
             if (target == "float" && source == "int")
                 return true;
             if (target == "string")
-                return true;
+                return source == "string";
 
             return false;
         }
