@@ -200,7 +200,7 @@ namespace Vext.Compiler.Lexing
                 if (c == quoteType)
                 {
                     Advance();
-                    return new Token(TokenType.String, sb.ToString(), startLine, startCol);
+                    return new Token(TokenType.String, sb.ToString(), startLine, startCol + 1);
                 }
 
                 // Handle Escape Sequences
@@ -226,7 +226,7 @@ namespace Vext.Compiler.Lexing
                 ReportError("Unterminated string literal at EOF", startLine, startCol, currentLine, currentColumn);
             }
 
-            return new Token(TokenType.String, sb.ToString(), startLine, startCol + 8);
+            return new Token(TokenType.String, sb.ToString(), startLine, startCol);
         }
 
         private void HandleEscapeSequence(StringBuilder sb)
