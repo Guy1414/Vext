@@ -226,7 +226,7 @@ namespace Vext.Compiler.Lexing
                 ReportError("Unterminated string literal at EOF", startLine, startCol, currentLine, currentColumn);
             }
 
-            return new Token(TokenType.String, sb.ToString(), startLine, startCol);
+            return new Token(TokenType.String, sb.ToString(), startLine, startCol + 1);
         }
 
         private void HandleEscapeSequence(StringBuilder sb)
