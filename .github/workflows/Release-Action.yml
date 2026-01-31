@@ -28,18 +28,15 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: 20
+        cache: 'npm'
+        cache-dependency-path: '${{ env.EXTENSION_ROOT }}/package-lock.json'
 
-    - name: Install vsce
-      run: npm ci -g @vscode/vsce
-
-    - name: Create Publish Directory
-      run: mkdir publish
-
-    - name: Ensure compiler directory exists
+    # Create publish folder and compiler folder
+    - name: Prepare directories
       shell: pwsh
       run: |
-        New-Item -ItemType Directory -Force `
-          "${{ env.EXTENSION_ROOT }}/compiler"
+        New-Item -ItemType Directory -Force ./publish
+        New-Item -ItemType Directory -Force "${{ env.EXTENSION_ROOT }}/compiler"
 
     # 1. Build the LSP and put it inside the Extension folder
     - name: Publish LSP for Extension
@@ -52,13 +49,13 @@ jobs:
           -p:PublishSingleFile=true `
           -o "${{ env.EXTENSION_ROOT }}/compiler"
 
-    # 2. Package the Extension into the publish folder
+    # 2. Package the VS Code Extension (once, after LSP exists)
     - name: Package VS Code Extension
       shell: pwsh
       run: |
         cd "${{ env.EXTENSION_ROOT }}"
         npm ci
-        vsce package --out ../../publish/vext-extension.vsix
+        npx @vscode/vsce package --out ../../publish/vext-extension.vsix
 
     # 3. Build the standalone TestRunner (Vext.exe)
     - name: Publish TestRunner
@@ -73,15 +70,15 @@ jobs:
       shell: pwsh
       run: Rename-Item "./publish/Vext.TestRunner.exe" -NewName "Vext.exe"
 
-    # 4. Generate Checksums for BOTH the .exe and the .vsix
+    # 4. Generate SHA256 checksums
     - name: Generate SHA256 checksums
       shell: pwsh
       run: |
         certutil -hashfile "./publish/Vext.exe" SHA256 | Select-Object -Skip 1 -First 1 | Out-File "./publish/Vext.exe.sha256" -Encoding ascii
         certutil -hashfile "./publish/vext-extension.vsix" SHA256 | Select-Object -Skip 1 -First 1 | Out-File "./publish/vext-extension.vsix.sha256" -Encoding ascii
 
-    # 5. Zip almost everything (This zip will now contain Vext.exe AND vext-extension.vsix)
-    - name: Zip entire publish folder
+    # 5. Zip the main artifacts
+    - name: Zip publish folder
       shell: pwsh
       run: |
         Compress-Archive `
@@ -92,13 +89,13 @@ jobs:
           -DestinationPath ./publish/Vext-v${{ github.run_number }}.zip `
           -Force
 
-    # 6. Zip everything
-    - name: Zip entire project folder
+    # 6. Zip the source code
+    - name: Zip source code
       shell: pwsh
       run: |
         git archive --format=zip HEAD -o ./publish/Source-Code-v${{ github.run_number }}.zip
-        
-    # 7. Upload everything to the Release
+
+    # 7. Create GitHub Release and upload assets
     - name: Create GitHub Release and Upload Assets
       uses: softprops/action-gh-release@v2
       with:
