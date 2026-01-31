@@ -156,9 +156,9 @@ namespace Vext.Compiler.Lexing
 
         private Token ReadString(char quoteType)
         {
-            int startCol = currentColumn;
-            int startLine = currentLine;
             Advance(); // skip opening quote
+            int startLine = currentLine;
+            int startCol = currentColumn;
             StringBuilder sb = new();
 
             while (currentIndex < vextCode.Length)
