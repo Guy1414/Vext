@@ -80,7 +80,7 @@ class Program
             {
                 Line = t.Line - 1,
                 StartColumn = t.StartColumn - 1,
-                EndColumn = t.EndColumn,
+                EndColumn = t.EndColumn - 1,
                 Type = t.TokenType.ToString().ToLower(),
             });
 
