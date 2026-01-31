@@ -361,3 +361,9 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# Ignore Extension dependencies
+Vext VSCode Extension/node_modules/
+Vext VSCode Extension/out/
+
+.exe

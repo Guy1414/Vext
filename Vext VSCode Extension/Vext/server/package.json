@@ -1,0 +1,17 @@
+{
+  "name": "Vext",
+  "description": "Language Server Protocol support for the Vext language",
+  "version": "1.0.0",
+  "license": "MIT",
+  "engines": {
+    "node": "*"
+  },
+  "repository": {
+    "type": "git",
+    "url": "REPLACE_ME"
+  },
+  "dependencies": {
+    "vscode-languageserver": "^8.1.0",
+    "vscode-languageserver-textdocument": "^1.0.8"
+  }
+}
