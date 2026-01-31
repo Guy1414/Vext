@@ -118,7 +118,6 @@ namespace Vext.Compiler.Semantic
         {
             foreach (FunctionDefinitionNode? func in functions)
             {
-                variableSlotIndex = 0;
                 PushScope();
 
                 foreach (var param in func.Arguments)
@@ -281,7 +280,7 @@ namespace Vext.Compiler.Semantic
                             assignedSlots.Push(afterIf);
                         } else
                         {
-                            afterIf.Or(beforeIf);
+                            afterIf.And(beforeIf);
                             assignedSlots.Pop();
                             assignedSlots.Push(afterIf);
                         }
