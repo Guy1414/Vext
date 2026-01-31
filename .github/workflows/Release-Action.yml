@@ -67,29 +67,6 @@ jobs:
           -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true `
           -o ./publish
 
-    - name: Rename and Checksum
-      shell: pwsh
-      run: |
-        $exePath = "./publish/Vext.TestRunner.exe"
-        if (Test-Path $exePath) {
-            Rename-Item $exePath -NewName "Vext.exe"
-        } else {
-            throw "Executable not found for renaming!"
-        }
-        
-        Get-ChildItem "./publish" -Include *.exe, *.vsix -Recurse | ForEach-Object {
-            $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower()
-            $hash | Out-File "$($_.FullName).sha256" -Encoding ascii
-        }
-
-    - name: Create Release Archives
-      shell: pwsh
-      run: |
-        Compress-Archive -Path "./publish/Vext.exe", "./publish/vext-extension.vsix", "./publish/*.sha256" `
-                         -DestinationPath "./publish/Vext-Artifacts.zip" -Force
-        
-        git archive --format=zip HEAD -o ./publish/Vext-Full-Source.zip
-
     - name: Calculate Semantic Version
       id: versioning
       shell: bash
@@ -110,6 +87,33 @@ jobs:
         echo "tag=$NEW_TAG" >> $GITHUB_OUTPUT
         echo "name=Vext Build $NEW_TAG" >> $GITHUB_OUTPUT
 
+    - name: Rename and Checksum
+      shell: pwsh
+      run: |
+        $exePath = "./publish/Vext.TestRunner.exe"
+        $vsixPath = "./publish/vext-extension.vsix"
+        if (Test-Path $exePath && Test-Path $vsixPath) {
+            Rename-Item "./publish/Vext.TestRunner.exe" -NewName "Vext-${{ steps.versioning.outputs.tag }}.exe"
+            Rename-Item "./publish/vext-extension.vsix" -NewName "vext-extension-${{ steps.versioning.outputs.tag }}.vsix"
+        } else {
+            throw "File not found for renaming!"
+        }
+        
+        Get-ChildItem "./publish" -Include *.exe, *.vsix -Recurse | ForEach-Object {
+            $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower()
+            $hash | Out-File "$($_.FullName).sha256" -Encoding ascii
+        }
+
+    - name: Create Release Archives
+      shell: pwsh
+      run: |
+        Compress-Archive -Path "./publish/*-${{ steps.versioning.outputs.tag }}.exe", `
+                         "./publish/*-${{ steps.versioning.outputs.tag }}.vsix", `
+                         "./publish/*.sha256" `
+                         -DestinationPath "./publish/Vext-Artifacts-${{ steps.versioning.outputs.tag }}.zip" -Force
+        
+        git archive --format=zip HEAD -o ./publish/Vext-Full-Source-${{ steps.versioning.outputs.tag }}.zip
+
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
       if: success()
@@ -120,7 +124,7 @@ jobs:
           ./publish/*.exe
           ./publish/*.vsix
           ./publish/*.sha256
-          ./publish/Vext-Artifacts.zip
-          ./publish/Vext-Full-Source.zip
+          ./publish/Vext-Artifacts-*.zip
+          ./publish/Vext-Full-Source-*.zip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
