@@ -10,6 +10,7 @@ on:
 jobs:
   build:
     runs-on: windows-latest
+    continue-on-error: false 
     env:
       TESTRUNNER_PROJECT: './Vext.TestRunner/Vext.TestRunner.csproj'
       LSP_PROJECT: './Vext.LSP/Vext.LSP.csproj'
@@ -18,6 +19,8 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
@@ -29,84 +32,95 @@ jobs:
       with:
         node-version: 20
         cache: 'npm'
-        cache-dependency-path: '${{ env.EXTENSION_ROOT }}/package-lock.json'
+        cache-dependency-path: './Vext VSCode Extension/Vext/package-lock.json'
 
-    # Create publish folder and compiler folder
+    - name: Fail-Fast Project Check
+      shell: pwsh
+      run: |
+        if (!(Test-Path ${{ env.TESTRUNNER_PROJECT }})) { throw "TestRunner project not found!" }
+        if (!(Test-Path ${{ env.LSP_PROJECT }})) { throw "LSP project not found!" }
+
     - name: Prepare directories
       shell: pwsh
       run: |
-        New-Item -ItemType Directory -Force ./publish
-        New-Item -ItemType Directory -Force "${{ env.EXTENSION_ROOT }}/compiler"
+        $null = New-Item -ItemType Directory -Force ./publish
+        $null = New-Item -ItemType Directory -Force "${{ env.EXTENSION_ROOT }}/compiler"
 
-    # 1. Build the LSP and put it inside the Extension folder
-    - name: Publish LSP for Extension
-      shell: pwsh
+    - name: Publish LSP
       run: |
         dotnet publish ${{ env.LSP_PROJECT }} `
-          -c Release `
-          -r win-x64 `
-          --self-contained true `
-          -p:PublishSingleFile=true `
-          -o "${{ env.EXTENSION_ROOT }}/compiler"
+          -c Release -r win-x64 --self-contained true `
+          -p:PublishSingleFile=true -o "${{ env.EXTENSION_ROOT }}/compiler"
 
-    # 2. Package the VS Code Extension (once, after LSP exists)
     - name: Package VS Code Extension
       shell: pwsh
       run: |
         cd "${{ env.EXTENSION_ROOT }}"
         npm ci
-        npx @vscode/vsce package --out ../../publish/vext-extension.vsix
+        # Fail-fast: Ensure npx succeeds before moving on
+        npx @vscode/vsce package --out ../../publish/vext-extension.vsix || exit 1
 
-    # 3. Build the standalone TestRunner (Vext.exe)
     - name: Publish TestRunner
-      shell: pwsh
       run: |
         dotnet publish ${{ env.TESTRUNNER_PROJECT }} `
           -c Release -r win-x64 --self-contained true `
           -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true `
           -o ./publish
 
-    - name: Rename TestRunner executable
-      shell: pwsh
-      run: Rename-Item "./publish/Vext.TestRunner.exe" -NewName "Vext.exe"
-
-    # 4. Generate SHA256 checksums
-    - name: Generate SHA256 checksums
+    - name: Rename and Checksum
       shell: pwsh
       run: |
-        certutil -hashfile "./publish/Vext.exe" SHA256 | Select-Object -Skip 1 -First 1 | Out-File "./publish/Vext.exe.sha256" -Encoding ascii
-        certutil -hashfile "./publish/vext-extension.vsix" SHA256 | Select-Object -Skip 1 -First 1 | Out-File "./publish/vext-extension.vsix.sha256" -Encoding ascii
+        $exePath = "./publish/Vext.TestRunner.exe"
+        if (Test-Path $exePath) {
+            Rename-Item $exePath -NewName "Vext.exe"
+        } else {
+            throw "Executable not found for renaming!"
+        }
+        
+        Get-ChildItem "./publish" -Include *.exe, *.vsix -Recurse | ForEach-Object {
+            $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower()
+            $hash | Out-File "$($_.FullName).sha256" -Encoding ascii
+        }
 
-    # 5. Zip the main artifacts
-    - name: Zip publish folder
+    - name: Create Release Archives
       shell: pwsh
       run: |
-        Compress-Archive `
-          -Path ./publish/Vext.exe,
-                ./publish/Vext.exe.sha256,
-                ./publish/vext-extension.vsix,
-                ./publish/vext-extension.vsix.sha256 `
-          -DestinationPath ./publish/Vext-v${{ github.run_number }}.zip `
-          -Force
+        Compress-Archive -Path "./publish/Vext.exe", "./publish/vext-extension.vsix", "./publish/*.sha256" `
+                         -DestinationPath "./publish/Vext-Artifacts.zip" -Force
+        
+        git archive --format=zip HEAD -o ./publish/Vext-Full-Source.zip
 
-    # 6. Zip the source code
-    - name: Zip source code
-      shell: pwsh
+    - name: Calculate Semantic Version
+      id: versioning
+      shell: bash
       run: |
-        git archive --format=zip HEAD -o ./publish/Source-Code-v${{ github.run_number }}.zip
+        LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.1.0")
+        
+        if [[ $LATEST_TAG =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+            MAJOR=${BASH_REMATCH[1]}
+            MINOR=${BASH_REMATCH[2]}
+            PATCH=${BASH_REMATCH[3]}
+            NEW_TAG="v$MAJOR.$MINOR.$((PATCH + 1))"
+        else
+            # Fallback for non-semver tags (like your original v1, v2)
+            CLEAN_TAG=$(echo $LATEST_TAG | sed 's/v//')
+            NEW_TAG="v$((CLEAN_TAG + 1))"
+        fi
+        
+        echo "tag=$NEW_TAG" >> $GITHUB_OUTPUT
+        echo "name=Vext Build $NEW_TAG" >> $GITHUB_OUTPUT
 
-    # 7. Create GitHub Release and upload assets
-    - name: Create GitHub Release and Upload Assets
+    - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
+      if: success()
       with:
-        tag_name: v${{ github.run_number }}
-        name: Vext Build v${{ github.run_number }}
+        tag_name: ${{ steps.versioning.outputs.tag }}
+        name: ${{ steps.versioning.outputs.name }}
         files: |
-          ./publish/Vext.exe
-          ./publish/Vext.exe.sha256
-          ./publish/vext-extension.vsix
-          ./publish/vext-extension.vsix.sha256
-          ./publish/Vext-v${{ github.run_number }}.zip
-          ./publish/Source-Code-v${{ github.run_number }}.zip
+          ./publish/*.exe
+          ./publish/*.vsix
+          ./publish/*.sha256
+          ./publish/Vext-Artifacts.zip
+          ./publish/Vext-Full-Source.zip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
