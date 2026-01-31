@@ -78,8 +78,8 @@ function errorsToDiagnostics(errors: ErrorInfo[]): Diagnostic[] {
   return errors.map((e) => ({
     severity: DiagnosticSeverity.Error,
     range: Range.create(
-      Position.create(Math.max(0, e.Line - 1), Math.max(0, e.StartColumn - 1)),
-      Position.create(Math.max(0, e.Line - 1), Math.max(0, e.EndColumn - 1))
+      Position.create(e.Line, e.StartColumn),
+      Position.create(e.Line, e.EndColumn)
     ),
     message: e.Message,
     source: "vext-compiler",
