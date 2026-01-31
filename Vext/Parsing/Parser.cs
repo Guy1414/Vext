@@ -70,6 +70,10 @@ namespace Vext.Compiler.Parsing
                 ReportError($"Unknown token '{token.Value}'", token.Line, token.StartColumn, CurrentToken().Line, CurrentToken().EndColumn);
                 Advance();
                 return null;
+            } else if (token.TokenType == TokenType.Comment)
+            {
+                Advance(); // skip comments
+                return ParseStatement();
             } else if (token.TokenType == TokenType.Keyword)
             {
                 if (LanguageSpecs.ReturnTypes.Contains(token.Value))
