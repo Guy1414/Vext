@@ -160,7 +160,12 @@ connection.languages.semanticTokens.on(async (params) => {
     const result = await compileVextFromText(code, false);
     if (!result.Tokens) return builder.build();
 
-    for (const t of result.Tokens) {
+    const tokens = [...result.Tokens].sort((a, b) => {
+      if (a.Line !== b.Line) return a.Line - b.Line;
+      return a.StartColumn - b.StartColumn;
+    });
+
+    for (const t of tokens) {
       let tokenType: number | undefined;
 
       switch (t.Type) {

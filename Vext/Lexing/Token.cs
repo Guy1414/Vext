@@ -66,6 +66,10 @@
         /// Represents a punctuation token such as ;, ,, (, ), {, }, etc.
         /// </summary>
         Punctuation,
+        /// <summary>
+        /// Represents a comment token.
+        /// </summary>
+        Comment,
 
         /// <summary>
         /// Represents a boolean literal token (true, false).

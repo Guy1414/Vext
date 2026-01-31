@@ -19,7 +19,12 @@ namespace Vext.Compiler.Lexing
 
             while (currentIndex < vextCode.Length)
             {
-                SkipTrivia();
+                Token? tk = SkipTrivia();
+                if (tk != null)
+                {
+                    tokens.Add(tk);
+                    continue;
+                }
                 if (currentIndex >= vextCode.Length)
                     break;
 
@@ -48,7 +53,7 @@ namespace Vext.Compiler.Lexing
             return (tokens);
         }
 
-        private void SkipTrivia()
+        private Token? SkipTrivia()
         {
             while (currentIndex < vextCode.Length)
             {
@@ -56,18 +61,25 @@ namespace Vext.Compiler.Lexing
 
                 if (c == '/' && Peek() == '/')
                 {
-                    SkipSingleLineComment();
+                    return ReadSingleLineComment();
                 } else if (char.IsWhiteSpace(c))
                 {
                     HandleWhitespace(c);
+                    return null;
                 } else
                     break;
             }
+            return null;
         }
 
-        private void SkipSingleLineComment()
+        private Token ReadSingleLineComment()
         {
+            int startLine = currentLine;
+            int startCol = currentColumn;
+
             Advance(2); // Skip the //
+
+            int start = currentIndex;
 
             while (currentIndex < vextCode.Length &&
                    vextCode[currentIndex] != '\n' &&
@@ -76,12 +88,8 @@ namespace Vext.Compiler.Lexing
                 Advance();
             }
 
-            if (currentIndex < vextCode.Length && vextCode[currentIndex] == '\n')
-            {
-                currentIndex++;
-                currentLine++;
-                currentColumn = 1;
-            }
+            string value = vextCode[start..currentIndex];
+            return new Token(TokenType.Comment, value, startLine, startCol);
         }
 
         private void Advance(int count = 1)
