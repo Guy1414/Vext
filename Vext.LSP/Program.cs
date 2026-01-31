@@ -1,7 +1,19 @@
 ﻿using System.Text.Json;
+using System.Text.Json.Serialization;
 using Vext.Compiler;
 using Vext.Compiler.VM;
+using Vext.LSP;
 using static Vext.Compiler.Diagnostics.Diagnostic;
+
+[JsonSerializable(typeof(Program.Result))]
+[JsonSerializable(typeof(Program.ErrorInfo))]
+[JsonSerializable(typeof(Program.RunOutput))]
+[JsonSerializable(typeof(VextValue))]
+[JsonSerializable(typeof(VextValue[]))]
+[JsonSourceGenerationOptions(Converters = [typeof(VextValueConverter)])]
+internal partial class VextJsonContext : JsonSerializerContext
+{
+}
 
 class Program
 {
@@ -94,7 +106,7 @@ class Program
         }
 
         // Serialize result to JSON
-        Console.WriteLine(JsonSerializer.Serialize(result));
+        Console.WriteLine(JsonSerializer.Serialize(result, VextJsonContext.Default.Result));
         return 0;
     }
 }
