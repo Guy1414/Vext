@@ -22,7 +22,8 @@ const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
 interface ErrorInfo {
   Message: string;
   Line: number;
-  Column: number;
+  StartColumn: number;
+  EndColumn: number;
 }
 
 interface RunOutput {
@@ -77,8 +78,8 @@ function errorsToDiagnostics(errors: ErrorInfo[]): Diagnostic[] {
   return errors.map((e) => ({
     severity: DiagnosticSeverity.Error,
     range: Range.create(
-      Position.create(Math.max(0, e.Line - 1), Math.max(0, e.Column - 1)),
-      Position.create(Math.max(0, e.Line - 1), Number.MAX_VALUE)
+      Position.create(Math.max(0, e.Line - 1), Math.max(0, e.StartColumn - 1)),
+      Position.create(Math.max(0, e.Line - 1), Math.max(0, e.EndColumn - 1))
     ),
     message: e.Message,
     source: "vext-compiler",
@@ -112,7 +113,6 @@ documents.onDidChangeContent(async (change) => {
     }
   } catch (err: any) {
     connection.window.showErrorMessage("Compiler error: " + err);
-    console.log(`Hello world!`);
   }
 });
 
