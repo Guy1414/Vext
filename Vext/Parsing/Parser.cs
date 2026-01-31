@@ -492,9 +492,9 @@ namespace Vext.Compiler.Parsing
 
             return new ForStatementNode
             {
-                Initialization = initialization!,
-                Condition = condition!,
-                Increment = increment!,
+                Initialization = initialization,
+                Condition = condition,
+                Increment = increment,
                 Body = body,
                 Line = forToken.Line,
                 StartColumn = forToken.StartColumn,
@@ -699,6 +699,23 @@ namespace Vext.Compiler.Parsing
 
             // Parse the left-hand side primary expression
             ExpressionNode left = ParsePrimary(CurrentToken());
+
+            if (currentToken < tokens.Count &&
+                tokens[currentToken].TokenType == TokenType.Operator &&
+                (tokens[currentToken].Value == "++" || tokens[currentToken].Value == "--"))
+            {
+                var op = tokens[currentToken];
+                Advance();
+
+                left = new UnaryExpressionNode
+                {
+                    Operator = op.Value,
+                    Right = left,
+                    Line = op.Line,
+                    StartColumn = op.StartColumn,
+                    EndColumn = CurrentToken().EndColumn
+                };
+            }
 
             while (currentToken < tokens.Count && tokens[currentToken].TokenType == TokenType.Operator)
             {

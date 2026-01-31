@@ -118,6 +118,7 @@ namespace Vext.Compiler.Semantic
         {
             foreach (FunctionDefinitionNode? func in functions)
             {
+                variableSlotIndex = 0;
                 PushScope();
 
                 foreach (var param in func.Arguments)
@@ -307,85 +308,73 @@ namespace Vext.Compiler.Semantic
                     break;
 
                 case ForStatementNode fo:
-                    fo.Initialization ??= new VariableDeclarationNode
+                    if (fo.Initialization != null)
                     {
-                        Name = "i",
-                        VariableType = "int",
-                        Initializer = new LiteralNode { Value = 0, Line = fo.Line, StartColumn = fo.StartColumn, EndColumn = fo.EndColumn },
-                        Line = fo.Line,
-                        StartColumn = fo.StartColumn,
-                        EndColumn = fo.EndColumn
-                    };
+                        switch (fo.Initialization)
+                        {
+                            case VariableDeclarationNode vd:
+                                if (vd.Initializer != null)
+                                {
+                                    CheckExpression(vd.Initializer, func);
+                                    var initType = GetExpressionType(vd.Initializer);
+                                    if (initType != "int" && initType != "float" && initType != "error")
+                                        ReportError($"For loop initialization must be numeral, got '{initType}'.", vd.Line, vd.StartColumn, vd.EndColumn);
+                                }
+                                DeclareVariable(vd, func);
+                                assignedSlots.Peek().Set(vd.SlotIndex, true);
+                                break;
 
-                    switch (fo.Initialization)
-                    {
-                        case VariableDeclarationNode vd:
-                            if (vd.Initializer != null)
-                            {
-                                CheckExpression(vd.Initializer, func);
-                                var initType = GetExpressionType(vd.Initializer);
-                                if (initType != "int" && initType != "float" && initType != "error")
-                                    ReportError($"For loop initialization must be numeral, got '{initType}'.", vd.Line, vd.StartColumn, vd.EndColumn);
-                            }
-                            DeclareVariable(vd, func);
-                            assignedSlots.Peek().Set(vd.SlotIndex, true);
-                            break;
+                            case ExpressionStatementNode es:
+                                CheckExpression(es.Expression, func);
+                                var esType = GetExpressionType(es.Expression);
+                                if (esType != "int" && esType != "float" && esType != "error")
+                                    ReportError($"For loop initialization must be numeral, got '{esType}'.", es.Line, es.StartColumn, es.EndColumn);
+                                break;
 
-                        case ExpressionStatementNode es:
-                            CheckExpression(es.Expression, func);
-                            var esType = GetExpressionType(es.Expression);
-                            if (esType != "int" && esType != "float" && esType != "error")
-                                ReportError($"For loop initialization must be numeral, got '{esType}'.", es.Line, es.StartColumn, es.EndColumn);
-                            break;
-
-                        default:
-                            ReportError("For loop initialization must be a variable declaration or expression statement.", fo.Line, fo.Initialization.StartColumn, fo.Initialization.EndColumn);
-                            break;
+                            default:
+                                ReportError("For loop initialization must be a variable declaration or expression statement.", fo.Line, fo.Initialization.StartColumn, fo.Initialization.EndColumn);
+                                break;
+                        }
                     }
 
-                    fo.Condition ??= new BinaryExpressionNode { Left = new VariableNode { Name = "i" }, Operator = "<", Right = new LiteralNode { Value = 10 }, Line = fo.Line, StartColumn = fo.StartColumn, EndColumn = fo.EndColumn };
-
-                    CheckExpression(fo.Condition, func);
-
-                    var forType = GetExpressionType(fo.Condition);
-                    if (forType != "bool" && forType != "error")
-                        ReportError($"For condition must be boolean, got '{forType}'.", fo.Line, fo.StartColumn, fo.EndColumn);
-
-                    fo.Increment ??= new IncrementStatementNode
+                    if (fo.Condition != null)
                     {
-                        VariableName = "i",
-                        IsIncrement = true,
-                        Line = fo.Line,
-                        StartColumn = fo.StartColumn,
-                        EndColumn = fo.EndColumn
-                    };
+                        CheckExpression(fo.Condition, func);
 
-                    switch (fo.Increment)
+                        var forType = GetExpressionType(fo.Condition);
+                        if (forType != "bool" && forType != "error")
+                            ReportError($"For condition must be boolean, got '{forType}'.", fo.Line, fo.StartColumn, fo.EndColumn);
+                    }
+
+                    if (fo.Increment != null)
                     {
-                        case ExpressionStatementNode ies:
-                            CheckExpression(ies.Expression, func);
-                            var incrType = GetExpressionType(ies.Expression);
-                            if (incrType != "int" && incrType != "float" && incrType != "error")
-                                ReportError($"For loop increment must be numeric, got '{incrType}'.", ies.Line, ies.StartColumn, ies.EndColumn);
-                            break;
+                        switch (fo.Increment)
+                        {
+                            case ExpressionStatementNode ies:
+                                CheckExpression(ies.Expression, func);
+                                var incrType = GetExpressionType(ies.Expression);
+                                if (incrType != "int" && incrType != "float" && incrType != "error")
+                                    ReportError($"For loop increment must be numeric, got '{incrType}'.", ies.Line, ies.StartColumn, ies.EndColumn);
+                                break;
 
-                        case IncrementStatementNode inc:
-                            var decl = ResolveVariable(inc.VariableName);
-                            if (decl == null)
-                            {
-                                ReportError($"Variable '{inc.VariableName}' used before declaration.", inc.Line, inc.StartColumn, inc.EndColumn);
-                            } else
-                            {
-                                inc.SlotIndex = decl.SlotIndex;
-                                assignedSlots.Peek().Set(decl.SlotIndex, true);
-                                if (decl.VariableType != "int" && decl.VariableType != "float")
-                                    ReportError($"Cannot apply increment operator to type '{decl.VariableType}'.", inc.Line, inc.StartColumn, inc.EndColumn);
-                            }
-                            break;
+                            case IncrementStatementNode inc:
+                                var decl = ResolveVariable(inc.VariableName);
+                                if (decl == null)
+                                {
+                                    ReportError($"Variable '{inc.VariableName}' used before declaration.", inc.Line, inc.StartColumn, inc.EndColumn);
+                                } else
+                                {
+                                    inc.SlotIndex = decl.SlotIndex;
+                                    assignedSlots.Peek().Set(decl.SlotIndex, true);
+                                    if (decl.VariableType != "int" && decl.VariableType != "float")
+                                        ReportError($"Cannot apply increment operator to type '{decl.VariableType}'.", inc.Line, inc.StartColumn, inc.EndColumn);
+                                }
+                                break;
 
-                        default:
-                            ReportError("For loop increment must be an expression or increment statement.", fo.Increment.Line, fo.Increment.StartColumn, fo.Increment.EndColumn);
-                            break;
+                            default:
+                                ReportError("For loop increment must be an expression or increment statement.", fo.Increment.Line, fo.Increment.StartColumn, fo.Increment.EndColumn);
+                                break;
+                        }
                     }
 
                     var beforeFo = new BitArray(assignedSlots.Peek());
