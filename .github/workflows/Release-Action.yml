@@ -71,22 +71,31 @@ jobs:
       id: versioning
       shell: bash
       run: |
-        LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.1.0")
-        
-        if [[ $LATEST_TAG =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+        # Get the latest tag, default to v0 if none exist
+        LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0")
+        echo "Found latest tag: $LATEST_TAG"
+
+        # Remove the 'v' prefix for calculation
+        CLEAN_TAG=${LATEST_TAG#v}
+
+        if [[ $CLEAN_TAG =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+            # Handle Semantic Versioning (e.g., 1.2.3)
             MAJOR=${BASH_REMATCH[1]}
             MINOR=${BASH_REMATCH[2]}
             PATCH=${BASH_REMATCH[3]}
             NEW_TAG="v$MAJOR.$MINOR.$((PATCH + 1))"
-        else
-            # Fallback for non-semver tags (like your original v1, v2)
-            CLEAN_TAG=$(echo $LATEST_TAG | sed 's/v//')
+        elif [[ $CLEAN_TAG =~ ^([0-9]+)$ ]]; then
+            # Handle Simple Integer Versioning (e.g., 41 -> 42)
             NEW_TAG="v$((CLEAN_TAG + 1))"
+        else
+            # Default fallback if format is weird
+            NEW_TAG="v1"
         fi
         
         echo "tag=$NEW_TAG" >> $GITHUB_OUTPUT
         echo "name=Vext Build $NEW_TAG" >> $GITHUB_OUTPUT
-
+        echo "Calculated new tag: $NEW_TAG"
+        
     - name: Rename and Checksum
       shell: pwsh
       run: |
