@@ -29,9 +29,10 @@ jobs:
     - name: Install vsce
       run: npm install -g @vscode/vsce
 
-    - name: Restore dependencies
-      run: dotnet restore ${{ env.PROJECT_PATH }}
+    - name: Create Publish Directory
+      run: mkdir publish
 
+    # 1. Build the LSP and put it inside the Extension folder
     - name: Publish LSP for Extension
       run: |
         dotnet publish ${{ env.LSP_PROJECT_PATH }} `
@@ -41,17 +42,15 @@ jobs:
           -p:PublishSingleFile=true `
           -o "${{ env.EXTENSION_DIR }}/Vext/compiler"
 
+    # 2. Package the Extension into the publish folder
     - name: Package VS Code Extension
       shell: pwsh
       run: |
         cd "${{ env.EXTENSION_DIR }}"
         npm install
-        # This creates a .vsix file in the extension directory
         vsce package --out ../publish/vext-extension.vsix
 
-    - name: Build TestRunner
-      run: dotnet build ${{ env.PROJECT_PATH }} --configuration Release --no-restore
-
+    # 3. Build the standalone TestRunner (Vext.exe)
     - name: Publish TestRunner
       run: |
         dotnet publish ${{ env.PROJECT_PATH }} `
@@ -63,13 +62,14 @@ jobs:
       shell: pwsh
       run: Rename-Item "./publish/Vext.TestRunner.exe" -NewName "Vext.exe"
 
-    - name: Generate SHA256 checksum
+    # 4. Generate Checksums for BOTH the .exe and the .vsix
+    - name: Generate SHA256 checksums
       shell: pwsh
       run: |
-        certutil -hashfile "./publish/Vext.exe" SHA256 |
-          Select-Object -Skip 1 -First 1 |
-          Out-File "./publish/Vext.exe.sha256" -Encoding ascii
+        certutil -hashfile "./publish/Vext.exe" SHA256 | Select-Object -Skip 1 -First 1 | Out-File "./publish/Vext.exe.sha256" -Encoding ascii
+        certutil -hashfile "./publish/vext-extension.vsix" SHA256 | Select-Object -Skip 1 -First 1 | Out-File "./publish/vext-extension.vsix.sha256" -Encoding ascii
 
+    # 5. Zip everything (This zip will now contain Vext.exe AND vext-extension.vsix)
     - name: Zip entire publish folder
       shell: pwsh
       run: |
@@ -78,6 +78,7 @@ jobs:
           -DestinationPath ./publish/Vext-v${{ github.run_number }}.zip `
           -Force
 
+    # 6. Upload everything to the Release
     - name: Create GitHub Release and Upload Assets
       uses: softprops/action-gh-release@v2
       with:
@@ -86,7 +87,8 @@ jobs:
         files: |
           ./publish/Vext.exe
           ./publish/Vext.exe.sha256
-          ./publish/Vext-v${{ github.run_number }}.zip
           ./publish/vext-extension.vsix
+          ./publish/vext-extension.vsix.sha256
+          ./publish/Vext-v${{ github.run_number }}.zip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
