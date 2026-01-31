@@ -123,7 +123,7 @@ class Program
             });
         }
 
-        // Serialize result to JSON s
+        // Serialize result to JSON
         Console.WriteLine(JsonSerializer.Serialize(result, VextJsonContext.Default.Result));
         return 0;
     }
