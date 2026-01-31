@@ -8,9 +8,9 @@ jobs:
   build:
     runs-on: windows-latest
     env:
-      PROJECT_PATH: './Vext.TestRunner/Vext.TestRunner.csproj'
-      LSP_PROJECT_PATH: './Vext.LSP/Vext.LSP.csproj'
-      EXTENSION_DIR: './Vext VSCode Extension/Vext'
+      TESTRUNNER_PROJECT: './Vext.TestRunner/Vext.TestRunner.csproj'
+      LSP_PROJECT: './Vext.LSP/Vext.LSP.csproj'
+      EXTENSION_ROOT: './Vext VSCode Extension/Vext'
 
     steps:
     - name: Checkout repository
@@ -32,28 +32,34 @@ jobs:
     - name: Create Publish Directory
       run: mkdir publish
 
+    - name: Ensure compiler directory exists
+      shell: pwsh
+      run: |
+        New-Item -ItemType Directory -Force `
+          "${{ env.EXTENSION_ROOT }}/Vext/compiler"
+
     # 1. Build the LSP and put it inside the Extension folder
     - name: Publish LSP for Extension
       run: |
-        dotnet publish ${{ env.LSP_PROJECT_PATH }} `
+        dotnet publish ${{ env.LSP_PROJECT }} `
           -c Release `
           -r win-x64 `
           --self-contained true `
           -p:PublishSingleFile=true `
-          -o "${{ env.EXTENSION_DIR }}/Vext/compiler"
+          -o "${{ env.EXTENSION_ROOT }}/Vext/compiler"
 
     # 2. Package the Extension into the publish folder
     - name: Package VS Code Extension
       shell: pwsh
       run: |
-        cd "${{ env.EXTENSION_DIR }}"
+        cd "${{ env.EXTENSION_ROOT }}"
         npm install
-        vsce package --out ../publish/vext-extension.vsix
+        vsce package --out ../../publish/vext-extension.vsix
 
     # 3. Build the standalone TestRunner (Vext.exe)
     - name: Publish TestRunner
       run: |
-        dotnet publish ${{ env.PROJECT_PATH }} `
+        dotnet publish ${{ env.TESTRUNNER_PROJECT }} `
           -c Release -r win-x64 --self-contained true `
           -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true `
           -o ./publish
@@ -74,7 +80,10 @@ jobs:
       shell: pwsh
       run: |
         Compress-Archive `
-          -Path ./publish/* `
+          -Path ./publish/Vext.exe,
+                ./publish/Vext.exe.sha256,
+                ./publish/vext-extension.vsix,
+                ./publish/vext-extension.vsix.sha256 `
           -DestinationPath ./publish/Vext-v${{ github.run_number }}.zip `
           -Force
 
