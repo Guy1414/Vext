@@ -1,6 +1,6 @@
 ﻿using System.Text;
+using Vext.Compiler.Diagnostics;
 using Vext.Compiler.Shared;
-using Vext.Lexer;
 
 namespace Vext.Compiler.Lexing
 {
@@ -11,14 +11,9 @@ namespace Vext.Compiler.Lexing
         private int currentLine = 1;
         private int currentColumn = 1;
 
-        private readonly List<(string, int, int)> _errors = [];
+        private static void ReportError(string message, int startLine, int startCol, int endLine, int endCol) => Diagnostic.ReportError(message, startLine, startCol, endLine, endCol);
 
-        private void ReportError(string message, int line, int column)
-        {
-            _errors.Add(($"Line {line}, Column {column}: {message}", line, column));
-        }
-
-        public (List<Token>, List<(string, int, int)>) Tokenize()
+        public List<Token> Tokenize()
         {
             var tokens = new List<Token>();
 
@@ -50,7 +45,7 @@ namespace Vext.Compiler.Lexing
             }
 
             tokens.Add(new Token(TokenType.EOF, string.Empty, currentLine, currentColumn));
-            return (tokens, _errors);
+            return (tokens);
         }
 
         private void SkipTrivia()
@@ -74,12 +69,12 @@ namespace Vext.Compiler.Lexing
         {
             Advance(2); // Skip the //
 
-            int start = currentIndex;
-
-            while (currentIndex < vextCode.Length && vextCode[currentIndex] != '\n' && vextCode[currentIndex] != '\r')
-                currentIndex++;
-
-            currentColumn += currentIndex - start;
+            while (currentIndex < vextCode.Length &&
+                   vextCode[currentIndex] != '\n' &&
+                   vextCode[currentIndex] != '\r')
+            {
+                Advance();
+            }
 
             if (currentIndex < vextCode.Length && vextCode[currentIndex] == '\n')
             {
@@ -103,14 +98,17 @@ namespace Vext.Compiler.Lexing
         private void HandleWhitespace(char current)
         {
             if (current == '\r' && Peek() == '\n')
-                Advance(2);
+                currentIndex += 2;
             else
-                Advance();
+                currentIndex++;
 
             if (current == '\r' || current == '\n')
             {
                 currentLine++;
                 currentColumn = 1;
+            } else
+            {
+                currentColumn++;
             }
         }
 
@@ -159,6 +157,7 @@ namespace Vext.Compiler.Lexing
         private Token ReadString(char quoteType)
         {
             int startCol = currentColumn;
+            int startLine = currentLine;
             Advance(); // skip opening quote
             StringBuilder sb = new();
 
@@ -170,7 +169,7 @@ namespace Vext.Compiler.Lexing
                 if (c == quoteType)
                 {
                     Advance();
-                    return new Token(TokenType.String, sb.ToString(), currentLine, startCol);
+                    return new Token(TokenType.String, sb.ToString(), startLine, startCol);
                 }
 
                 // Handle Escape Sequences
@@ -183,7 +182,7 @@ namespace Vext.Compiler.Lexing
                 // Newlines in strings (usually not allowed in non-verbatim strings)
                 if (c == '\n' || c == '\r')
                 {
-                    ReportError("Unterminated string literal", currentLine, startCol);
+                    ReportError("Unterminated string literal", startLine, startCol, currentLine, currentColumn);
                     break;
                 }
 
@@ -193,7 +192,7 @@ namespace Vext.Compiler.Lexing
 
             if (currentIndex >= vextCode.Length)
             {
-                ReportError("Unterminated string literal at EOF", currentLine, startCol);
+                ReportError("Unterminated string literal at EOF", startLine, startCol, currentLine, currentColumn);
             }
 
             return new Token(TokenType.String, sb.ToString(), currentLine, startCol);
@@ -227,12 +226,8 @@ namespace Vext.Compiler.Lexing
                 case '\'':
                     sb.Append('\'');
                     break;
-                // Optional: Support for Unicode \uXXXX
-                case 'u':
-                    // Logic to parse 4 hex digits here
-                    break;
                 default:
-                    ReportError($"Invalid escape sequence '\\{escaped}'", currentLine, currentColumn);
+                    ReportError($"Invalid escape sequence '\\{escaped}'", currentLine, currentColumn, currentLine, currentColumn);
                     sb.Append(escaped); // Recovery
                     break;
             }

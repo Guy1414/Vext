@@ -177,7 +177,7 @@ class Program
             {
                 Console.ForegroundColor = ConsoleColor.Red;
                 foreach (var e in result.Errors)
-                    Console.WriteLine($" [!] {e.Item1}");
+                    Console.WriteLine($" [!] {e.Message}. Line: {e.StartLine}, Col: {e.StartCol}.");
                 Console.ResetColor();
                 return;
             }

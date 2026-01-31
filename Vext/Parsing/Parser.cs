@@ -1,6 +1,7 @@
 ﻿using System.Globalization;
+using Vext.Compiler.Diagnostics;
+using Vext.Compiler.Lexing;
 using Vext.Compiler.Shared;
-using Vext.Lexer;
 
 namespace Vext.Compiler.Parsing
 {
@@ -8,12 +9,8 @@ namespace Vext.Compiler.Parsing
     {
         private readonly List<Token> tokens = tokens;
         private int currentToken = 0;
-        private readonly List<(string, int, int)> _errors = [];
 
-        private void ReportError(string message, int line, int column)
-        {
-            _errors.Add(($"Line {line}, Column {column}: {message}", line, column));
-        }
+        private static void ReportError(string message, int startLine, int startCol, int endLine, int endCol) => Diagnostic.ReportError(message, startLine, startCol, endLine, endCol);
 
         /// <summary>
         /// Parses the input token stream and returns a list of statement nodes representing the parsed statements.
@@ -23,9 +20,8 @@ namespace Vext.Compiler.Parsing
         /// exceptions under normal circumstances.</remarks>
         /// <returns>A list of <see cref="StatementNode"/> objects corresponding to the successfully parsed statements. The list
         /// may be empty if no valid statements are found.</returns>
-        public (List<StatementNode>, List<(string, int, int)>) Parse()
+        public List<StatementNode> Parse()
         {
-            _errors.Clear();
             var statements = new List<StatementNode>();
             while (currentToken < tokens.Count && tokens[currentToken].TokenType != TokenType.EOF)
             {
@@ -38,7 +34,7 @@ namespace Vext.Compiler.Parsing
                     // Shouldn't normally happen because Parse methods report errors instead of throwing,
                     // but catch any unexpected exception to convert into an error and attempt to continue.
                     var tok = currentToken < tokens.Count ? tokens[currentToken] : new Token(TokenType.EOF, "", 0, 0);
-                    ReportError(ex.Message, tok.Line, tok.Column);
+                    ReportError(ex.Message, tok.Line, tok.StartColumn, tok.Line, tok.EndColumn);
                 }
 
                 if (stmt != null)
@@ -47,13 +43,13 @@ namespace Vext.Compiler.Parsing
                 } else
                 {
                     var tok = CurrentToken();
-                    ReportError($"Unexpected token '{tok.Value}' at position {currentToken}", tok.Line, tok.Column);
+                    ReportError($"Unexpected token '{tok.Value}' at position {currentToken}", tok.Line, tok.StartColumn, tok.Line, tok.EndColumn);
                     // attempt to recover by skipping one token
                     if (currentToken < tokens.Count)
                         Advance();
                 }
             }
-            return (statements, _errors);
+            return (statements);
         }
 
         /// <summary>
@@ -71,7 +67,7 @@ namespace Vext.Compiler.Parsing
             Token token = CurrentToken();
             if (token.TokenType == TokenType.Unknown)
             {
-                ReportError($"Unknown token '{token.Value}'", token.Line, token.Column);
+                ReportError($"Unknown token '{token.Value}'", token.Line, token.StartColumn, CurrentToken().Line, CurrentToken().EndColumn);
                 Advance();
                 return null;
             } else if (token.TokenType == TokenType.Keyword)
@@ -95,16 +91,17 @@ namespace Vext.Compiler.Parsing
                                 return decl;
                         } else
                         {
-                            ReportError("Invalid variable declaration", token.Line, token.Column);
+                            Token startToken = CurrentToken();
                             // attempt to recover by skipping to next semicolon or newline
                             while (currentToken < tokens.Count && !(tokens[currentToken].TokenType == TokenType.Punctuation && tokens[currentToken].Value == ";"))
                                 Advance();
-
+                            Token lastToken = tokens[currentToken - 1]; // ignore ;
+                            ReportError("Invalid variable declaration", startToken.Line, startToken.StartColumn, lastToken.Line, lastToken.EndColumn);
                             return null;
                         }
                     } else
                     {
-                        ReportError("Invalid statement", token.Line, token.Column);
+                        ReportError("Invalid statement", token.Line, token.StartColumn, CurrentToken().Line, CurrentToken().EndColumn);
                         Advance();
                         return null;
                     }
@@ -132,7 +129,7 @@ namespace Vext.Compiler.Parsing
 
                 } else
                 {
-                    ReportError($"Unexpected keyword '{token.Value}'", token.Line, token.Column);
+                    ReportError($"Unexpected keyword '{token.Value}'", token.Line, token.StartColumn, CurrentToken().Line, CurrentToken().EndColumn);
                     Advance();
                     return null;
                 }
@@ -151,7 +148,8 @@ namespace Vext.Compiler.Parsing
                         VariableName = name.Value,
                         IsIncrement = op.Value == "++",
                         Line = name.Line,
-                        Column = name.Column
+                        StartColumn = name.StartColumn,
+                        EndColumn = name.EndColumn
                     };
                 }
 
@@ -173,7 +171,8 @@ namespace Vext.Compiler.Parsing
                         Operator = op.Value,
                         Value = value,
                         Line = name.Line,
-                        Column = name.Column
+                        StartColumn = name.StartColumn,
+                        EndColumn = CurrentToken().EndColumn
                     };
                 }
 
@@ -182,10 +181,14 @@ namespace Vext.Compiler.Parsing
 
                 if (expr is not FunctionCallNode)
                 {
-                    ReportError("Only function calls can be used as expression statements", token.Line, token.Column);
+                    Token startToken = CurrentToken();
                     // try to recover to semicolon
                     while (currentToken < tokens.Count && !(tokens[currentToken].TokenType == TokenType.Punctuation && tokens[currentToken].Value == ";"))
                         Advance();
+
+                    Token endToken = CurrentToken();
+                    ReportError("Only function calls can be used as expression statements", startToken.Line, startToken.StartColumn, endToken.Line, endToken.EndColumn);
+
                     Expect(TokenType.Punctuation, ";");
                     return null;
                 }
@@ -196,7 +199,8 @@ namespace Vext.Compiler.Parsing
                 {
                     Expression = expr,
                     Line = token.Line,
-                    Column = token.Column
+                    StartColumn = token.StartColumn,
+                    EndColumn = CurrentToken().EndColumn
                 };
             }
 
@@ -220,10 +224,13 @@ namespace Vext.Compiler.Parsing
                     var param = ParseFunctionParameter();
                     if (param == null)
                     {
-                        ReportError("Invalid parameter declaration", name.Line, name.Column);
+                        Token startToken = CurrentToken();
                         // attempt to skip to closing ')'
                         while (currentToken < tokens.Count && !(tokens[currentToken].TokenType == TokenType.Punctuation && tokens[currentToken].Value == ")"))
                             Advance();
+
+                        Token endToken = CurrentToken();
+                        ReportError("Invalid parameter declaration", startToken.Line, startToken.StartColumn, endToken.Line, endToken.EndColumn);
                         break;
                     }
                     arguments.Add(param);
@@ -253,7 +260,7 @@ namespace Vext.Compiler.Parsing
             }
             Expect(TokenType.Punctuation, "}"); // consume closing brace
 
-            return new FunctionDefinitionNode { ReturnType = returnType.Value, FunctionName = name.Value, Arguments = arguments, Body = body, Line = returnType.Line, Column = returnType.Column };
+            return new FunctionDefinitionNode { ReturnType = returnType.Value, FunctionName = name.Value, Arguments = arguments, Body = body, Line = returnType.Line, StartColumn = returnType.StartColumn, EndColumn = CurrentToken().EndColumn };
         }
 
         private FunctionParameterNode? ParseFunctionParameter()
@@ -293,7 +300,7 @@ namespace Vext.Compiler.Parsing
             }
 
             Expect(TokenType.Punctuation, ")"); // consume ')'
-            return new FunctionCallNode { FunctionName = name, Arguments = arguments, Line = line, Column = column };
+            return new FunctionCallNode { FunctionName = name, Arguments = arguments, Line = line, StartColumn = column, EndColumn = CurrentToken().EndColumn };
         }
 
         private ReturnStatementNode? ParseReturn()
@@ -301,11 +308,11 @@ namespace Vext.Compiler.Parsing
             Token rtrnToken = Expect(TokenType.Keyword, "return");
             if (CurrentToken().TokenType == TokenType.Punctuation && CurrentToken().Value == ";")
             {
-                return new ReturnStatementNode { Expression = null, Line = rtrnToken.Line, Column = rtrnToken.Column };
+                return new ReturnStatementNode { Expression = null, Line = rtrnToken.Line, StartColumn = rtrnToken.StartColumn, EndColumn = CurrentToken().EndColumn };
             } else
             {
                 ExpressionNode expr = ParseExpression();
-                return new ReturnStatementNode { Expression = expr, Line = rtrnToken.Line, Column = rtrnToken.Column };
+                return new ReturnStatementNode { Expression = expr, Line = rtrnToken.Line, StartColumn = rtrnToken.StartColumn, EndColumn = CurrentToken().EndColumn };
             }
         }
 
@@ -341,7 +348,7 @@ namespace Vext.Compiler.Parsing
                 var stmt = ParseStatement();
                 if (stmt == null)
                 {
-                    ReportError("Invalid single-line if body", ifToken.Line, ifToken.Column);
+
                 } else
                     body.Add(stmt);
             }
@@ -373,7 +380,7 @@ namespace Vext.Compiler.Parsing
                     var stmt = ParseStatement();
                     if (stmt == null)
                     {
-                        ReportError("Invalid single-line else body", ifToken.Line, ifToken.Column);
+                        ReportError("Invalid single-line else body", ifToken.Line, ifToken.StartColumn, CurrentToken().Line, CurrentToken().EndColumn);
                     } else
                         elseBody.Add(stmt);
                 }
@@ -385,7 +392,8 @@ namespace Vext.Compiler.Parsing
                 Body = body,
                 ElseBody = elseBody,
                 Line = ifToken.Line,
-                Column = ifToken.Column
+                StartColumn = ifToken.StartColumn,
+                EndColumn = CurrentToken().EndColumn
             };
         }
 
@@ -407,17 +415,18 @@ namespace Vext.Compiler.Parsing
                     {
                         Expression = expr,
                         Line = expr.Line,
-                        Column = expr.Column
+                        StartColumn = expr.StartColumn,
+                        EndColumn = CurrentToken().EndColumn
                     };
 
                 }
                 if (!(initialization is VariableDeclarationNode || initialization is ExpressionStatementNode))
                 {
-                    ReportError("For-loop initialization must be a variable declaration or expression statement", forToken.Line, forToken.Column);
+                    ReportError("For-loop initialization must be a variable declaration or expression statement", forToken.Line, forToken.StartColumn, CurrentToken().Line, CurrentToken().EndColumn);
                 }
                 if (initialization == null)
                 {
-                    ReportError("Invalid for-loop initialization", forToken.Line, forToken.Column);
+                    ReportError("Invalid for-loop initialization", forToken.Line, forToken.StartColumn, CurrentToken().Line, CurrentToken().EndColumn);
                     // attempt to recover to semicolon
                     while (currentToken < tokens.Count && !(tokens[currentToken].TokenType == TokenType.Punctuation && tokens[currentToken].Value == ";"))
                         Advance();
@@ -439,7 +448,8 @@ namespace Vext.Compiler.Parsing
                 {
                     Expression = expr,
                     Line = expr.Line,
-                    Column = expr.Column
+                    StartColumn = expr.StartColumn,
+                    EndColumn = CurrentToken().EndColumn
                 };
             }
 
@@ -469,7 +479,7 @@ namespace Vext.Compiler.Parsing
                 var stmt = ParseStatement();
                 if (stmt == null)
                 {
-                    ReportError("Invalid single-line for body", forToken.Line, forToken.Column);
+                    ReportError("Invalid single-line for body", forToken.Line, forToken.StartColumn, CurrentToken().Line, CurrentToken().EndColumn);
                 } else
                 {
                     body.Add(stmt);
@@ -483,7 +493,8 @@ namespace Vext.Compiler.Parsing
                 Increment = increment!,
                 Body = body,
                 Line = forToken.Line,
-                Column = forToken.Column
+                StartColumn = forToken.StartColumn,
+                EndColumn = CurrentToken().EndColumn
             };
         }
 
@@ -519,7 +530,7 @@ namespace Vext.Compiler.Parsing
                 var stmt = ParseStatement();
                 if (stmt == null)
                 {
-                    ReportError("Invalid single-line while body", whileToken.Line, whileToken.Column);
+                    ReportError("Invalid single-line while body", whileToken.Line, whileToken.StartColumn, CurrentToken().Line, CurrentToken().EndColumn);
                 } else
                     body.Add(stmt);
             }
@@ -529,7 +540,8 @@ namespace Vext.Compiler.Parsing
                 Condition = expr,
                 Body = body,
                 Line = whileToken.Line,
-                Column = whileToken.Column
+                StartColumn = whileToken.StartColumn,
+                EndColumn = CurrentToken().EndColumn
             };
         }
 
@@ -540,7 +552,7 @@ namespace Vext.Compiler.Parsing
 
             if (name.Value == "void")
             {
-                ReportError("Variable cannot be of type 'void'", type.Line, type.Column);
+                ReportError("Variable cannot be of type 'void'", name.Line, name.StartColumn, CurrentToken().Line, CurrentToken().EndColumn);
                 return null;
             }
 
@@ -555,7 +567,8 @@ namespace Vext.Compiler.Parsing
                 Name = name.Value,
                 Initializer = initializer,
                 Line = type.Line,
-                Column = type.Column
+                StartColumn = type.StartColumn,
+                EndColumn = CurrentToken().EndColumn
             };
         }
 
@@ -575,7 +588,7 @@ namespace Vext.Compiler.Parsing
             {
                 Advance(); // consume '-' or '!'
                 var right = ParsePrimary(CurrentToken());
-                return new UnaryExpressionNode { Operator = token.Value, Right = right, Line = token.Line, Column = token.Column };
+                return new UnaryExpressionNode { Operator = token.Value, Right = right, Line = token.Line, StartColumn = token.StartColumn, EndColumn = CurrentToken().EndColumn };
             }
 
             if (token.TokenType == TokenType.Punctuation && token.Value == "(")
@@ -590,15 +603,15 @@ namespace Vext.Compiler.Parsing
                 // support both integer and floating point (user writes float, we make it a double for accuracy)
                 if (token.Value.IndexOfAny(['.', 'e', 'E']) >= 0)
                 {
-                    return new LiteralNode { Value = double.Parse(token.Value, CultureInfo.InvariantCulture), Line = token.Line, Column = token.Column };
+                    return new LiteralNode { Value = double.Parse(token.Value, CultureInfo.InvariantCulture), Line = token.Line, StartColumn = token.StartColumn, EndColumn = CurrentToken().EndColumn };
                 } else
                 {
-                    return new LiteralNode { Value = int.Parse(token.Value, CultureInfo.InvariantCulture), Line = token.Line, Column = token.Column };
+                    return new LiteralNode { Value = int.Parse(token.Value, CultureInfo.InvariantCulture), Line = token.Line, StartColumn = token.StartColumn, EndColumn = CurrentToken().EndColumn };
                 }
             } else if (token.TokenType == TokenType.String)
             {
                 Advance();
-                return new LiteralNode { Value = token.Value, Line = token.Line, Column = token.Column };
+                return new LiteralNode { Value = token.Value, Line = token.Line, StartColumn = token.StartColumn, EndColumn = CurrentToken().EndColumn };
             } else if (token.TokenType == TokenType.Identifier)
             {
                 Token next = Peek(1);
@@ -612,49 +625,39 @@ namespace Vext.Compiler.Parsing
                     Token funcToken = Expect(TokenType.Identifier);
 
                     // Expect '(' after function name
-                    Expect(TokenType.Punctuation, "(");
-                    var arguments = new List<ExpressionNode>();
-                    if (!(CurrentToken().TokenType == TokenType.Punctuation && CurrentToken().Value == ")"))
-                    {
-                        while (true)
-                        {
-                            arguments.Add(ParseExpression());
-                            if (!Match(TokenType.Punctuation, ","))
-                                break;
-                        }
-                    }
-                    Expect(TokenType.Punctuation, ")");
+                    FunctionCallNode functionCall = ParseFunctionCall(funcToken.Value, funcToken.Line, funcToken.StartColumn);
 
                     return new ModuleAccessNode
                     {
                         ModuleName = moduleName,
                         FunctionName = funcToken.Value,
-                        Arguments = arguments,
+                        Arguments = functionCall.Arguments,
                         Line = token.Line,
-                        Column = token.Column
+                        StartColumn = token.StartColumn,
+                        EndColumn = CurrentToken().EndColumn
                     };
                 }
                 // Regular function call: func()
                 else if (next.TokenType == TokenType.Punctuation && next.Value == "(")
                 {
                     Advance(); // consume identifier
-                    return ParseFunctionCall(token.Value, token.Line, token.Column);
+                    return ParseFunctionCall(token.Value, token.Line, token.StartColumn);
                 }
 
                 // Otherwise, just a variable
                 Advance();
-                return new VariableNode { Name = token.Value, Line = token.Line, Column = token.Column };
+                return new VariableNode { Name = token.Value, Line = token.Line, StartColumn = token.StartColumn, EndColumn = CurrentToken().EndColumn };
             } else if (token.TokenType == TokenType.Boolean)
             {
                 Advance();
-                return new LiteralNode { Value = bool.Parse(token.Value), Line = token.Line, Column = token.Column };
+                return new LiteralNode { Value = bool.Parse(token.Value), Line = token.Line, StartColumn = token.StartColumn, EndColumn = CurrentToken().EndColumn };
             } else
             {
-                ReportError($"Unexpected token '{token.Value}'", token.Line, token.Column);
+                ReportError($"Unexpected token '{token.Value}'", token.Line, token.StartColumn, CurrentToken().Line, CurrentToken().EndColumn);
                 // attempt to recover by advancing once and returning a dummy literal
                 if (currentToken < tokens.Count)
                     Advance();
-                return new LiteralNode { Value = 0, Line = token.Line, Column = token.Column };
+                return new LiteralNode { Value = 0, IsError = true, Line = token.Line, StartColumn = token.StartColumn, EndColumn = CurrentToken().EndColumn };
             }
         }
 
@@ -675,18 +678,19 @@ namespace Vext.Compiler.Parsing
                     tokens[currentToken].TokenType == TokenType.Operator &&
                     tokens[currentToken].Value == "=")
             {
-                ReportError("Assignment is not allowed in this context", CurrentToken().Line, CurrentToken().Column);
+                Token tok = CurrentToken();
+                ReportError("Assignment is not allowed in this context", tok.Line, tok.StartColumn, tok.Line, tok.StartColumn);
                 var badToken = CurrentToken();
                 // consume the problematic token to avoid infinite loop
                 if (currentToken < tokens.Count)
                     Advance();
-                return new LiteralNode { Value = 0, Line = badToken.Line, Column = badToken.Column };
+                return new LiteralNode { Value = 0, IsError = true, Line = badToken.Line, StartColumn = badToken.StartColumn, EndColumn = CurrentToken().EndColumn };
             }
 
             if (currentToken >= tokens.Count)
             {
-                ReportError("Unexpected end of file while parsing expression", tokens.Count > 0 ? tokens.Last().Line : 0, tokens.Count > 0 ? tokens.Last().Column : 0);
-                return new LiteralNode { Value = 0, Line = tokens.Count > 0 ? tokens.Last().Line : 0, Column = tokens.Count > 0 ? tokens.Last().Column : 0 };
+                ReportError("Unexpected end of file while parsing expression", tokens.Count > 0 ? tokens.Last().Line : 0, tokens.Count > 0 ? tokens.Last().StartColumn : 0, tokens.Count > 0 ? tokens.Last().Line : 0, tokens.Count > 0 ? tokens.Last().EndColumn : 0);
+                return new LiteralNode { Value = 0, IsError = true, Line = tokens.Count > 0 ? tokens.Last().Line : 0, StartColumn = tokens.Count > 0 ? tokens.Last().StartColumn : 0, EndColumn = tokens.Count > 0 ? tokens.Last().StartColumn : 0 };
             }
 
             // Parse the left-hand side primary expression
@@ -704,7 +708,8 @@ namespace Vext.Compiler.Parsing
                     Operator = op.Value,
                     Right = left,
                     Line = op.Line,
-                    Column = op.Column
+                    StartColumn = op.StartColumn,
+                    EndColumn = CurrentToken().EndColumn
                 };
             }
 
@@ -735,7 +740,8 @@ namespace Vext.Compiler.Parsing
                     Operator = opToken.Value,
                     Right = right,
                     Line = opToken.Line,
-                    Column = opToken.Column
+                    StartColumn = opToken.StartColumn,
+                    EndColumn = CurrentToken().EndColumn
                 };
             }
 
@@ -805,8 +811,16 @@ namespace Vext.Compiler.Parsing
             if (!Match(type, value))
             {
                 var tok = currentToken < tokens.Count ? tokens[currentToken] : new Token(TokenType.EOF, "", 0, 0);
-                ReportError($"Expected {type}{(value != null ? $" '{value}'" : "")} at token {currentToken}, {CurrentToken().Value} {CurrentToken().TokenType}", tok.Line, tok.Column);
+                ReportError($"Expected {type}{(value != null ? $" '{value}'" : "")} at token {currentToken}, {CurrentToken().Value} {CurrentToken().TokenType}", tok.Line, tok.StartColumn, tok.Line, tok.EndColumn);
+
+                if (currentToken < tokens.Count &&
+                    tok.TokenType != TokenType.Punctuation)
+                {
+                    Advance(); //HEY CHECK THIS
+                }
+
                 // return a best-effort token so parsing can continue
+
                 return tok;
             }
             return tokens[currentToken - 1];
@@ -828,7 +842,11 @@ namespace Vext.Compiler.Parsing
         /// <summary>
         /// The column number in the source code where this expression appears
         /// </summary>
-        public int Column { get; set; }
+        public int StartColumn { get; set; }
+        /// <summary>
+        /// The ending column number in the source code where this expression ends
+        /// </summary>
+        public int EndColumn { get; set; }
     }
 
     class BinaryExpressionNode : ExpressionNode // for binary operations (+, -, *, /)
@@ -841,6 +859,7 @@ namespace Vext.Compiler.Parsing
     class LiteralNode : ExpressionNode // numbers, strings, booleans
     {
         public required object Value { get; set; }
+        public bool IsError { get; set; } = false;
     }
 
     class VariableNode : ExpressionNode // identifiers
@@ -860,7 +879,11 @@ namespace Vext.Compiler.Parsing
         /// <summary>
         /// Represents the column number in the source code where this statement appears.
         /// </summary>
-        public int Column { get; set; }
+        public int StartColumn { get; set; }
+        /// <summary>
+        /// Represents the ending column number in the source code where this statement ends.
+        /// </summary>
+        public int EndColumn { get; set; }
     }
 
     class ExpressionStatementNode : StatementNode // e.g., x + 1;

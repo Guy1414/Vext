@@ -1,6 +1,6 @@
 ﻿using Vext.Compiler.VM;
 
-namespace Vext.Shared
+namespace Vext.Compiler.Shared
 {
     /// <summary>
     /// Represents a single bytecode instruction for the Vext virtual machine.

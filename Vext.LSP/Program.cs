@@ -1,6 +1,7 @@
 ﻿using System.Text.Json;
 using Vext.Compiler;
 using Vext.Compiler.VM;
+using static Vext.Compiler.Diagnostics.Diagnostic;
 
 class Program
 {
@@ -9,7 +10,8 @@ class Program
     {
         public string Message { get; set; } = "";
         public int Line { get; set; }
-        public int Column { get; set; }
+        public int StartColumn { get; set; }
+        public int EndColumn { get; set; }
     }
 
     // Output representation
@@ -55,13 +57,14 @@ class Program
             if (compileResult.Errors.Count > 0)
             {
                 // Map tuple errors to ErrorInfo objects
-                foreach (var (msg, line, col) in compileResult.Errors)
+                foreach (ErrorDescriptor ed in compileResult.Errors)
                 {
                     result.Errors.Add(new ErrorInfo
                     {
-                        Message = msg,
-                        Line = line,
-                        Column = col
+                        Message = ed.Message,
+                        Line = ed.LspLine,
+                        StartColumn = ed.LspStartCol,
+                        EndColumn = ed.LspEndCol
                     });
                 }
                 result.Success = false;
@@ -86,7 +89,8 @@ class Program
             {
                 Message = ex.Message,
                 Line = 0,
-                Column = 0
+                StartColumn = 0,
+                EndColumn = 1
             });
         }
 

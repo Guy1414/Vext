@@ -1,11 +1,13 @@
 ﻿using System.Diagnostics;
 using Vext.Compiler.Bytecode_Generator;
+using Vext.Compiler.Diagnostics;
+using Vext.Compiler.Lexing;
 using Vext.Compiler.Modules;
 using Vext.Compiler.Parsing;
 using Vext.Compiler.Semantic;
+using Vext.Compiler.Shared;
 using Vext.Compiler.VM;
-using Vext.Lexer;
-using Vext.Shared;
+using static Vext.Compiler.Diagnostics.Diagnostic;
 
 namespace Vext.Compiler
 {
@@ -27,7 +29,7 @@ namespace Vext.Compiler
         string Code,
         List<StatementNode> ParsedStatements,
         List<Instruction> Instructions,
-        List<(string, int, int)> Errors,
+        List<ErrorDescriptor> Errors,
         Dictionary<int, string> VariableMap,
         double LexTime, double ParseTime, double SemanticTime, double BytecodeTime,
         int TokenCount, int NodeCount
@@ -51,36 +53,33 @@ namespace Vext.Compiler
             // 1. Lexing
             sw.Restart();
             var lexer = new Lexing.Lexer(code);
-            (List<Token>, List<(string, int, int)>) tokens = lexer.Tokenize(); // (tokens, errors)
+            List<Token> tokens = lexer.Tokenize();
             double lexTime = sw.Elapsed.TotalMilliseconds;
 
             // 2. Parsing
             sw.Restart();
-            var parser = new Parser(tokens.Item1);
-            (List<StatementNode>, List<(string, int, int)>) statements = parser.Parse(); // (statements, errors)
+            var parser = new Parser(tokens);
+            List<StatementNode> statements = parser.Parse();
             double parseTime = sw.Elapsed.TotalMilliseconds;
 
             // 3. Semantic Analysis
             sw.Restart();
-            var semanticPass = new SemanticPass(statements.Item1);
+            var semanticPass = new SemanticPass(statements);
             RegisterBuiltIns(semanticPass);
-            List<(string, int, int)> errors = semanticPass.Pass(); // (message, line, column)
+            semanticPass.Pass();
             double semTime = sw.Elapsed.TotalMilliseconds;
             Dictionary<int, string> varMap = semanticPass.GetVariableMap();
 
-            errors.AddRange(tokens.Item2);
-            errors.AddRange(statements.Item2);
-
-            if (errors.Count > 0)
-                return new CompilationResult(code, statements.Item1, [], errors, varMap, lexTime, parseTime, semTime, 0, tokens.Item1.Count, statements.Item1.Count);
+            if (Diagnostic.GetErrors().Count > 0)
+                return new CompilationResult(code, statements, [], Diagnostic.GetErrors(), varMap, lexTime, parseTime, semTime, 0, tokens.Count, statements.Count);
 
             // 4. Bytecode Generation
             sw.Restart();
-            foreach (StatementNode stmt in statements.Item1)
+            foreach (StatementNode stmt in statements)
                 BytecodeGenerator.EmitStatement(stmt, instructions);
             double bcTime = sw.Elapsed.TotalMilliseconds;
 
-            return new CompilationResult(code, statements.Item1, instructions, errors, varMap, lexTime, parseTime, semTime, bcTime, tokens.Item1.Count, statements.Item1.Count);
+            return new CompilationResult(code, statements, instructions, Diagnostic.GetErrors(), varMap, lexTime, parseTime, semTime, bcTime, tokens.Count, statements.Count);
         }
 
         private static void RegisterBuiltIns(SemanticPass pass)

@@ -1,6 +1,6 @@
 ﻿using Vext.Compiler.Parsing;
+using Vext.Compiler.Shared;
 using Vext.Compiler.VM;
-using Vext.Shared;
 
 namespace Vext.Compiler.Bytecode_Generator
 {
@@ -24,7 +24,7 @@ namespace Vext.Compiler.Bytecode_Generator
                     Op = VextVMBytecode.LOAD_CONST,
                     ArgVal = vl,
                     LineNumber = l.Line,
-                    ColumnNumber = l.Column
+                    ColumnNumber = l.StartColumn
                 });
             } else if (expr is VariableNode v)
             {
@@ -33,7 +33,7 @@ namespace Vext.Compiler.Bytecode_Generator
                     Op = VextVMBytecode.LOAD_VAR,
                     Arg = v.SlotIndex,
                     LineNumber = v.Line,
-                    ColumnNumber = v.Column
+                    ColumnNumber = v.StartColumn
                 });
             } else if (expr is BinaryExpressionNode b)
             {
@@ -41,32 +41,32 @@ namespace Vext.Compiler.Bytecode_Generator
                 {
                     EmitExpression(b.Left, instructions);
                     var jumpFalse = instructions.Count;
-                    instructions.Add(new Instruction { Op = VextVMBytecode.JMP_IF_FALSE, Arg = -1, LineNumber = b.Line, ColumnNumber = b.Column });
+                    instructions.Add(new Instruction { Op = VextVMBytecode.JMP_IF_FALSE, Arg = -1, LineNumber = b.Line, ColumnNumber = b.StartColumn });
 
                     // Left was true (and popped). Now evaluate Right.
                     EmitExpression(b.Right, instructions);
                     var jumpEnd = instructions.Count;
-                    instructions.Add(new Instruction { Op = VextVMBytecode.JMP, Arg = -1, LineNumber = b.Line, ColumnNumber = b.Column });
+                    instructions.Add(new Instruction { Op = VextVMBytecode.JMP, Arg = -1, LineNumber = b.Line, ColumnNumber = b.StartColumn });
 
                     // Target for jumpFalse
                     instructions[jumpFalse].Arg = instructions.Count;
-                    instructions.Add(new Instruction { Op = VextVMBytecode.LOAD_CONST, ArgVal = new VextValue { Type = VextType.Bool, AsBool = false }, LineNumber = b.Line, ColumnNumber = b.Column });
+                    instructions.Add(new Instruction { Op = VextVMBytecode.LOAD_CONST, ArgVal = new VextValue { Type = VextType.Bool, AsBool = false }, LineNumber = b.Line, ColumnNumber = b.StartColumn });
 
                     instructions[jumpEnd].Arg = instructions.Count;
                 } else if (b.Operator == "||")
                 {
                     EmitExpression(b.Left, instructions);
                     var jumpTrue = instructions.Count;
-                    instructions.Add(new Instruction { Op = VextVMBytecode.JMP_IF_TRUE, Arg = -1, LineNumber = b.Line, ColumnNumber = b.Column });
+                    instructions.Add(new Instruction { Op = VextVMBytecode.JMP_IF_TRUE, Arg = -1, LineNumber = b.Line, ColumnNumber = b.StartColumn });
 
                     // Left was false (and popped). Evaluate Right.
                     EmitExpression(b.Right, instructions);
                     var jumpEnd = instructions.Count;
-                    instructions.Add(new Instruction { Op = VextVMBytecode.JMP, Arg = -1, LineNumber = b.Line, ColumnNumber = b.Column });
+                    instructions.Add(new Instruction { Op = VextVMBytecode.JMP, Arg = -1, LineNumber = b.Line, ColumnNumber = b.StartColumn });
 
                     // Target for jumpTrue
                     instructions[jumpTrue].Arg = instructions.Count;
-                    instructions.Add(new Instruction { Op = VextVMBytecode.LOAD_CONST, ArgVal = new VextValue { Type = VextType.Bool, AsBool = true }, LineNumber = b.Line, ColumnNumber = b.Column });
+                    instructions.Add(new Instruction { Op = VextVMBytecode.LOAD_CONST, ArgVal = new VextValue { Type = VextType.Bool, AsBool = true }, LineNumber = b.Line, ColumnNumber = b.StartColumn });
 
                     instructions[jumpEnd].Arg = instructions.Count;
                 } else
@@ -91,7 +91,7 @@ namespace Vext.Compiler.Bytecode_Generator
                         _ => throw new Exception($"Unknown operator {b.Operator}")
                     };
 
-                    instructions.Add(new Instruction { Op = op, LineNumber = b.Line, ColumnNumber = b.Column });
+                    instructions.Add(new Instruction { Op = op, LineNumber = b.Line, ColumnNumber = b.StartColumn });
                 }
             } else if (expr is FunctionCallNode f)
             {
@@ -111,7 +111,7 @@ namespace Vext.Compiler.Bytecode_Generator
                         Op = VextVMBytecode.CALL_VOID,
                         Arg = (targetName as object, f.Arguments.Count),
                         LineNumber = f.Line,
-                        ColumnNumber = f.Column
+                        ColumnNumber = f.StartColumn
                     });
                 } else
                 {
@@ -120,7 +120,7 @@ namespace Vext.Compiler.Bytecode_Generator
                         Op = VextVMBytecode.CALL,
                         Arg = (targetName as object, f.Arguments.Count),
                         LineNumber = f.Line,
-                        ColumnNumber = f.Column
+                        ColumnNumber = f.StartColumn
                     });
                 }
             } else if (expr is UnaryExpressionNode u)
@@ -134,7 +134,7 @@ namespace Vext.Compiler.Bytecode_Generator
                             Op = u.Operator == "++" ? VextVMBytecode.INC_VAR : VextVMBytecode.DEC_VAR,
                             Arg = varNode.SlotIndex,
                             LineNumber = u.Line,
-                            ColumnNumber = u.Column
+                            ColumnNumber = u.StartColumn
                         });
                         return;
                     } else
@@ -147,11 +147,11 @@ namespace Vext.Compiler.Bytecode_Generator
 
                 if (u.Operator == "-")
                 {
-                    instructions.Add(new Instruction { Op = VextVMBytecode.LOAD_CONST, ArgVal = new VextValue { Type = VextType.Number, AsNumber = -1 }, LineNumber = u.Line, ColumnNumber = u.Column });
-                    instructions.Add(new Instruction { Op = VextVMBytecode.MUL, LineNumber = u.Line, ColumnNumber = u.Column });
+                    instructions.Add(new Instruction { Op = VextVMBytecode.LOAD_CONST, ArgVal = new VextValue { Type = VextType.Number, AsNumber = -1 }, LineNumber = u.Line, ColumnNumber = u.StartColumn });
+                    instructions.Add(new Instruction { Op = VextVMBytecode.MUL, LineNumber = u.Line, ColumnNumber = u.StartColumn });
                 } else if (u.Operator == "!")
                 {
-                    instructions.Add(new Instruction { Op = VextVMBytecode.NOT, LineNumber = u.Line, ColumnNumber = u.Column });
+                    instructions.Add(new Instruction { Op = VextVMBytecode.NOT, LineNumber = u.Line, ColumnNumber = u.StartColumn });
                 } else
                 {
                     throw new Exception($"Unknown unary operator {u.Operator}");
@@ -165,7 +165,7 @@ namespace Vext.Compiler.Bytecode_Generator
             {
                 EmitExpression(ifStmt.Condition, instructions);
                 var jumpIndex = instructions.Count;
-                instructions.Add(new Instruction { Op = VextVMBytecode.JMP_IF_FALSE, Arg = -1, LineNumber = ifStmt.Line, ColumnNumber = ifStmt.Column });
+                instructions.Add(new Instruction { Op = VextVMBytecode.JMP_IF_FALSE, Arg = -1, LineNumber = ifStmt.Line, ColumnNumber = ifStmt.StartColumn });
 
                 foreach (var s in ifStmt.Body)
                     EmitStatement(s, instructions);
@@ -173,7 +173,7 @@ namespace Vext.Compiler.Bytecode_Generator
                 if (ifStmt.ElseBody != null)
                 {
                     var jumpEnd = instructions.Count;
-                    instructions.Add(new Instruction { Op = VextVMBytecode.JMP, Arg = -1, LineNumber = ifStmt.Line, ColumnNumber = ifStmt.Column });
+                    instructions.Add(new Instruction { Op = VextVMBytecode.JMP, Arg = -1, LineNumber = ifStmt.Line, ColumnNumber = ifStmt.StartColumn });
                     instructions[jumpIndex].Arg = instructions.Count;
                     foreach (var s in ifStmt.ElseBody)
                         EmitStatement(s, instructions);
@@ -200,7 +200,7 @@ namespace Vext.Compiler.Bytecode_Generator
                         Op = VextVMBytecode.JMP_IF_VAR_OP_CONST,
                         Arg = (varNode.SlotIndex, cond.Operator, limitValue, -1),
                         LineNumber = whileStmt.Line,
-                        ColumnNumber = whileStmt.Column
+                        ColumnNumber = whileStmt.StartColumn
                     });
 
                     int jumpIndexW = instructions.Count - 1;
@@ -209,7 +209,7 @@ namespace Vext.Compiler.Bytecode_Generator
                         EmitStatement(s, instructions);
 
                     // Loop back
-                    instructions.Add(new Instruction { Op = VextVMBytecode.JMP, Arg = loopStart, LineNumber = whileStmt.Line, ColumnNumber = whileStmt.Column });
+                    instructions.Add(new Instruction { Op = VextVMBytecode.JMP, Arg = loopStart, LineNumber = whileStmt.Line, ColumnNumber = whileStmt.StartColumn });
 
                     // Patch the jump target
                     instructions[jumpIndexW].Arg = (varNode.SlotIndex, cond.Operator, limitValue, instructions.Count);
@@ -218,12 +218,12 @@ namespace Vext.Compiler.Bytecode_Generator
 
                 EmitExpression(whileStmt.Condition, instructions);
                 var jumpIndex = instructions.Count;
-                instructions.Add(new Instruction { Op = VextVMBytecode.JMP_IF_FALSE, Arg = -1, LineNumber = whileStmt.Line, ColumnNumber = whileStmt.Column });
+                instructions.Add(new Instruction { Op = VextVMBytecode.JMP_IF_FALSE, Arg = -1, LineNumber = whileStmt.Line, ColumnNumber = whileStmt.StartColumn });
 
                 foreach (var s in whileStmt.Body)
                     EmitStatement(s, instructions);
 
-                instructions.Add(new Instruction { Op = VextVMBytecode.JMP, Arg = loopStart, LineNumber = whileStmt.Line, ColumnNumber = whileStmt.Column });
+                instructions.Add(new Instruction { Op = VextVMBytecode.JMP, Arg = loopStart, LineNumber = whileStmt.Line, ColumnNumber = whileStmt.StartColumn });
                 instructions[jumpIndex].Arg = instructions.Count;
             } else if (stmt is ForStatementNode forStmt)
             {
@@ -231,9 +231,9 @@ namespace Vext.Compiler.Bytecode_Generator
                 {
                     Name = "i",
                     VariableType = "int",
-                    Initializer = new LiteralNode { Value = 0, Line = forStmt.Line, Column = forStmt.Column },
+                    Initializer = new LiteralNode { Value = 0, Line = forStmt.Line, StartColumn = forStmt.StartColumn },
                     Line = forStmt.Line,
-                    Column = forStmt.Column
+                    StartColumn = forStmt.StartColumn
                 };
                 EmitStatement(forStmt.Initialization, instructions);
 
@@ -252,7 +252,7 @@ namespace Vext.Compiler.Bytecode_Generator
                         Op = VextVMBytecode.JMP_IF_VAR_OP_CONST,
                         Arg = (varNode.SlotIndex, cond.Operator, limitValue, -1),
                         LineNumber = forStmt.Line,
-                        ColumnNumber = forStmt.Column
+                        ColumnNumber = forStmt.StartColumn
                     });
 
                     int jumpIndexW = instructions.Count - 1;
@@ -266,23 +266,23 @@ namespace Vext.Compiler.Bytecode_Generator
                         VariableName = "i",
                         IsIncrement = true,
                         Line = forStmt.Line,
-                        Column = forStmt.Column
+                        StartColumn = forStmt.StartColumn
                     };
                     EmitStatement(forStmt.Increment, instructions);
 
                     // Loop back
-                    instructions.Add(new Instruction { Op = VextVMBytecode.JMP, Arg = loopStart, LineNumber = forStmt.Line, ColumnNumber = forStmt.Column });
+                    instructions.Add(new Instruction { Op = VextVMBytecode.JMP, Arg = loopStart, LineNumber = forStmt.Line, ColumnNumber = forStmt.StartColumn });
 
                     // Patch the jump target
                     instructions[jumpIndexW].Arg = (varNode.SlotIndex, cond.Operator, limitValue, instructions.Count);
                     return;
                 }
 
-                forStmt.Condition ??= new BinaryExpressionNode { Left = new VariableNode { Name = "i" }, Operator = "<", Right = new LiteralNode { Value = 10 }, Line = forStmt.Line, Column = forStmt.Column };
+                forStmt.Condition ??= new BinaryExpressionNode { Left = new VariableNode { Name = "i" }, Operator = "<", Right = new LiteralNode { Value = 10 }, Line = forStmt.Line, StartColumn = forStmt.StartColumn };
 
                 EmitExpression(forStmt.Condition, instructions);
                 var jumpIndex = instructions.Count;
-                instructions.Add(new Instruction { Op = VextVMBytecode.JMP_IF_FALSE, Arg = -1, LineNumber = forStmt.Line, ColumnNumber = forStmt.Column });
+                instructions.Add(new Instruction { Op = VextVMBytecode.JMP_IF_FALSE, Arg = -1, LineNumber = forStmt.Line, ColumnNumber = forStmt.StartColumn });
 
                 foreach (var s in forStmt.Body)
                     EmitStatement(s, instructions);
@@ -292,18 +292,18 @@ namespace Vext.Compiler.Bytecode_Generator
                     VariableName = "i",
                     IsIncrement = true,
                     Line = forStmt.Line,
-                    Column = forStmt.Column
+                    StartColumn = forStmt.StartColumn
                 };
                 EmitStatement(forStmt.Increment, instructions);
 
-                instructions.Add(new Instruction { Op = VextVMBytecode.JMP, Arg = loopStart, LineNumber = forStmt.Line, ColumnNumber = forStmt.Column });
+                instructions.Add(new Instruction { Op = VextVMBytecode.JMP, Arg = loopStart, LineNumber = forStmt.Line, ColumnNumber = forStmt.StartColumn });
                 instructions[jumpIndex].Arg = instructions.Count;
             } else if (stmt is ExpressionStatementNode exprStmt)
             {
                 EmitExpression(exprStmt.Expression, instructions);
 
                 if (ExpressionNeedsPop(exprStmt.Expression, exprStmt))
-                    instructions.Add(new Instruction { Op = VextVMBytecode.POP, LineNumber = exprStmt.Line, ColumnNumber = exprStmt.Column });
+                    instructions.Add(new Instruction { Op = VextVMBytecode.POP, LineNumber = exprStmt.Line, ColumnNumber = exprStmt.StartColumn });
             } else if (stmt is VariableDeclarationNode varDecl)
             {
                 if (varDecl.Initializer != null)
@@ -316,7 +316,7 @@ namespace Vext.Compiler.Bytecode_Generator
                         Op = VextVMBytecode.LOAD_CONST,
                         ArgVal = VextValue.Null(),
                         LineNumber = varDecl.Line,
-                        ColumnNumber = varDecl.Column
+                        ColumnNumber = varDecl.StartColumn
                     });
                 }
 
@@ -325,7 +325,7 @@ namespace Vext.Compiler.Bytecode_Generator
                     Op = VextVMBytecode.STORE_VAR,
                     Arg = varDecl.SlotIndex,
                     LineNumber = varDecl.Line,
-                    ColumnNumber = varDecl.Column
+                    ColumnNumber = varDecl.StartColumn
                 });
             } else if (stmt is AssignmentStatementNode assign)
             {
@@ -340,16 +340,16 @@ namespace Vext.Compiler.Bytecode_Generator
                         Op = VextVMBytecode.LOAD_VAR,
                         Arg = assign.SlotIndex,
                         LineNumber = assign.Line,
-                        ColumnNumber = assign.Column
+                        ColumnNumber = assign.StartColumn
                     });
 
                     EmitExpression(assign.Value, instructions);
 
                     instructions.Add(assign.Operator switch
                     {
-                        "+=" => new Instruction { Op = VextVMBytecode.ADD, LineNumber = assign.Line, ColumnNumber = assign.Column },
-                        "-=" => new Instruction { Op = VextVMBytecode.SUB, LineNumber = assign.Line, ColumnNumber = assign.Column },
-                        "*=" => new Instruction { Op = VextVMBytecode.MUL, LineNumber = assign.Line, ColumnNumber = assign.Column },
+                        "+=" => new Instruction { Op = VextVMBytecode.ADD, LineNumber = assign.Line, ColumnNumber = assign.StartColumn },
+                        "-=" => new Instruction { Op = VextVMBytecode.SUB, LineNumber = assign.Line, ColumnNumber = assign.StartColumn },
+                        "*=" => new Instruction { Op = VextVMBytecode.MUL, LineNumber = assign.Line, ColumnNumber = assign.StartColumn },
                         _ => throw new Exception($"Unsupported operator {assign.Operator}")
                     });
                 }
@@ -359,7 +359,7 @@ namespace Vext.Compiler.Bytecode_Generator
                     Op = VextVMBytecode.STORE_VAR,
                     Arg = assign.SlotIndex,
                     LineNumber = assign.Line,
-                    ColumnNumber = assign.Column
+                    ColumnNumber = assign.StartColumn
                 });
             } else if (stmt is IncrementStatementNode incrmtStmt)
             {
@@ -370,7 +370,7 @@ namespace Vext.Compiler.Bytecode_Generator
                         Op = VextVMBytecode.INC_VAR,
                         Arg = incrmtStmt.SlotIndex,
                         LineNumber = incrmtStmt.Line,
-                        ColumnNumber = incrmtStmt.Column
+                        ColumnNumber = incrmtStmt.StartColumn
                     });
                 } else
                 {
@@ -379,7 +379,7 @@ namespace Vext.Compiler.Bytecode_Generator
                         Op = VextVMBytecode.DEC_VAR,
                         Arg = incrmtStmt.SlotIndex,
                         LineNumber = incrmtStmt.Line,
-                        ColumnNumber = incrmtStmt.Column
+                        ColumnNumber = incrmtStmt.StartColumn
                     });
                 }
             } else if (stmt is ReturnStatementNode rtrnStmt)
@@ -387,7 +387,7 @@ namespace Vext.Compiler.Bytecode_Generator
                 if (rtrnStmt.Expression != null)
                     EmitExpression(rtrnStmt.Expression, instructions);
 
-                instructions.Add(new Instruction { Op = VextVMBytecode.RET, LineNumber = rtrnStmt.Line, ColumnNumber = rtrnStmt.Column });
+                instructions.Add(new Instruction { Op = VextVMBytecode.RET, LineNumber = rtrnStmt.Line, ColumnNumber = rtrnStmt.StartColumn });
                 return;
             } else if (stmt is FunctionDefinitionNode func)
             {
@@ -402,7 +402,7 @@ namespace Vext.Compiler.Bytecode_Generator
                         Op = VextVMBytecode.STORE_VAR,
                         Arg = arg.SlotIndex,
                         LineNumber = func.Line,
-                        ColumnNumber = func.Column
+                        ColumnNumber = func.StartColumn
                     });
                 }
 
@@ -416,9 +416,9 @@ namespace Vext.Compiler.Bytecode_Generator
                         Op = VextVMBytecode.LOAD_CONST,
                         ArgVal = VextValue.Null(),
                         LineNumber = func.Line,
-                        ColumnNumber = func.Column
+                        ColumnNumber = func.StartColumn
                     });
-                    funcInstructions.Add(new Instruction { Op = VextVMBytecode.RET, LineNumber = func.Line, ColumnNumber = func.Column });
+                    funcInstructions.Add(new Instruction { Op = VextVMBytecode.RET, LineNumber = func.Line, ColumnNumber = func.StartColumn });
                 }
 
                 // 2. Create a UserFunction object
@@ -436,7 +436,7 @@ namespace Vext.Compiler.Bytecode_Generator
                     Op = VextVMBytecode.DEF_FUNC,
                     Arg = userFunc,
                     LineNumber = func.Line,
-                    ColumnNumber = func.Column
+                    ColumnNumber = func.StartColumn
                 });
             }
         }

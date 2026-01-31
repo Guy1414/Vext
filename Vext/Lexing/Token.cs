@@ -1,11 +1,12 @@
-﻿namespace Vext.Lexer
+﻿namespace Vext.Compiler.Lexing
 {
     internal class Token(TokenType type, string value, int line, int column)
     {
         public TokenType TokenType { get; set; } = type;
         public string Value { get; set; } = value;
         public int Line { get; set; } = line;
-        public int Column { get; set; } = column;
+        public int StartColumn { get; set; } = column;
+        public int EndColumn => StartColumn + Value.Length;
     }
 
     /// <summary>
