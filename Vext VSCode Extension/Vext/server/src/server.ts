@@ -49,8 +49,8 @@ const enum TokenType {
   type = 3,
   string = 4,
   number = 5,
-  boolean = 6,
-  comment = 7,
+  comment = 6,
+  boolean = 7,
   operator = 8,
 }
 

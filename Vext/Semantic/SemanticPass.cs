@@ -467,7 +467,7 @@ namespace Vext.Compiler.Semantic
             {
                 case ModuleAccessNode m:
                     AddToken(m.Line, m.StartColumn, m.StartColumn + m.ModuleName.Length, "variable", "readonly", "static"); // Module as variable-ish
-                    AddToken(m.Line, m.StartColumn + m.ModuleName.Length + 1, m.EndColumn, "function"); // +1 for dot?
+                    AddToken(m.Line, m.StartColumn + m.ModuleName.Length + 1, m.StartColumn + m.ModuleName.Length + 1 + m.FunctionName.Length, "function");
                     foreach (var arg in m.Arguments)
                         CheckExpression(arg, func);
                     break;
