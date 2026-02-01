@@ -87,6 +87,7 @@ class Program
                     StartColumn = st.StartColumn - 1,
                     EndColumn = st.EndColumn - 1,
                     Type = st.Type,
+                    IsDeclaration = st.Modifiers.Contains("declaration")
                 });
             }
 

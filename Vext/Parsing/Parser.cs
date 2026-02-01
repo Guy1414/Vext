@@ -153,7 +153,10 @@ namespace Vext.Compiler.Parsing
                         IsIncrement = op.Value == "++",
                         Line = name.Line,
                         StartColumn = name.StartColumn,
-                        EndColumn = name.EndColumn
+                        EndColumn = name.EndColumn,
+                        OperatorLine = op.Line,
+                        OperatorStartColumn = op.StartColumn,
+                        OperatorEndColumn = op.EndColumn
                     };
                 }
 
@@ -176,7 +179,10 @@ namespace Vext.Compiler.Parsing
                         Value = value,
                         Line = name.Line,
                         StartColumn = name.StartColumn,
-                        EndColumn = CurrentToken().EndColumn
+                        EndColumn = CurrentToken().EndColumn,
+                        OperatorLine = op.Line,
+                        OperatorStartColumn = op.StartColumn,
+                        OperatorEndColumn = op.EndColumn
                     };
                 }
 
@@ -376,8 +382,10 @@ namespace Vext.Compiler.Parsing
             }
 
             List<StatementNode>? elseBody = null;
+            Token elseToken = new Token(TokenType.Unknown, "", 0, 0); // Placeholder
             if (Match(TokenType.Keyword, "else"))
             {
+                elseToken = tokens[currentToken - 1];
                 elseBody = [];
                 if (Match(TokenType.Punctuation, "{"))
                 {
@@ -415,7 +423,9 @@ namespace Vext.Compiler.Parsing
                 ElseBody = elseBody,
                 Line = ifToken.Line,
                 StartColumn = ifToken.StartColumn,
-                EndColumn = CurrentToken().EndColumn
+                EndColumn = CurrentToken().EndColumn,
+                ElseLine = elseToken.Line,
+                ElseStartColumn = elseToken.StartColumn
             };
         }
 
@@ -925,6 +935,8 @@ namespace Vext.Compiler.Parsing
         public required ExpressionNode Condition { get; set; }
         public required List<StatementNode> Body { get; set; }
         public List<StatementNode>? ElseBody { get; set; }
+        public int ElseLine { get; set; }
+        public int ElseStartColumn { get; set; }
     }
 
     class WhileStatementNode : StatementNode
@@ -1028,6 +1040,9 @@ namespace Vext.Compiler.Parsing
         public required string VariableName { get; set; }
         public required string Operator { get; set; }
         public required ExpressionNode Value { get; set; }
+        public int OperatorLine { get; set; }
+        public int OperatorStartColumn { get; set; }
+        public int OperatorEndColumn { get; set; }
     }
 
     class IncrementStatementNode : StatementNode
@@ -1035,5 +1050,8 @@ namespace Vext.Compiler.Parsing
         public int SlotIndex;
         public required string VariableName { get; set; }
         public bool IsIncrement { get; set; }
+        public int OperatorLine { get; set; }
+        public int OperatorStartColumn { get; set; }
+        public int OperatorEndColumn { get; set; }
     }
 }

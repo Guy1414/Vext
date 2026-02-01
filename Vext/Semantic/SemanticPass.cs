@@ -135,11 +135,12 @@ namespace Vext.Compiler.Semantic
                 // Token for Function Name
                 AddToken(stmt.NameLine, stmt.NameStartColumn, stmt.NameEndColumn, "function", "declaration");
 
-                foreach (var p in stmt.Arguments)
-                {
-                    AddToken(p.Line, p.StartColumn, p.StartColumn + p.Type.Length, "type");
-                    AddToken(p.NameLine, p.NameStartColumn, p.NameEndColumn, "variable", "parameter", "declaration");
-                }
+                if (stmt.Arguments != null)
+                    foreach (var p in stmt.Arguments)
+                    {
+                        AddToken(p.Line, p.StartColumn, p.StartColumn + p.Type.Length, "type");
+                        AddToken(p.NameLine, p.NameStartColumn, p.NameEndColumn, "variable", "parameter", "declaration");
+                    }
             }
         }
 
@@ -256,6 +257,10 @@ namespace Vext.Compiler.Semantic
                                 ReportError($"Cannot assign '{rhsType}' to '{decl.VariableType}'.", a.Line, a.StartColumn, a.EndColumn);
 
                             AddToken(a.Line, a.StartColumn, a.StartColumn + a.VariableName.Length, "variable");
+
+                            // Operator token
+                            if (a.OperatorLine > 0)
+                                AddToken(a.OperatorLine, a.OperatorStartColumn, a.OperatorEndColumn, "operator");
                         }
                         break;
                     }
@@ -273,6 +278,13 @@ namespace Vext.Compiler.Semantic
                             assignedSlots.Peek().Set(decl.SlotIndex, true);
                             if (decl.VariableType != "int" && decl.VariableType != "float")
                                 ReportError($"Cannot apply increment operator to type '{decl.VariableType}'.", inc.Line, inc.StartColumn, inc.EndColumn);
+
+                            // Add token for increment variable
+                            AddToken(inc.Line, inc.StartColumn, inc.StartColumn + inc.VariableName.Length, "variable");
+
+                            // Operator token
+                            if (inc.OperatorLine > 0)
+                                AddToken(inc.OperatorLine, inc.OperatorStartColumn, inc.OperatorEndColumn, "operator");
                         }
                         break;
                     }
@@ -283,6 +295,7 @@ namespace Vext.Compiler.Semantic
                     break;
 
                 case ReturnStatementNode r:
+                    AddToken(r.Line, r.StartColumn, r.StartColumn + 6, "keyword", "control"); // "return"
                     if (r.Expression != null)
                     {
                         CheckExpression(r.Expression, func);
@@ -290,11 +303,16 @@ namespace Vext.Compiler.Semantic
                         if (!AreTypesCompatible(func!.ReturnType, retType))
                             ReportError($"Function '{func.FunctionName}' expects to return '{func.ReturnType}' but got '{retType}'.", r.Line, r.StartColumn, r.EndColumn);
                         r.Expression = Fold(r.Expression);
+                    } else
+                    {
+                        if (func != null && func.ReturnType != "void")
+                            ReportError($"Function declared to return '{func.ReturnType}' but returned nothing.", r.Line, r.StartColumn, r.EndColumn);
                     }
                     break;
 
                 case IfStatementNode i:
                     {
+                        AddToken(i.Line, i.StartColumn, i.StartColumn + 2, "keyword", "control"); // "if"
                         CheckExpression(i.Condition, func);
                         var beforeIf = new BitArray(assignedSlots.Peek());
 
@@ -303,6 +321,9 @@ namespace Vext.Compiler.Semantic
 
                         if (i.ElseBody != null)
                         {
+                            if (i.ElseLine > 0)
+                                AddToken(i.ElseLine, i.ElseStartColumn, i.ElseStartColumn + 4, "keyword", "control"); // "else"
+
                             assignedSlots.Pop();
                             assignedSlots.Push(new BitArray(beforeIf));
 
@@ -322,6 +343,7 @@ namespace Vext.Compiler.Semantic
                     }
 
                 case WhileStatementNode w:
+                    AddToken(w.Line, w.StartColumn, w.StartColumn + 5, "keyword", "control"); // "while"
                     CheckExpression(w.Condition, func);
 
                     var beforeW = new BitArray(assignedSlots.Peek());
@@ -341,6 +363,7 @@ namespace Vext.Compiler.Semantic
                     break;
 
                 case ForStatementNode fo:
+                    AddToken(fo.Line, fo.StartColumn, fo.StartColumn + 3, "keyword", "control"); // "for"
                     if (fo.Initialization != null)
                     {
                         switch (fo.Initialization)
@@ -403,6 +426,9 @@ namespace Vext.Compiler.Semantic
                                         ReportError($"Cannot apply increment operator to type '{decl.VariableType}'.", inc.Line, inc.StartColumn, inc.EndColumn);
 
                                     AddToken(inc.Line, inc.StartColumn, inc.StartColumn + inc.VariableName.Length, "variable");
+
+                                    if (inc.OperatorLine > 0)
+                                        AddToken(inc.OperatorLine, inc.OperatorStartColumn, inc.OperatorEndColumn, "operator");
                                 }
                                 break;
 
@@ -649,7 +675,7 @@ namespace Vext.Compiler.Semantic
         {
             if (expr is LiteralNode l)
             {
-                return l.Value switch
+                string type = l.Value switch
                 {
                     int => "int",
                     double => "float",
@@ -657,6 +683,20 @@ namespace Vext.Compiler.Semantic
                     string => "string",
                     _ => "error"
                 };
+
+                string tokenType = type switch
+                {
+                    "int" => "number",
+                    "float" => "number",
+                    "bool" => "boolean",
+                    "string" => "string",
+                    _ => ""
+                };
+
+                if (!string.IsNullOrEmpty(tokenType))
+                    AddToken(l.Line, l.StartColumn, l.EndColumn, tokenType);
+
+                return type;
             }
             if (expr is VariableNode v)
             {
@@ -670,6 +710,11 @@ namespace Vext.Compiler.Semantic
             if (expr is UnaryExpressionNode u)
             {
                 var rightType = GetExpressionType(u.Right);
+
+                // Add token for operator
+                AddToken(u.Line, u.StartColumn, u.EndColumn, "operator");
+                AddToken(u.Line, u.StartColumn, u.StartColumn + u.Operator.Length, "operator");
+
                 if (rightType == "error")
                     return "error";
 
@@ -700,6 +745,10 @@ namespace Vext.Compiler.Semantic
                 var leftType = GetExpressionType(b.Left);
                 var rightType = GetExpressionType(b.Right);
                 var op = b.Operator;
+
+                // Add token for operator
+                AddToken(b.Line, b.StartColumn, b.StartColumn + b.Operator.Length, "operator");
+
                 if (leftType == "error" || rightType == "error")
                     return "error";
                 if (op is "+" or "-" or "*" or "/" or "**")

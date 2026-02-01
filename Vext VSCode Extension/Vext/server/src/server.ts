@@ -68,12 +68,12 @@ interface CompileResult {
 
 // --- Compile helper using stdin ---
 function compileVextFromText(code: string, run = false): Promise<CompileResult> {
-    return new Promise((resolve, reject) => {
+  return new Promise((resolve, reject) => {
     const bridgePath = path.resolve(__dirname, '..', '..', 'compiler', 'Vext.LSP.exe');
     if (!fs.existsSync(bridgePath)) {
       connection.window.showErrorMessage(`Compiler missing at: ${bridgePath}`);
       return reject(`File not found: ${bridgePath}`);
-  }
+    }
     const args = ["--stdin"];
     if (run) args.push("--run");
 
@@ -137,7 +137,7 @@ connection.onInitialize((_params: InitializeParams) => {
             "boolean",    // 7
             "operator"    // 8
           ],
-          tokenModifiers: ["declaration","readonly"]
+          tokenModifiers: ["declaration", "readonly"]
         },
         full: true
       }
@@ -189,7 +189,7 @@ connection.languages.semanticTokens.on(async (params) => {
         case "keyword":
           tokenType = TokenType.keyword;
           break;
-        case "identifier":
+        case "variable":
           tokenType = TokenType.variable;
           break;
         case "function":
@@ -201,7 +201,7 @@ connection.languages.semanticTokens.on(async (params) => {
         case "string":
           tokenType = TokenType.string;
           break;
-        case "numeric":
+        case "number":
           tokenType = TokenType.number;
           break;
         case "boolean":
