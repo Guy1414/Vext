@@ -23,6 +23,22 @@ namespace Vext.Compiler.Semantic
         public List<FunctionDefinitionNode> GetDiscoveredFunctions() => functions;
         public Dictionary<int, string> GetVariableMap() => slotToNameMap;
 
+        public List<SemanticToken> SemanticTokens { get; } = [];
+
+        private void AddToken(int line, int startCol, int endCol, string type, params string[] modifiers)
+        {
+            if (line == 0)
+                return;
+            SemanticTokens.Add(new SemanticToken
+            {
+                Line = line,
+                StartColumn = startCol,
+                EndColumn = endCol,
+                Type = type,
+                Modifiers = [.. modifiers]
+            });
+        }
+
         private static void ReportError(string message, int startLine, int startCol, int endCol) => Diagnostic.ReportError(message, startLine, startCol, startLine, endCol);
         public void Pass()
         {
@@ -110,7 +126,20 @@ namespace Vext.Compiler.Semantic
 
                 if (!functionLookup.TryGetValue(stmt.FunctionName, out var list))
                     functionLookup[stmt.FunctionName] = list = [];
+
                 list.Add(stmt);
+
+                // Token for Return Type
+                AddToken(stmt.Line, stmt.StartColumn, stmt.StartColumn + stmt.ReturnType.Length, "type");
+
+                // Token for Function Name
+                AddToken(stmt.NameLine, stmt.NameStartColumn, stmt.NameEndColumn, "function", "declaration");
+
+                foreach (var p in stmt.Arguments)
+                {
+                    AddToken(p.Line, p.StartColumn, p.StartColumn + p.Type.Length, "type");
+                    AddToken(p.NameLine, p.NameStartColumn, p.NameEndColumn, "variable", "parameter", "declaration");
+                }
             }
         }
 
@@ -202,6 +231,9 @@ namespace Vext.Compiler.Semantic
 
                     if (!IsValidType(v.VariableType))
                         ReportError($"Unknown type {v.VariableType}", v.Line, v.StartColumn, v.EndColumn);
+
+                    AddToken(v.Line, v.StartColumn, v.StartColumn + (v.VariableType == "auto" ? 4 : v.VariableType.Length), "type");
+                    AddToken(v.NameLine, v.NameStartColumn, v.NameEndColumn, "variable", "declaration");
                     break;
 
                 case AssignmentStatementNode a:
@@ -222,6 +254,8 @@ namespace Vext.Compiler.Semantic
                             var rhsType = GetExpressionType(a.Value);
                             if (!AreTypesCompatible(decl.VariableType, rhsType))
                                 ReportError($"Cannot assign '{rhsType}' to '{decl.VariableType}'.", a.Line, a.StartColumn, a.EndColumn);
+
+                            AddToken(a.Line, a.StartColumn, a.StartColumn + a.VariableName.Length, "variable");
                         }
                         break;
                     }
@@ -367,6 +401,8 @@ namespace Vext.Compiler.Semantic
                                     assignedSlots.Peek().Set(decl.SlotIndex, true);
                                     if (decl.VariableType != "int" && decl.VariableType != "float")
                                         ReportError($"Cannot apply increment operator to type '{decl.VariableType}'.", inc.Line, inc.StartColumn, inc.EndColumn);
+
+                                    AddToken(inc.Line, inc.StartColumn, inc.StartColumn + inc.VariableName.Length, "variable");
                                 }
                                 break;
 
@@ -404,6 +440,8 @@ namespace Vext.Compiler.Semantic
             switch (expr)
             {
                 case ModuleAccessNode m:
+                    AddToken(m.Line, m.StartColumn, m.StartColumn + m.ModuleName.Length, "variable", "readonly", "static"); // Module as variable-ish
+                    AddToken(m.Line, m.StartColumn + m.ModuleName.Length + 1, m.EndColumn, "function"); // +1 for dot?
                     foreach (var arg in m.Arguments)
                         CheckExpression(arg, func);
                     break;
@@ -434,6 +472,8 @@ namespace Vext.Compiler.Semantic
                                     v.EndColumn
                                 );
                             }
+
+                            AddToken(v.Line, v.StartColumn, v.EndColumn, "variable");
                         }
                         break;
                     }
@@ -620,6 +660,7 @@ namespace Vext.Compiler.Semantic
             }
             if (expr is VariableNode v)
             {
+                AddToken(v.Line, v.StartColumn, v.EndColumn, "variable");
                 var varDecl = FindVisibleVariable(v.SlotIndex);
                 if (varDecl != null)
                     return varDecl.VariableType;
@@ -715,11 +756,13 @@ namespace Vext.Compiler.Semantic
                     if (match)
                     {
                         f.ReturnType = fn.ReturnType;
+                        AddToken(f.Line, f.StartColumn, f.StartColumn + f.FunctionName.Length, "function");
                         return fn.ReturnType;
                     }
                 }
 
                 ReportError($"No matching overload for function '{f.FunctionName}'.", f.Line, f.StartColumn, f.EndColumn);
+                AddToken(f.Line, f.StartColumn, f.StartColumn + f.FunctionName.Length, "function");
                 return "error";
             }
             if (expr is ModuleAccessNode mod)

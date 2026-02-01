@@ -74,15 +74,65 @@ class Program
 
         try
         {
-            var compileResult = VextEngine.Compile(code);
+            CompilationResult compileResult = VextEngine.Compile(code);
 
-            result.Tokens = compileResult.Tokens.ConvertAll(t => new TokenInfo
+            List<TokenInfo> processedTokens = [];
+
+            // 1. Add Semantic Tokens from SemanticPass
+            foreach (var st in compileResult.SemanticTokens)
             {
-                Line = t.Line - 1,
-                StartColumn = t.StartColumn - 1,
-                EndColumn = t.EndColumn - 1,
-                Type = t.TokenType.ToString().ToLower(),
-            });
+                processedTokens.Add(new TokenInfo
+                {
+                    Line = st.Line - 1,
+                    StartColumn = st.StartColumn - 1,
+                    EndColumn = st.EndColumn - 1,
+                    Type = st.Type,
+                });
+            }
+
+            // 2. Add Lexer tokens that are usually not in AST (Comments, Strings, Numbers, Keywords that might be missed)
+            foreach (var t in compileResult.Tokens)
+            {
+                string type = "";
+                switch (t.TokenType)
+                {
+                    case Vext.Compiler.Lexing.TokenType.Comment:
+                        type = "comment";
+                        break;
+                    case Vext.Compiler.Lexing.TokenType.String:
+                        type = "string";
+                        break;
+                    case Vext.Compiler.Lexing.TokenType.Numeric:
+                        type = "number";
+                        break;
+                    case Vext.Compiler.Lexing.TokenType.Boolean:
+                        type = "boolean";
+                        break;
+                    case Vext.Compiler.Lexing.TokenType.Keyword:
+                        type = "keyword";
+                        break;
+                    case Vext.Compiler.Lexing.TokenType.Operator:
+                        type = "operator";
+                        break;
+                }
+
+                if (!string.IsNullOrEmpty(type))
+                {
+                    bool exists = processedTokens.Any(pt => pt.Line == t.Line - 1 && pt.StartColumn == t.StartColumn - 1);
+                    if (!exists)
+                    {
+                        processedTokens.Add(new TokenInfo
+                        {
+                            Line = t.Line - 1,
+                            StartColumn = t.StartColumn - 1,
+                            EndColumn = t.EndColumn - 1,
+                            Type = type,
+                        });
+                    }
+                }
+            }
+
+            result.Tokens = processedTokens.OrderBy(t => t.Line).ThenBy(t => t.StartColumn).ToList();
 
             if (compileResult.Errors.Count > 0)
             {

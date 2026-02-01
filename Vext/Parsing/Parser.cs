@@ -264,7 +264,19 @@ namespace Vext.Compiler.Parsing
             }
             Expect(TokenType.Punctuation, "}"); // consume closing brace
 
-            return new FunctionDefinitionNode { ReturnType = returnType.Value, FunctionName = name.Value, Arguments = arguments, Body = body, Line = returnType.Line, StartColumn = returnType.StartColumn, EndColumn = CurrentToken().EndColumn };
+            return new FunctionDefinitionNode
+            {
+                ReturnType = returnType.Value,
+                FunctionName = name.Value,
+                Arguments = arguments,
+                Body = body,
+                Line = returnType.Line,
+                StartColumn = returnType.StartColumn,
+                EndColumn = CurrentToken().EndColumn,
+                NameLine = name.Line,
+                NameStartColumn = name.StartColumn,
+                NameEndColumn = name.EndColumn
+            };
         }
 
         private FunctionParameterNode? ParseFunctionParameter()
@@ -281,7 +293,13 @@ namespace Vext.Compiler.Parsing
             {
                 Type = type.Value,
                 Name = name.Value,
-                Initializer = initializer
+                Initializer = initializer,
+                Line = type.Line,
+                StartColumn = type.StartColumn,
+                EndColumn = initializer != null ? initializer.EndColumn : name.EndColumn,
+                NameLine = name.Line,
+                NameStartColumn = name.StartColumn,
+                NameEndColumn = name.EndColumn
             };
         }
 
@@ -572,7 +590,10 @@ namespace Vext.Compiler.Parsing
                 Initializer = initializer,
                 Line = type.Line,
                 StartColumn = type.StartColumn,
-                EndColumn = CurrentToken().EndColumn
+                EndColumn = CurrentToken().EndColumn,
+                NameLine = name.Line,
+                NameStartColumn = name.StartColumn,
+                NameEndColumn = name.EndColumn
             };
         }
 
@@ -893,6 +914,9 @@ namespace Vext.Compiler.Parsing
         public int SlotIndex;
         public required string VariableType { get; set; }
         public required string Name { get; set; }
+        public int NameLine { get; set; }
+        public int NameStartColumn { get; set; }
+        public int NameEndColumn { get; set; }
         public ExpressionNode? Initializer { get; set; } // optional
     }
 
@@ -938,6 +962,9 @@ namespace Vext.Compiler.Parsing
     {
         public required string ReturnType { get; set; }
         public required string FunctionName { get; set; }
+        public int NameLine { get; set; }
+        public int NameStartColumn { get; set; }
+        public int NameEndColumn { get; set; }
         public List<FunctionParameterNode> Arguments { get; set; } = [];
         public required List<StatementNode> Body { get; set; }
     }
@@ -963,6 +990,30 @@ namespace Vext.Compiler.Parsing
         /// An optional initializer expression for the parameter.
         /// </summary>
         public ExpressionNode? Initializer { get; set; } // optional
+        /// <summary>
+        /// The line number where the parameter is defined.
+        /// </summary>
+        public int Line { get; set; }
+        /// <summary>
+        /// The start column where the parameter is defined.
+        /// </summary>
+        public int StartColumn { get; set; }
+        /// <summary>
+        /// The end column where the parameter definition ends.
+        /// </summary>
+        public int EndColumn { get; set; }
+        /// <summary>
+        /// The line number where the parameter name appears.
+        /// </summary>
+        public int NameLine { get; set; }
+        /// <summary>
+        /// The start column where the parameter name appears.
+        /// </summary>
+        public int NameStartColumn { get; set; }
+        /// <summary>
+        /// The end column where the parameter name appears.
+        /// </summary>
+        public int NameEndColumn { get; set; }
     }
 
     class UnaryExpressionNode : ExpressionNode

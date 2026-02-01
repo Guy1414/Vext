@@ -184,8 +184,8 @@ namespace Vext.Compiler.Lexing
                 if (c == quoteType)
                 {
                     Advance();
-                    int endClol = currentColumn;
-                    return new Token(TokenType.String, sb.ToString(), startLine, startCol, endClol);
+                    int endCol = currentColumn;
+                    return new Token(TokenType.String, sb.ToString(), startLine, startCol, endCol);
                 }
 
                 // Handle Escape Sequences
