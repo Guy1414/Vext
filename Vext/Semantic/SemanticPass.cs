@@ -466,7 +466,7 @@ namespace Vext.Compiler.Semantic
             switch (expr)
             {
                 case ModuleAccessNode m:
-                    AddToken(m.Line, m.StartColumn, m.StartColumn + m.ModuleName.Length, "variable", "readonly", "static"); // Module as variable-ish s
+                    AddToken(m.Line, m.StartColumn, m.StartColumn + m.ModuleName.Length, "variable", "readonly", "static"); // Module as variable-ish
                     AddToken(m.Line, m.StartColumn + m.ModuleName.Length + 1, m.StartColumn + m.ModuleName.Length + 1 + m.FunctionName.Length, "function");
                     foreach (var arg in m.Arguments)
                         CheckExpression(arg, func);
