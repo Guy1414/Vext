@@ -179,7 +179,7 @@ namespace Vext.Compiler.Parsing
                         Value = value,
                         Line = name.Line,
                         StartColumn = name.StartColumn,
-                        EndColumn = CurrentToken().EndColumn,
+                        EndColumn = tokens[currentToken - 1].EndColumn,
                         OperatorLine = op.Line,
                         OperatorStartColumn = op.StartColumn,
                         OperatorEndColumn = op.EndColumn
@@ -210,7 +210,7 @@ namespace Vext.Compiler.Parsing
                     Expression = expr,
                     Line = token.Line,
                     StartColumn = token.StartColumn,
-                    EndColumn = CurrentToken().EndColumn
+                    EndColumn = tokens[currentToken - 1].EndColumn
                 };
             }
 
@@ -336,11 +336,11 @@ namespace Vext.Compiler.Parsing
             Token rtrnToken = Expect(TokenType.Keyword, "return");
             if (CurrentToken().TokenType == TokenType.Punctuation && CurrentToken().Value == ";")
             {
-                return new ReturnStatementNode { Expression = null, Line = rtrnToken.Line, StartColumn = rtrnToken.StartColumn, EndColumn = CurrentToken().EndColumn };
+                return new ReturnStatementNode { Expression = null, Line = rtrnToken.Line, StartColumn = rtrnToken.StartColumn, EndColumn = tokens[currentToken - 1].EndColumn };
             } else
             {
                 ExpressionNode expr = ParseExpression();
-                return new ReturnStatementNode { Expression = expr, Line = rtrnToken.Line, StartColumn = rtrnToken.StartColumn, EndColumn = CurrentToken().EndColumn };
+                return new ReturnStatementNode { Expression = expr, Line = rtrnToken.Line, StartColumn = rtrnToken.StartColumn, EndColumn = tokens[currentToken - 1].EndColumn };
             }
         }
 
@@ -600,7 +600,7 @@ namespace Vext.Compiler.Parsing
                 Initializer = initializer,
                 Line = type.Line,
                 StartColumn = type.StartColumn,
-                EndColumn = CurrentToken().EndColumn,
+                EndColumn = tokens[currentToken - 1].EndColumn,
                 NameLine = name.Line,
                 NameStartColumn = name.StartColumn,
                 NameEndColumn = name.EndColumn
@@ -744,7 +744,7 @@ namespace Vext.Compiler.Parsing
                     Right = left,
                     Line = op.Line,
                     StartColumn = op.StartColumn,
-                    EndColumn = CurrentToken().EndColumn
+                    EndColumn = op.EndColumn
                 };
             }
 

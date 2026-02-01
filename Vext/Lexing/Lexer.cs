@@ -40,12 +40,12 @@ namespace Vext.Compiler.Lexing
                     tokens.Add(ReadOperator());
                 else if (LanguageSpecs.Punctuation.Contains(current))
                 {
-                    tokens.Add(new Token(TokenType.Punctuation, current.ToString(), currentLine, currentColumn));
+                    tokens.Add(new Token(TokenType.Punctuation, current.ToString(), currentLine, currentColumn - 1));
                     Advance();
                 } else
                 {
                     tokens.Add(new Token(TokenType.Unknown, current.ToString(), currentLine, currentColumn));
-                    ReportError($"Unexpected character '{current}'", currentLine, currentColumn, currentLine, currentColumn);
+                    ReportError($"Unexpected character '{current}'", currentLine, currentColumn, currentLine, currentColumn - 1);
                     Advance();
                 }
             }
@@ -97,7 +97,7 @@ namespace Vext.Compiler.Lexing
             }
 
             string value = vextCode[start..currentIndex];
-            return new Token(TokenType.Comment, value, startLine, startCol);
+            return new Token(TokenType.Comment, value, startLine, startCol, currentColumn - 1);
         }
 
         private void Advance()
@@ -138,9 +138,8 @@ namespace Vext.Compiler.Lexing
                 char c = vextCode[currentIndex];
 
                 if (char.IsDigit(c))
-                {
                     Advance();
-                } else if (c == '.' && !hasDecimal && char.IsDigit(Peek()))
+                else if (c == '.' && !hasDecimal && char.IsDigit(Peek()))
                 {
                     hasDecimal = true;
                     Advance();
@@ -149,7 +148,7 @@ namespace Vext.Compiler.Lexing
             }
 
             string value = vextCode[start..currentIndex];
-            return new Token(TokenType.Numeric, value, currentLine, startCol);
+            return new Token(TokenType.Numeric, value, currentLine, startCol, currentColumn - 1);
         }
 
         private Token ReadIdentifierOrKeyword()
@@ -166,7 +165,7 @@ namespace Vext.Compiler.Lexing
                              LanguageSpecs.Booleans.Contains(value) ? TokenType.Boolean :
                              TokenType.Identifier;
 
-            return new Token(type, value, currentLine, startCol);
+            return new Token(type, value, currentLine, startCol, currentColumn - 1);
         }
 
         private Token ReadString(char quoteType)
@@ -268,7 +267,7 @@ namespace Vext.Compiler.Lexing
                 op = c0.ToString();
 
             Advance(op.Length);
-            return new Token(TokenType.Operator, op, currentLine, startCol);
+            return new Token(TokenType.Operator, op, currentLine, startCol, currentColumn - 1);
         }
     }
 }
