@@ -121,8 +121,8 @@ class Program
                 {
                     bool overlaps = processedTokens.Any(pt =>
                                     pt.Line == (t.Line - 1) &&
-                                    t.StartColumn - 1 < pt.EndColumn &&
-                                    t.EndColumn - 1 >= pt.StartColumn);
+                                    ((t.StartColumn - 1 >= pt.StartColumn && t.StartColumn - 1 <= pt.EndColumn) ||
+                                     (t.EndColumn - 1 >= pt.StartColumn && t.EndColumn - 1 <= pt.EndColumn)));
                     if (!overlaps)
                     {
                         processedTokens.Add(new TokenInfo
