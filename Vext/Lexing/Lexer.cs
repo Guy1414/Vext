@@ -183,8 +183,8 @@ namespace Vext.Compiler.Lexing
                 // End of string
                 if (c == quoteType)
                 {
-                    Advance();
                     int endCol = currentColumn;
+                    Advance();
                     return new Token(TokenType.String, sb.ToString(), startLine, startCol, endCol);
                 }
 
