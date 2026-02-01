@@ -119,8 +119,11 @@ class Program
 
                 if (!string.IsNullOrEmpty(type))
                 {
-                    bool exists = processedTokens.Any(pt => pt.Line == t.Line - 1 && pt.StartColumn == t.StartColumn - 1);
-                    if (!exists)
+                    bool overlaps = processedTokens.Any(pt =>
+                                    pt.Line == (t.Line - 1) &&
+                                    t.StartColumn - 1 < pt.EndColumn &&
+                                    t.EndColumn - 1 >= pt.StartColumn);
+                    if (!overlaps)
                     {
                         processedTokens.Add(new TokenInfo
                         {

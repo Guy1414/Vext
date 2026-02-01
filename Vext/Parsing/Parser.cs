@@ -290,6 +290,9 @@ namespace Vext.Compiler.Parsing
             Token type = Expect(TokenType.Keyword);
             Token name = Expect(TokenType.Identifier);
 
+            if (type.TokenType != TokenType.Keyword || name.TokenType != TokenType.Identifier)
+                return null;
+
             ExpressionNode? initializer = null;
             if (Match(TokenType.Operator, "="))
             {

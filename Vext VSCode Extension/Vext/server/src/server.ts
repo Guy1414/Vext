@@ -223,7 +223,7 @@ connection.languages.semanticTokens.on(async (params) => {
       builder.push(
         t.Line,
         t.StartColumn,
-        t.EndColumn - t.StartColumn,
+        (t.EndColumn - t.StartColumn) + 1,
         tokenType,
         modifiers
       );
