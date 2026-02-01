@@ -133,7 +133,7 @@ class Program
                 }
             }
 
-            result.Tokens = processedTokens.OrderBy(t => t.Line).ThenBy(t => t.StartColumn).ToList();
+            result.Tokens = [.. processedTokens.OrderBy(t => t.Line).ThenBy(t => t.StartColumn)];
 
             if (compileResult.Errors.Count > 0)
             {
