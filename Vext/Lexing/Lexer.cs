@@ -46,17 +46,16 @@ namespace Vext.Compiler.Lexing
                 {
                     int col = currentColumn;
                     Advance();
-                    tokens.Add(new Token(TokenType.Punctuation, current.ToString(), currentLine, col));
-                    Advance();
+                    tokens.Add(new Token(TokenType.Punctuation, current.ToString(), currentLine, col, col));
                 } else
                 {
-                    tokens.Add(new Token(TokenType.Unknown, current.ToString(), currentLine, currentColumn));
+                    tokens.Add(new Token(TokenType.Unknown, current.ToString(), currentLine, currentColumn, currentColumn));
                     ReportError($"Unexpected character '{current}'", currentLine, currentColumn, currentLine, currentColumn - 1);
                     Advance();
                 }
             }
 
-            tokens.Add(new Token(TokenType.EOF, string.Empty, currentLine, currentColumn));
+            tokens.Add(new Token(TokenType.EOF, string.Empty, currentLine, currentColumn, currentColumn));
             return (tokens);
         }
 
@@ -212,11 +211,9 @@ namespace Vext.Compiler.Lexing
             }
 
             if (currentIndex >= vextCode.Length)
-            {
                 ReportError("Unterminated string literal at EOF", startLine, startCol, currentLine, currentColumn);
-            }
 
-            return new Token(TokenType.String, sb.ToString(), startLine, startCol);
+            return new Token(TokenType.String, sb.ToString(), startLine, startCol, currentColumn);
         }
 
         private void HandleEscapeSequence(StringBuilder sb)

@@ -36,7 +36,7 @@ namespace Vext.Compiler.Parsing
                 {
                     // Shouldn't normally happen because Parse methods report errors instead of throwing,
                     // but catch any unexpected exception to convert into an error and attempt to continue.
-                    var tok = currentToken < tokens.Count ? tokens[currentToken] : new Token(TokenType.EOF, "", 0, 0);
+                    var tok = currentToken < tokens.Count ? tokens[currentToken] : new Token(TokenType.EOF, "", 0, 0, 0);
                     ReportError(ex.Message, tok.Line, tok.StartColumn, tok.Line, tok.EndColumn);
                 }
 
@@ -70,7 +70,7 @@ namespace Vext.Compiler.Parsing
             Token token = CurrentToken();
             if (token.TokenType == TokenType.Unknown)
             {
-                ReportError($"Unknown token '{token.Value}'", token.Line, token.StartColumn, CurrentToken().Line, CurrentToken().EndColumn);
+                ReportError($"Unknown token '{token.Value}'", token.Line, token.StartColumn, token.Line, token.EndColumn);
                 Advance();
                 return null;
             } else if (token.TokenType == TokenType.Comment)
@@ -390,7 +390,7 @@ namespace Vext.Compiler.Parsing
             }
 
             List<StatementNode>? elseBody = null;
-            Token elseToken = new Token(TokenType.Unknown, "", 0, 0); // Placeholder
+            Token elseToken = new Token(TokenType.Unknown, "", 0, 0, 0); // Placeholder
             if (Match(TokenType.Keyword, "else"))
             {
                 elseToken = tokens[currentToken - 1];
@@ -399,7 +399,7 @@ namespace Vext.Compiler.Parsing
                 {
                     while (!(CurrentToken().TokenType == TokenType.Punctuation && CurrentToken().Value == "}"))
                     {
-                        var statement = ParseStatement();
+                        StatementNode? statement = ParseStatement();
                         if (statement == null)
                         {
                             // recover
@@ -415,11 +415,10 @@ namespace Vext.Compiler.Parsing
                 } else
                 {
                     // single statement else
-                    var stmt = ParseStatement();
+                    StatementNode? stmt = ParseStatement();
                     if (stmt == null)
-                    {
                         ReportError("Invalid single-line else body", ifToken.Line, ifToken.StartColumn, CurrentToken().Line, CurrentToken().EndColumn);
-                    } else
+                    else
                         elseBody.Add(stmt);
                 }
             }
@@ -450,7 +449,7 @@ namespace Vext.Compiler.Parsing
                     initialization = ParseVariableDeclaration();
                 } else
                 {
-                    var expr = ParseExpression();
+                    ExpressionNode? expr = ParseExpression();
                     initialization = new ExpressionStatementNode
                     {
                         Expression = expr,
@@ -482,7 +481,7 @@ namespace Vext.Compiler.Parsing
             StatementNode? increment = null;
             if (!(CurrentToken().TokenType == TokenType.Punctuation && CurrentToken().Value == ")"))
             {
-                var expr = ParseExpression();
+                ExpressionNode? expr = ParseExpression();
 
                 increment = new ExpressionStatementNode
                 {
@@ -633,8 +632,8 @@ namespace Vext.Compiler.Parsing
             if (token.TokenType == TokenType.Operator && (token.Value == "-" || token.Value == "!"))
             {
                 Advance(); // consume '-' or '!'
-                var right = ParsePrimary(CurrentToken());
-                return new UnaryExpressionNode { Operator = token.Value, Right = right, Line = token.Line, StartColumn = token.StartColumn, EndColumn = CurrentToken().EndColumn };
+                ExpressionNode? right = ParsePrimary(CurrentToken());
+                return new UnaryExpressionNode { Operator = token.Value, Right = right, Line = token.Line, StartColumn = token.StartColumn, EndColumn = tokens[currentToken - 1].EndColumn };
             }
 
             if (token.TokenType == TokenType.Punctuation && token.Value == "(")
@@ -726,7 +725,7 @@ namespace Vext.Compiler.Parsing
             {
                 Token tok = CurrentToken();
                 ReportError("Assignment is not allowed in this context", tok.Line, tok.StartColumn, tok.Line, tok.StartColumn);
-                var badToken = CurrentToken();
+                Token badToken = CurrentToken();
                 // consume the problematic token to avoid infinite loop
                 if (currentToken < tokens.Count)
                     Advance();
@@ -787,7 +786,7 @@ namespace Vext.Compiler.Parsing
                     Right = right,
                     Line = opToken.Line,
                     StartColumn = opToken.StartColumn,
-                    EndColumn = CurrentToken().EndColumn
+                    EndColumn = tokens[currentToken - 1].EndColumn
                 };
             }
 
@@ -805,7 +804,7 @@ namespace Vext.Compiler.Parsing
             if (currentToken + offset >= tokens.Count)
             {
                 // return EOF token instead of throwing
-                return new Token(TokenType.EOF, "", tokens.Count > 0 ? tokens.Last().Line : 0, 0);
+                return new Token(TokenType.EOF, "", tokens.Count > 0 ? tokens.Last().Line : 0, 0, 0);
             }
 
             return tokens[currentToken + offset];
@@ -816,7 +815,7 @@ namespace Vext.Compiler.Parsing
             if (currentToken >= tokens.Count)
             {
                 // return EOF token instead of throwing
-                return new Token(TokenType.EOF, "", tokens.Count > 0 ? tokens.Last().Line : 0, 0);
+                return new Token(TokenType.EOF, "", tokens.Count > 0 ? tokens.Last().Line : 0, 0, 0);
             }
             return tokens[currentToken];
         }
@@ -856,7 +855,7 @@ namespace Vext.Compiler.Parsing
         {
             if (!Match(type, value))
             {
-                var tok = currentToken < tokens.Count ? tokens[currentToken] : new Token(TokenType.EOF, "", 0, 0);
+                var tok = currentToken < tokens.Count ? tokens[currentToken] : new Token(TokenType.EOF, "", 0, 0, 0);
                 ReportError($"Expected {type}{(value != null ? $" '{value}'" : "")} at token {currentToken}, {CurrentToken().Value} {CurrentToken().TokenType}", tok.Line, tok.StartColumn, tok.Line, tok.EndColumn);
 
                 // return a best-effort token so parsing can continue
