@@ -11,7 +11,7 @@ using static Vext.Compiler.Diagnostics.Diagnostic;
 [JsonSerializable(typeof(Program.RunOutput))]
 [JsonSerializable(typeof(VextValue))]
 [JsonSerializable(typeof(VextValue[]))]
-[JsonSourceGenerationOptions(Converters = [typeof(VextValueConverter)])]
+[JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase, Converters = [typeof(VextValueConverter)])]
 internal partial class VextJsonContext : JsonSerializerContext
 {
 }

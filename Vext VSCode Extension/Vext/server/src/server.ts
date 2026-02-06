@@ -23,11 +23,11 @@ const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
 
 // --- Helper types for C# JSON result ---
 interface ErrorInfo {
-  Message: string;
-  Line: number;
-  StartColumn: number;
-  EndColumn: number;
-  Severity: "error" | "warning" | "info" | "hint";
+  message: string;
+  line: number;
+  startColumn: number;
+  endColumn: number;
+  severity: "error" | "warning" | "info" | "hint";
 }
 
 interface RunOutput {
@@ -109,18 +109,16 @@ function compileVextFromText(code: string, run = false): Promise<CompileResult> 
 
 // --- Convert compiler errors to LSP diagnostics ---
 function errorsToDiagnostics(errors: ErrorInfo[]): Diagnostic[] {
-
   return errors.map((e) => ({
-    severity: e.Severity === "hint" ? DiagnosticSeverity.Hint :
-              e.Severity === "warning" ? DiagnosticSeverity.Warning :
-              e.Severity === "info" ? DiagnosticSeverity.Information :
-              e.Severity === "error" ? DiagnosticSeverity.Error :
+    severity: e.severity === "hint" ? DiagnosticSeverity.Hint :
+              e.severity === "warning" ? DiagnosticSeverity.Warning :
+              e.severity === "info" ? DiagnosticSeverity.Information :
               DiagnosticSeverity.Error,
     range: Range.create(
-      Position.create(e.Line, e.StartColumn),
-      Position.create(e.Line, e.EndColumn)
+      Position.create(e.line, e.startColumn),
+      Position.create(e.line, e.endColumn)
     ),
-    message: e.Message,
+    message: e.message,
     source: "vext-compiler",
   }));
 }
