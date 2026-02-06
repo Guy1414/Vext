@@ -130,7 +130,7 @@ namespace Vext.Compiler.Semantic
                 list.Add(stmt);
 
                 // Token for Return Type
-                AddToken(stmt.Line, stmt.StartColumn, stmt.StartColumn + stmt.ReturnType.Length, "type");
+                AddToken(stmt.Line, stmt.StartColumn, stmt.EndColumn, "type");
 
                 // Token for Function Name
                 AddToken(stmt.NameLine, stmt.NameStartColumn, stmt.NameEndColumn, "function", "declaration");
@@ -156,6 +156,9 @@ namespace Vext.Compiler.Semantic
                     {
                         Name = param.Name,
                         VariableType = param.Type,
+                        TypeStartColumn = param.StartColumn,
+                        TypeEndColumn = param.EndColumn,
+                        DeclaredType = param.Type,
                         Line = func.Line,
                         StartColumn = func.StartColumn,
                         EndColumn = func.EndColumn,
@@ -171,7 +174,7 @@ namespace Vext.Compiler.Semantic
 
                 RebuildVisibleVariables();
 
-                foreach (var stmt in func.Body)
+                foreach (StatementNode? stmt in func.Body)
                     AnalyzeStatement(stmt, func);
 
                 PopScope();
@@ -208,11 +211,11 @@ namespace Vext.Compiler.Semantic
             switch (stmt)
             {
                 case VariableDeclarationNode v:
-                    DeclareVariable(v, func);
+                    DeclareVariable(v);
 
                     if (v.Initializer != null)
                     {
-                        CheckExpression(v.Initializer, func);
+                        CheckExpression(v.Initializer);
                         var initType = GetExpressionType(v.Initializer);
                         if (v.VariableType == "auto")
                         {
@@ -233,13 +236,13 @@ namespace Vext.Compiler.Semantic
                     if (!IsValidType(v.VariableType))
                         ReportError($"Unknown type {v.VariableType}", v.Line, v.StartColumn, v.EndColumn);
 
-                    AddToken(v.Line, v.StartColumn, v.StartColumn + (v.VariableType == "auto" ? 4 : v.VariableType.Length), "type");
+                    AddToken(v.Line, v.TypeStartColumn, v.TypeEndColumn, "type");
                     AddToken(v.NameLine, v.NameStartColumn, v.NameEndColumn, "variable", "declaration");
                     break;
 
                 case AssignmentStatementNode a:
                     {
-                        var decl = ResolveVariable(a.VariableName);
+                        VariableDeclarationNode? decl = ResolveVariable(a.VariableName);
 
                         if (decl == null)
                         {
@@ -248,15 +251,16 @@ namespace Vext.Compiler.Semantic
                         {
                             a.SlotIndex = decl.SlotIndex;
 
-                            CheckExpression(a.Value, func);
+                            CheckExpression(a.Value);
 
                             assignedSlots.Peek().Set(decl.SlotIndex, true);
 
-                            var rhsType = GetExpressionType(a.Value);
+                            string rhsType = GetExpressionType(a.Value);
                             if (!AreTypesCompatible(decl.VariableType, rhsType))
                                 ReportError($"Cannot assign '{rhsType}' to '{decl.VariableType}'.", a.Line, a.StartColumn, a.EndColumn);
 
-                            AddToken(a.Line, a.StartColumn, a.StartColumn + a.VariableName.Length, "variable");
+                            // Variable token
+                            AddToken(a.Line, a.VariableStartColumn, a.VariableEndColumn + a.VariableName.Length, "variable");
 
                             // Operator token
                             if (a.OperatorLine > 0)
@@ -267,7 +271,7 @@ namespace Vext.Compiler.Semantic
 
                 case IncrementStatementNode inc:
                     {
-                        var decl = ResolveVariable(inc.VariableName);
+                        VariableDeclarationNode? decl = ResolveVariable(inc.VariableName);
 
                         if (decl == null)
                         {
@@ -290,7 +294,7 @@ namespace Vext.Compiler.Semantic
                     }
 
                 case ExpressionStatementNode e:
-                    CheckExpression(e.Expression, func);
+                    CheckExpression(e.Expression);
                     e.Expression = Fold(e.Expression);
                     break;
 
@@ -298,7 +302,7 @@ namespace Vext.Compiler.Semantic
                     AddToken(r.Line, r.StartColumn, r.StartColumn + 6, "keyword", "control"); // "return"
                     if (r.Expression != null)
                     {
-                        CheckExpression(r.Expression, func);
+                        CheckExpression(r.Expression);
                         var retType = GetExpressionType(r.Expression);
                         if (!AreTypesCompatible(func!.ReturnType, retType))
                             ReportError($"Function '{func.FunctionName}' expects to return '{func.ReturnType}' but got '{retType}'.", r.Line, r.StartColumn, r.EndColumn);
@@ -313,7 +317,7 @@ namespace Vext.Compiler.Semantic
                 case IfStatementNode i:
                     {
                         AddToken(i.Line, i.StartColumn, i.StartColumn + 2, "keyword", "control"); // "if"
-                        CheckExpression(i.Condition, func);
+                        CheckExpression(i.Condition);
                         var beforeIf = new BitArray(assignedSlots.Peek());
 
                         AnalyzeStatementBlock(i.Body, func, true);
@@ -344,7 +348,7 @@ namespace Vext.Compiler.Semantic
 
                 case WhileStatementNode w:
                     AddToken(w.Line, w.StartColumn, w.StartColumn + 5, "keyword", "control"); // "while"
-                    CheckExpression(w.Condition, func);
+                    CheckExpression(w.Condition);
 
                     var beforeW = new BitArray(assignedSlots.Peek());
 
@@ -371,17 +375,17 @@ namespace Vext.Compiler.Semantic
                             case VariableDeclarationNode vd:
                                 if (vd.Initializer != null)
                                 {
-                                    CheckExpression(vd.Initializer, func);
+                                    CheckExpression(vd.Initializer);
                                     var initType = GetExpressionType(vd.Initializer);
                                     if (initType != "int" && initType != "float" && initType != "error")
                                         ReportError($"For loop initialization must be numeral, got '{initType}'.", vd.Line, vd.StartColumn, vd.EndColumn);
                                 }
-                                DeclareVariable(vd, func);
+                                DeclareVariable(vd);
                                 assignedSlots.Peek().Set(vd.SlotIndex, true);
                                 break;
 
                             case ExpressionStatementNode es:
-                                CheckExpression(es.Expression, func);
+                                CheckExpression(es.Expression);
                                 var esType = GetExpressionType(es.Expression);
                                 if (esType != "int" && esType != "float" && esType != "error")
                                     ReportError($"For loop initialization must be numeral, got '{esType}'.", es.Line, es.StartColumn, es.EndColumn);
@@ -395,7 +399,7 @@ namespace Vext.Compiler.Semantic
 
                     if (fo.Condition != null)
                     {
-                        CheckExpression(fo.Condition, func);
+                        CheckExpression(fo.Condition);
 
                         var forType = GetExpressionType(fo.Condition);
                         if (forType != "bool" && forType != "error")
@@ -407,7 +411,7 @@ namespace Vext.Compiler.Semantic
                         switch (fo.Increment)
                         {
                             case ExpressionStatementNode ies:
-                                CheckExpression(ies.Expression, func);
+                                CheckExpression(ies.Expression);
                                 var incrType = GetExpressionType(ies.Expression);
                                 if (incrType != "int" && incrType != "float" && incrType != "error")
                                     ReportError($"For loop increment must be numeric, got '{incrType}'.", ies.Line, ies.StartColumn, ies.EndColumn);
@@ -459,17 +463,15 @@ namespace Vext.Compiler.Semantic
         /// <remarks>This method reports errors for variables that are used before declaration or may be
         /// unassigned at the point of use. It recursively checks sub-expressions as needed.</remarks>
         /// <param name="expr">The expression node to be checked for semantic correctness.</param>
-        /// <param name="func">The function definition node representing the current function context, or null if the expression is not
-        /// within a function.</param>
-        private void CheckExpression(ExpressionNode expr, FunctionDefinitionNode? func)
+        private void CheckExpression(ExpressionNode expr)
         {
             switch (expr)
             {
                 case ModuleAccessNode m:
                     AddToken(m.Line, m.StartColumn, m.StartColumn + m.ModuleName.Length, "variable", "readonly", "static"); // Module as variable-ish
-                    AddToken(m.Line, m.StartColumn + m.ModuleName.Length + 1, m.StartColumn + m.ModuleName.Length + 1 + m.FunctionName.Length, "function");
-                    foreach (var arg in m.Arguments)
-                        CheckExpression(arg, func);
+                    AddToken(m.Line, m.StartColumn + m.ModuleName.Length + 1, m.StartColumn + m.ModuleName.Length + 1 + m.FunctionName.Length, "function", "call");
+                    foreach (ExpressionNode? arg in m.Arguments)
+                        CheckExpression(arg);
                     break;
                 case VariableNode v:
                     {
@@ -478,9 +480,7 @@ namespace Vext.Compiler.Semantic
                         if (decl == null)
                         {
                             ReportError(
-                                func != null
-                                    ? $"Variable '{v.Name}' used before declaration in function '{func.FunctionName}'."
-                                    : $"Variable '{v.Name}' used before declaration.",
+                                $"Variable '{v.Name}' used before declaration.",
                                 v.Line,
                                 v.StartColumn,
                                 v.EndColumn
@@ -505,15 +505,15 @@ namespace Vext.Compiler.Semantic
                     }
 
                 case UnaryExpressionNode u:
-                    CheckExpression(u.Right, func);
+                    CheckExpression(u.Right);
                     break;
                 case BinaryExpressionNode b:
-                    CheckExpression(b.Left, func);
-                    CheckExpression(b.Right, func);
+                    CheckExpression(b.Left);
+                    CheckExpression(b.Right);
                     break;
                 case FunctionCallNode c:
                     foreach (var arg in c.Arguments)
-                        CheckExpression(arg, func);
+                        CheckExpression(arg);
                     break;
             }
 
@@ -700,7 +700,6 @@ namespace Vext.Compiler.Semantic
             }
             if (expr is VariableNode v)
             {
-                AddToken(v.Line, v.StartColumn, v.EndColumn, "variable");
                 var varDecl = FindVisibleVariable(v.SlotIndex);
                 if (varDecl != null)
                     return varDecl.VariableType;
@@ -712,7 +711,6 @@ namespace Vext.Compiler.Semantic
                 var rightType = GetExpressionType(u.Right);
 
                 // Add token for operator
-                AddToken(u.Line, u.StartColumn, u.EndColumn, "operator");
                 AddToken(u.Line, u.StartColumn, u.StartColumn + u.Operator.Length, "operator");
 
                 if (rightType == "error")
@@ -805,13 +803,13 @@ namespace Vext.Compiler.Semantic
                     if (match)
                     {
                         f.ReturnType = fn.ReturnType;
-                        AddToken(f.Line, f.StartColumn, f.StartColumn + f.FunctionName.Length, "function");
+                        AddToken(f.Line, f.StartColumn, f.StartColumn + f.FunctionName.Length, "function", "call");
                         return fn.ReturnType;
                     }
                 }
 
                 ReportError($"No matching overload for function '{f.FunctionName}'.", f.Line, f.StartColumn, f.EndColumn);
-                AddToken(f.Line, f.StartColumn, f.StartColumn + f.FunctionName.Length, "function");
+                AddToken(f.Line, f.StartColumn, f.StartColumn + f.FunctionName.Length, "function", "call");
                 return "error";
             }
             if (expr is ModuleAccessNode mod)
@@ -874,14 +872,14 @@ namespace Vext.Compiler.Semantic
         private void RebuildVisibleVariables()
         {
             visibleVariables.Clear();
-            for (var scope = currentScope; scope != null; scope = scope.Parent)
+            for (Scope? scope = currentScope; scope != null; scope = scope.Parent)
             {
-                foreach (var kvp in scope.Variables)
+                foreach (KeyValuePair<string, VariableDeclarationNode> kvp in scope.Variables)
                     visibleVariables[kvp.Value.SlotIndex] = kvp.Value;
             }
         }
 
-        private void DeclareVariable(VariableDeclarationNode v, FunctionDefinitionNode? func)
+        private void DeclareVariable(VariableDeclarationNode v)
         {
             if (currentScope!.Variables.ContainsKey(v.Name))
             {
@@ -893,16 +891,14 @@ namespace Vext.Compiler.Semantic
             currentScope.Variables[v.Name] = v;
             slotToNameMap[v.SlotIndex] = v.Name;
 
-            var currentBits = assignedSlots.Peek();
+            BitArray? currentBits = assignedSlots.Peek();
             if (v.SlotIndex >= currentBits.Length)
-            {
                 currentBits.Length = Math.Max(currentBits.Length * 2, v.SlotIndex + 1);
-            }
 
             RebuildVisibleVariables();
         }
 
-        private VariableDeclarationNode? FindVisibleVariable(int slotIndex) => visibleVariables.TryGetValue(slotIndex, out var v) ? v : null;
+        private VariableDeclarationNode? FindVisibleVariable(int slotIndex) => visibleVariables.TryGetValue(slotIndex, out VariableDeclarationNode? v) ? v : null;
 
         private static string GetBinaryResultType(string left, string right, string op, int line, int startColumn, int endColumn)
         {

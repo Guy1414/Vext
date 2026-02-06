@@ -40,7 +40,9 @@ namespace Vext.Compiler.Lexing
                     tokens.Add(ReadOperator());
                 else if (LanguageSpecs.Punctuation.Contains(current))
                 {
-                    tokens.Add(new Token(TokenType.Punctuation, current.ToString(), currentLine, currentColumn - 1));
+                    int col = currentColumn;
+                    Advance();
+                    tokens.Add(new Token(TokenType.Punctuation, current.ToString(), currentLine, col));
                     Advance();
                 } else
                 {

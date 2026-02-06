@@ -1,6 +1,7 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 using Vext.Compiler;
+using Vext.Compiler.Semantic;
 using Vext.Compiler.VM;
 using Vext.LSP;
 using static Vext.Compiler.Diagnostics.Diagnostic;
@@ -79,7 +80,7 @@ class Program
             List<TokenInfo> processedTokens = [];
 
             // 1. Add Semantic Tokens from SemanticPass
-            foreach (var st in compileResult.SemanticTokens)
+            foreach (SemanticToken? st in compileResult.SemanticTokens)
             {
                 processedTokens.Add(new TokenInfo
                 {
@@ -122,7 +123,7 @@ class Program
                     bool overlaps = processedTokens.Any(pt =>
                                     pt.Line == (t.Line - 1) &&
                                     ((t.StartColumn - 1 >= pt.StartColumn && t.StartColumn - 1 <= pt.EndColumn) ||
-                                     (t.EndColumn - 1 >= pt.StartColumn && t.EndColumn - 1 <= pt.EndColumn)));
+                                    (t.EndColumn - 1 >= pt.StartColumn && t.EndColumn - 1 <= pt.EndColumn)));
                     if (!overlaps)
                     {
                         processedTokens.Add(new TokenInfo
@@ -157,7 +158,7 @@ class Program
 
                 if (run)
                 {
-                    var (time, finalState) = VextEngine.Run(compileResult.Instructions);
+                    (double time, VextValue[] finalState) = VextEngine.Run(compileResult.Instructions);
                     result.Output = new RunOutput
                     {
                         Time = time,

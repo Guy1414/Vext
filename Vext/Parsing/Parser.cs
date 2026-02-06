@@ -175,6 +175,8 @@ namespace Vext.Compiler.Parsing
                     return new AssignmentStatementNode
                     {
                         VariableName = name.Value,
+                        VariableStartColumn = name.StartColumn,
+                        VariableEndColumn = name.EndColumn,
                         Operator = op.Value,
                         Value = value,
                         Line = name.Line,
@@ -599,6 +601,9 @@ namespace Vext.Compiler.Parsing
             return new VariableDeclarationNode
             {
                 VariableType = type.Value,
+                TypeStartColumn = type.StartColumn,
+                TypeEndColumn = type.EndColumn,
+                DeclaredType = type.Value,
                 Name = name.Value,
                 Initializer = initializer,
                 Line = type.Line,
@@ -926,6 +931,9 @@ namespace Vext.Compiler.Parsing
     {
         public int SlotIndex;
         public required string VariableType { get; set; }
+        public int TypeStartColumn;
+        public int TypeEndColumn;
+        public required string DeclaredType;
         public required string Name { get; set; }
         public int NameLine { get; set; }
         public int NameStartColumn { get; set; }
@@ -1041,6 +1049,8 @@ namespace Vext.Compiler.Parsing
     {
         public int SlotIndex;
         public required string VariableName { get; set; }
+        public int VariableStartColumn { get; set; }
+        public int VariableEndColumn { get; set; }
         public required string Operator { get; set; }
         public required ExpressionNode Value { get; set; }
         public int OperatorLine { get; set; }
