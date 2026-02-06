@@ -40,6 +40,9 @@ namespace Vext.Compiler.Semantic
         }
 
         private static void ReportError(string message, int startLine, int startCol, int endCol) => Diagnostic.ReportError(message, startLine, startCol, startLine, endCol);
+        private static void ReportWarning(string message, int startLine, int startCol, int endCol) => Diagnostic.ReportWarning(message, startLine, startCol, startLine, endCol);
+        private static void ReportInfo(string message, int startLine, int startCol, int endCol) => Diagnostic.ReportInfo(message, startLine, startCol, startLine, endCol);
+        private static void ReportHint(string message, int startLine, int startCol, int endCol) => Diagnostic.ReportHint(message, startLine, startCol, startLine, endCol);
         public void Pass()
         {
             functions.Clear();
@@ -189,8 +192,26 @@ namespace Vext.Compiler.Semantic
             if (isNested)
                 PushScope();
 
-            foreach (var stmt in body)
+            bool terminated = false;
+
+            foreach (StatementNode? stmt in body)
+            {
+                if (terminated)
+                {
+                    ReportWarning(
+                        "Unreachable code detected.",
+                        stmt.Line,
+                        stmt.StartColumn,
+                        stmt.EndColumn
+                    );
+                    continue;
+                }
+
                 AnalyzeStatement(stmt, func);
+
+                if (func != null && AlwaysExits(stmt, func.ReturnType))
+                    terminated = true;
+            }
 
             if (isNested)
                 PopScope();
@@ -491,7 +512,7 @@ namespace Vext.Compiler.Semantic
 
                             if (!assignedSlots.Peek().Get(decl.SlotIndex))
                             {
-                                ReportError(
+                                ReportWarning(
                                     $"Variable '{v.Name}' may be unassigned when used.",
                                     v.Line,
                                     v.StartColumn,
@@ -988,6 +1009,49 @@ namespace Vext.Compiler.Semantic
                     if (CheckReturnPath(f.Body, returnType))
                         return true;
                 }
+            }
+            return false;
+        }
+
+        private bool AlwaysExits(StatementNode stmt, string returnType)
+        {
+            switch (stmt)
+            {
+                case ReturnStatementNode:
+                    return true;
+
+                case IfStatementNode i:
+                    if (i.ElseBody == null)
+                        return false;
+
+                    return
+                        BlockAlwaysExits(i.Body, returnType) &&
+                        BlockAlwaysExits(i.ElseBody, returnType);
+
+                case WhileStatementNode w:
+                    if (w.Condition is LiteralNode l && l.Value is bool b && b)
+                        return BlockAlwaysExits(w.Body, returnType);
+                    return false;
+
+                case ForStatementNode f:
+                    if (f.Condition is LiteralNode ln && ln.Value is bool b2 && b2)
+                        return BlockAlwaysExits(f.Body, returnType);
+                    return false;
+
+                default:
+                    return false;
+            }
+        }
+
+        private bool BlockAlwaysExits(List<StatementNode> body, string returnType)
+        {
+            foreach (var stmt in body)
+            {
+                if (AlwaysExits(stmt, returnType))
+                    return true;
+
+                // statement does not guarantee exit, execution continues
+                return false;
             }
             return false;
         }

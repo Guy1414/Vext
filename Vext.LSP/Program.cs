@@ -25,6 +25,7 @@ class Program
         public int Line { get; set; }
         public int StartColumn { get; set; }
         public int EndColumn { get; set; }
+        public required string Severity { get; set; }
     }
 
     public class TokenInfo
@@ -148,7 +149,8 @@ class Program
                         Message = ed.Message,
                         Line = ed.LspLine,
                         StartColumn = ed.LspStartCol,
-                        EndColumn = ed.LspEndCol
+                        EndColumn = ed.LspEndCol,
+                        Severity = ed.LspSeverity.ToString().ToLower()
                     });
                 }
                 result.Success = false;
@@ -174,7 +176,8 @@ class Program
                 Message = ex.Message,
                 Line = 0,
                 StartColumn = 0,
-                EndColumn = 1
+                EndColumn = 1,
+                Severity = "error"
             });
         }
 

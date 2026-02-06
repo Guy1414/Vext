@@ -12,6 +12,10 @@ namespace Vext.Compiler.Lexing
         private int currentColumn = 1;
 
         private static void ReportError(string message, int startLine, int startCol, int endLine, int endCol) => Diagnostic.ReportError(message, startLine, startCol, endLine, endCol);
+        private static void ReportWarning(string message, int startLine, int startCol, int endLine, int endCol) => Diagnostic.ReportWarning(message, startLine, startCol, endLine, endCol);
+        private static void ReportInfo(string message, int startLine, int startCol, int endLine, int endCol) => Diagnostic.ReportInfo(message, startLine, startCol, endLine, endCol);
+        private static void ReportHint(string message, int startLine, int startCol, int endLine, int endCol) => Diagnostic.ReportHint(message, startLine, startCol, endLine, endCol);
+
 
         public List<Token> Tokenize()
         {

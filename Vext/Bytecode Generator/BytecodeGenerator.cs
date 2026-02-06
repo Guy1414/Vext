@@ -231,6 +231,7 @@ namespace Vext.Compiler.Bytecode_Generator
                 {
                     Name = "i",
                     VariableType = "int",
+                    DeclaredType = "int",
                     Initializer = new LiteralNode { Value = 0, Line = forStmt.Line, StartColumn = forStmt.StartColumn },
                     Line = forStmt.Line,
                     StartColumn = forStmt.StartColumn

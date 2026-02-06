@@ -27,6 +27,7 @@ interface ErrorInfo {
   Line: number;
   StartColumn: number;
   EndColumn: number;
+  Severity: "error" | "warning" | "info" | "hint";
 }
 
 interface RunOutput {
@@ -108,8 +109,13 @@ function compileVextFromText(code: string, run = false): Promise<CompileResult> 
 
 // --- Convert compiler errors to LSP diagnostics ---
 function errorsToDiagnostics(errors: ErrorInfo[]): Diagnostic[] {
+
   return errors.map((e) => ({
-    severity: DiagnosticSeverity.Error,
+    severity: e.Severity === "hint" ? DiagnosticSeverity.Hint :
+              e.Severity === "warning" ? DiagnosticSeverity.Warning :
+              e.Severity === "info" ? DiagnosticSeverity.Information :
+              e.Severity === "error" ? DiagnosticSeverity.Error :
+              DiagnosticSeverity.Error,
     range: Range.create(
       Position.create(e.Line, e.StartColumn),
       Position.create(e.Line, e.EndColumn)
