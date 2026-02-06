@@ -46,7 +46,7 @@ namespace Vext.Compiler.Parsing
                 } else
                 {
                     var tok = CurrentToken();
-                    ReportError($"Unexpected token '{tok.Value}' at position {currentToken}", tok.Line, tok.StartColumn, tok.Line, tok.EndColumn);
+                    ReportError($"Unexpected token '{tok.Value}'", tok.Line, tok.StartColumn, tok.Line, tok.EndColumn);
                     // attempt to recover by skipping one token
                     if (currentToken < tokens.Count)
                         Advance();
