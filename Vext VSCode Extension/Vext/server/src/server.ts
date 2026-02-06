@@ -31,16 +31,16 @@ interface ErrorInfo {
 }
 
 interface RunOutput {
-  Time: number;
-  FinalState: any[];
+  time: number;
+  finalState: any[];
 }
 
 interface TokenInfo {
-  Line: number;
-  StartColumn: number;
-  EndColumn: number;
-  Type: string;
-  IsDeclaration: boolean;
+  line: number;
+  startColumn: number;
+  endColumn: number;
+  type: string;
+  isDeclaration: boolean;
 }
 
 const enum TokenType {
@@ -61,10 +61,10 @@ const enum TokenModifier {
 }
 
 interface CompileResult {
-  Success: boolean;
-  Errors: ErrorInfo[];
-  Output?: RunOutput;
-  Tokens?: TokenInfo[];
+  success: boolean;
+  errors: ErrorInfo[];
+  output?: RunOutput;
+  tokens?: TokenInfo[];
 }
 
 // --- Compile helper using stdin ---
@@ -109,18 +109,25 @@ function compileVextFromText(code: string, run = false): Promise<CompileResult> 
 
 // --- Convert compiler errors to LSP diagnostics ---
 function errorsToDiagnostics(errors: ErrorInfo[]): Diagnostic[] {
-  return errors.map((e) => ({
-    severity: e.severity === "hint" ? DiagnosticSeverity.Hint :
-              e.severity === "warning" ? DiagnosticSeverity.Warning :
-              e.severity === "info" ? DiagnosticSeverity.Information :
-              DiagnosticSeverity.Error,
-    range: Range.create(
-      Position.create(e.line, e.startColumn),
-      Position.create(e.line, e.endColumn)
-    ),
-    message: e.message,
-    source: "vext-compiler",
-  }));
+  return errors
+    .filter(e =>
+      Number.isInteger(e.line) &&
+      Number.isInteger(e.startColumn) &&
+      Number.isInteger(e.endColumn)
+    )
+    .map((e) => ({
+      severity:
+        e.severity === "hint" ? DiagnosticSeverity.Hint :
+        e.severity === "warning" ? DiagnosticSeverity.Warning :
+        e.severity === "info" ? DiagnosticSeverity.Information :
+        DiagnosticSeverity.Error,
+      range: Range.create(
+        Position.create(e.line, e.startColumn),
+        Position.create(e.line, Math.max(e.startColumn + 1, e.endColumn))
+      ),
+      message: e.message ?? "Unknown error",
+      source: "vext-compiler",
+    }));
 }
 
 // --- LSP Handlers ---
@@ -157,12 +164,12 @@ documents.onDidChangeContent(async (change) => {
     const result = await compileVextFromText(code, false);
 
     // Send diagnostics
-    const diagnostics = errorsToDiagnostics(result.Errors);
+    const diagnostics = errorsToDiagnostics(result.errors || []);
     connection.sendDiagnostics({ uri, diagnostics });
 
-    if (result.Success && result.Output) {
+    if (result.success && result.output) {
       connection.window.showInformationMessage(
-        `Program ran in ${result.Output.Time.toFixed(2)}ms`
+        `Program ran in ${result.output.time.toFixed(2)}ms`
       );
     }
   } catch (err: any) {
@@ -179,17 +186,17 @@ connection.languages.semanticTokens.on(async (params) => {
 
   try {
     const result = await compileVextFromText(code, false);
-    if (!result.Tokens) return builder.build();
+    if (!result.tokens) return builder.build();
 
-    const tokens = [...result.Tokens].sort((a, b) => {
-      if (a.Line !== b.Line) return a.Line - b.Line;
-      return a.StartColumn - b.StartColumn;
+    const tokens = [...result.tokens].sort((a, b) => {
+      if (a.line !== b.line) return a.line - b.line;
+      return a.startColumn - b.startColumn;
     });
 
     for (const t of tokens) {
       let tokenType: number;
 
-      switch (t.Type) {
+      switch (t.type) {
         case "keyword":
           tokenType = TokenType.keyword;
           break;
@@ -222,12 +229,12 @@ connection.languages.semanticTokens.on(async (params) => {
       }
 
       const modifiers =
-        t.IsDeclaration ? TokenModifier.declaration : 0;
+        t.isDeclaration ? TokenModifier.declaration : 0;
 
       builder.push(
-        t.Line,
-        t.StartColumn,
-        (t.EndColumn - t.StartColumn) + 1,
+        t.line,
+        t.startColumn,
+        (t.endColumn - t.startColumn) + 1,
         tokenType,
         modifiers
       );
