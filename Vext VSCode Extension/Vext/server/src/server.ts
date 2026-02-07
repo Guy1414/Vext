@@ -130,6 +130,40 @@ function errorsToDiagnostics(errors: ErrorInfo[]): Diagnostic[] {
     }));
 }
 
+function assertNoOverlappingTokens(tokens: TokenInfo[], uri: string) {
+  // Sort tokens by line/startColumn just in case
+  const sorted = [...tokens].sort((a, b) => {
+    if (a.line !== b.line) return a.line - b.line;
+    return a.startColumn - b.startColumn;
+  });
+
+  const diagnostics: Diagnostic[] = [];
+
+  for (let i = 1; i < sorted.length; i++) {
+    const prev = sorted[i - 1];
+    const curr = sorted[i];
+
+    if (curr.line === prev.line && curr.startColumn <= prev.endColumn) {
+      diagnostics.push({
+        severity: DiagnosticSeverity.Error,
+        range: Range.create(
+          Position.create(curr.line, curr.startColumn),
+          Position.create(curr.line, curr.endColumn)
+        ),
+        message: `Semantic token overlap detected: '${prev.type}' [${prev.startColumn}-${prev.endColumn}] overlaps with '${curr.type}' [${curr.startColumn}-${curr.endColumn}]`,
+        source: "vext-compiler",
+      });
+    }
+  }
+
+  if (diagnostics.length > 0) {
+    // Send diagnostics so they appear as red squiggles in the editor
+    connection.sendDiagnostics({ uri, diagnostics });
+    // Also throw to stop further processing if desired
+    throw new Error("Semantic token overlap detected; see editor for details.");
+  }
+}
+
 // --- LSP Handlers ---
 connection.onInitialize((_params: InitializeParams) => {
   return <InitializeResult>{
@@ -192,6 +226,8 @@ connection.languages.semanticTokens.on(async (params) => {
       if (a.line !== b.line) return a.line - b.line;
       return a.startColumn - b.startColumn;
     });
+
+    assertNoOverlappingTokens(tokens, params.textDocument.uri);
 
     for (const t of tokens) {
       let tokenType: number;

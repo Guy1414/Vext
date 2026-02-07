@@ -5,7 +5,7 @@
 	  <AssemblyTitle>Vext</AssemblyTitle>
 	  <Product>Vext</Product>
 	  <Company>Vext</Company>
-	  <Description>Vext language compiler and test runner</Description>
+	  <Description>Vext language test runner</Description>
 
 	  <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>

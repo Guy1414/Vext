@@ -29,6 +29,7 @@ namespace Vext.Compiler.Semantic
         {
             if (line == 0)
                 return;
+
             SemanticTokens.Add(new SemanticToken
             {
                 Line = line,
