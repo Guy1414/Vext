@@ -113,7 +113,6 @@ class Program
                     int start = t.StartColumn - 1; // convert to 0-based
                     int end = t.EndColumn;
 
-                    // Only add if no token already exists at the exact same line/start/end
                     bool overlaps = processedTokens.Any(pt =>
                         pt.Line == t.Line - 1 &&
                         !(t.EndColumn <= pt.StartColumn || t.StartColumn - 1 >= pt.EndColumn)
@@ -133,8 +132,11 @@ class Program
             }
 
             result.Tokens = [.. processedTokens
+                .GroupBy(t => new { t.Line, t.StartColumn, t.EndColumn, t.Type })
+                .Select(g => g.First())
                 .OrderBy(t => t.Line)
                 .ThenBy(t => t.StartColumn)];
+
 
             if (compileResult.Errors.Count > 0)
             {
