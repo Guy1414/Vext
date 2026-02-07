@@ -88,7 +88,7 @@ class Program
                 {
                     Line = st.Line - 1,
                     StartColumn = st.StartColumn - 1,
-                    EndColumn = st.EndColumn,
+                    EndColumn = st.EndColumn - 1,
                     Type = st.Type,
                     IsDeclaration = st.Modifiers.Contains("declaration")
                 });
