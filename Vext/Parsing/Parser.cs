@@ -1074,8 +1074,8 @@ namespace Vext.Compiler.Parsing
     {
         public int SlotIndex;
         public required string VariableName { get; set; }
-        public required int VariableStartColumn { get; set; }
-        public required int VariableEndColumn { get; set; }
+        public int VariableStartColumn { get; set; }
+        public int VariableEndColumn { get; set; }
         public bool IsIncrement { get; set; }
         public int OperatorLine { get; set; }
         public int OperatorStartColumn { get; set; }
