@@ -170,7 +170,7 @@ namespace Vext.Compiler.Lexing
                              LanguageSpecs.Booleans.Contains(value) ? TokenType.Boolean :
                              TokenType.Identifier;
 
-            return new Token(type, value, currentLine, startCol, currentColumn - 10);
+            return new Token(type, value, currentLine, startCol, currentColumn - 1);
         }
 
         private Token ReadString(char quoteType)
