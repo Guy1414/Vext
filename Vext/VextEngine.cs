@@ -7,6 +7,7 @@ using Vext.Compiler.Parsing;
 using Vext.Compiler.Semantic;
 using Vext.Compiler.Shared;
 using Vext.Compiler.VM;
+using Vext.Modules;
 using static Vext.Compiler.Diagnostics.Diagnostic;
 
 namespace Vext.Compiler
@@ -52,23 +53,23 @@ namespace Vext.Compiler
         public static CompilationResult Compile(string code)
         {
             List<Instruction> instructions = [];
-            var sw = new Stopwatch();
+            Stopwatch sw = new Stopwatch();
 
             // 1. Lexing
             sw.Restart();
-            var lexer = new Lexing.Lexer(code);
+            Lexer lexer = new Lexer(code);
             List<Token> tokens = lexer.Tokenize();
             double lexTime = sw.Elapsed.TotalMilliseconds;
 
             // 2. Parsing
             sw.Restart();
-            var parser = new Parser(tokens);
+            Parser parser = new Parser(tokens);
             List<StatementNode> statements = parser.Parse();
             double parseTime = sw.Elapsed.TotalMilliseconds;
 
             // 3. Semantic Analysis
             sw.Restart();
-            var semanticPass = new SemanticPass(statements);
+            SemanticPass semanticPass = new SemanticPass(statements);
             RegisterBuiltIns(semanticPass);
             semanticPass.Pass();
             double semTime = sw.Elapsed.TotalMilliseconds;
@@ -88,13 +89,13 @@ namespace Vext.Compiler
 
         private static void RegisterBuiltIns(SemanticPass pass)
         {
-            var math = new MathFunctions { Name = "Math" }.Initialize();
-            foreach (var func in math.Functions.Values)
+            Module math = new MathFunctions { Name = "Math" }.Initialize();
+            foreach (List<Function> func in math.Functions.Values)
                 pass.RegisterBuiltInFunctions(func);
 
-            var defaults = new DefaultFunctions();
+            DefaultFunctions defaults = new DefaultFunctions();
             defaults.Initialize();
-            foreach (var func in defaults.Functions.Values)
+            foreach (List<Function> func in defaults.Functions.Values)
                 pass.RegisterBuiltInFunctions(func);
         }
 
@@ -105,12 +106,12 @@ namespace Vext.Compiler
         /// <returns></returns>
         public static (double Time, VextValue[] FinalState) Run(List<Instruction> instructions)
         {
-            var sw = Stopwatch.StartNew();
-            var mathModule = new MathFunctions { Name = "Math" }.Initialize();
-            var defaults = new DefaultFunctions();
+            Stopwatch sw = Stopwatch.StartNew();
+            Module mathModule = new MathFunctions { Name = "Math" }.Initialize();
+            DefaultFunctions defaults = new DefaultFunctions();
             defaults.Initialize();
 
-            var vm = new VextVM(modulesList: [mathModule], defaults: defaults);
+            VextVM vm = new VextVM(modulesList: [mathModule], defaults: defaults);
             int sp = 0;
             vm.Run(instructions, ref sp);
             sw.Stop();

@@ -1,6 +1,8 @@
 ﻿using System.Diagnostics;
 using Vext.Compiler;
+using Vext.Compiler.Shared;
 using Vext.Compiler.VM;
+using static Vext.Compiler.Diagnostics.Diagnostic;
 
 class Program
 {
@@ -176,7 +178,7 @@ class Program
             if (result.Errors.Count > 0)
             {
                 Console.ForegroundColor = ConsoleColor.Red;
-                foreach (var e in result.Errors)
+                foreach (ErrorDescriptor e in result.Errors)
                     Console.WriteLine($" [!] {e.Message}. Line: {e.StartLine}, Col: {e.StartCol}.");
                 Console.ResetColor();
                 return;
@@ -195,7 +197,7 @@ class Program
             PrintHeader("BYTECODE INSTRUCTIONS");
             Console.WriteLine($" {"OP",-20} | {"ARG",-50}");
             Console.WriteLine(new string('─', 53));
-            foreach (var instr in result.Instructions)
+            foreach (Instruction instr in result.Instructions)
             {
                 Console.ForegroundColor = ConsoleColor.Green;
                 Console.Write($"{instr.Op,-20}");

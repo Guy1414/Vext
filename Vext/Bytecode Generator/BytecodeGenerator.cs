@@ -40,12 +40,12 @@ namespace Vext.Compiler.Bytecode_Generator
                 if (b.Operator == "&&")
                 {
                     EmitExpression(b.Left, instructions);
-                    var jumpFalse = instructions.Count;
+                    int jumpFalse = instructions.Count;
                     instructions.Add(new Instruction { Op = VextVMBytecode.JMP_IF_FALSE, Arg = -1, LineNumber = b.Line, ColumnNumber = b.StartColumn });
 
                     // Left was true (and popped). Now evaluate Right.
                     EmitExpression(b.Right, instructions);
-                    var jumpEnd = instructions.Count;
+                    int jumpEnd = instructions.Count;
                     instructions.Add(new Instruction { Op = VextVMBytecode.JMP, Arg = -1, LineNumber = b.Line, ColumnNumber = b.StartColumn });
 
                     // Target for jumpFalse
@@ -56,12 +56,12 @@ namespace Vext.Compiler.Bytecode_Generator
                 } else if (b.Operator == "||")
                 {
                     EmitExpression(b.Left, instructions);
-                    var jumpTrue = instructions.Count;
+                    int jumpTrue = instructions.Count;
                     instructions.Add(new Instruction { Op = VextVMBytecode.JMP_IF_TRUE, Arg = -1, LineNumber = b.Line, ColumnNumber = b.StartColumn });
 
                     // Left was false (and popped). Evaluate Right.
                     EmitExpression(b.Right, instructions);
-                    var jumpEnd = instructions.Count;
+                    int jumpEnd = instructions.Count;
                     instructions.Add(new Instruction { Op = VextVMBytecode.JMP, Arg = -1, LineNumber = b.Line, ColumnNumber = b.StartColumn });
 
                     // Target for jumpTrue
@@ -95,7 +95,7 @@ namespace Vext.Compiler.Bytecode_Generator
                 }
             } else if (expr is FunctionCallNode f)
             {
-                foreach (var arg in f.Arguments)
+                foreach (ExpressionNode arg in f.Arguments)
                 {
                     EmitExpression(arg, instructions);
                 }
@@ -164,18 +164,18 @@ namespace Vext.Compiler.Bytecode_Generator
             if (stmt is IfStatementNode ifStmt)
             {
                 EmitExpression(ifStmt.Condition, instructions);
-                var jumpIndex = instructions.Count;
+                int jumpIndex = instructions.Count;
                 instructions.Add(new Instruction { Op = VextVMBytecode.JMP_IF_FALSE, Arg = -1, LineNumber = ifStmt.Line, ColumnNumber = ifStmt.StartColumn });
 
-                foreach (var s in ifStmt.Body)
+                foreach (StatementNode s in ifStmt.Body)
                     EmitStatement(s, instructions);
 
                 if (ifStmt.ElseBody != null)
                 {
-                    var jumpEnd = instructions.Count;
+                    int jumpEnd = instructions.Count;
                     instructions.Add(new Instruction { Op = VextVMBytecode.JMP, Arg = -1, LineNumber = ifStmt.Line, ColumnNumber = ifStmt.StartColumn });
                     instructions[jumpIndex].Arg = instructions.Count;
-                    foreach (var s in ifStmt.ElseBody)
+                    foreach (StatementNode s in ifStmt.ElseBody)
                         EmitStatement(s, instructions);
                     instructions[jumpEnd].Arg = instructions.Count;
                 } else
@@ -184,7 +184,7 @@ namespace Vext.Compiler.Bytecode_Generator
                 }
             } else if (stmt is WhileStatementNode whileStmt)
             {
-                var loopStart = instructions.Count;
+                int loopStart = instructions.Count;
 
                 // Specialized optimization for simple "while i < constant" loops
                 if (whileStmt.Condition is BinaryExpressionNode cond &&
@@ -205,7 +205,7 @@ namespace Vext.Compiler.Bytecode_Generator
 
                     int jumpIndexW = instructions.Count - 1;
 
-                    foreach (var s in whileStmt.Body)
+                    foreach (StatementNode s in whileStmt.Body)
                         EmitStatement(s, instructions);
 
                     // Loop back
@@ -217,10 +217,10 @@ namespace Vext.Compiler.Bytecode_Generator
                 }
 
                 EmitExpression(whileStmt.Condition, instructions);
-                var jumpIndex = instructions.Count;
+                int jumpIndex = instructions.Count;
                 instructions.Add(new Instruction { Op = VextVMBytecode.JMP_IF_FALSE, Arg = -1, LineNumber = whileStmt.Line, ColumnNumber = whileStmt.StartColumn });
 
-                foreach (var s in whileStmt.Body)
+                foreach (StatementNode s in whileStmt.Body)
                     EmitStatement(s, instructions);
 
                 instructions.Add(new Instruction { Op = VextVMBytecode.JMP, Arg = loopStart, LineNumber = whileStmt.Line, ColumnNumber = whileStmt.StartColumn });
@@ -238,7 +238,7 @@ namespace Vext.Compiler.Bytecode_Generator
                 };
                 EmitStatement(forStmt.Initialization, instructions);
 
-                var loopStart = instructions.Count;
+                int loopStart = instructions.Count;
 
                 if (forStmt.Condition is BinaryExpressionNode cond &&
                     cond.Left is VariableNode varNode &&
@@ -258,7 +258,7 @@ namespace Vext.Compiler.Bytecode_Generator
 
                     int jumpIndexW = instructions.Count - 1;
 
-                    foreach (var s in forStmt.Body)
+                    foreach (StatementNode s in forStmt.Body)
                         EmitStatement(s, instructions);
 
                     // Increment
@@ -282,10 +282,10 @@ namespace Vext.Compiler.Bytecode_Generator
                 forStmt.Condition ??= new BinaryExpressionNode { Left = new VariableNode { Name = "i" }, Operator = "<", Right = new LiteralNode { Value = 10 }, Line = forStmt.Line, StartColumn = forStmt.StartColumn };
 
                 EmitExpression(forStmt.Condition, instructions);
-                var jumpIndex = instructions.Count;
+                int jumpIndex = instructions.Count;
                 instructions.Add(new Instruction { Op = VextVMBytecode.JMP_IF_FALSE, Arg = -1, LineNumber = forStmt.Line, ColumnNumber = forStmt.StartColumn });
 
-                foreach (var s in forStmt.Body)
+                foreach (StatementNode s in forStmt.Body)
                     EmitStatement(s, instructions);
 
                 forStmt.Increment ??= new IncrementStatementNode
@@ -393,11 +393,11 @@ namespace Vext.Compiler.Bytecode_Generator
             } else if (stmt is FunctionDefinitionNode func)
             {
                 // 1. Create a new instruction list for the function body
-                var funcInstructions = new List<Instruction>();
+                List<Instruction> funcInstructions = [];
 
                 for (int i = func.Arguments.Count - 1; i >= 0; i--)
                 {
-                    var arg = func.Arguments[i];
+                    FunctionParameterNode arg = func.Arguments[i];
                     funcInstructions.Add(new Instruction
                     {
                         Op = VextVMBytecode.STORE_VAR,
@@ -407,7 +407,7 @@ namespace Vext.Compiler.Bytecode_Generator
                     });
                 }
 
-                foreach (var s in func.Body)
+                foreach (StatementNode s in func.Body)
                     EmitStatement(s, funcInstructions);
 
                 if (funcInstructions.Count == 0 || funcInstructions[^1].Op != VextVMBytecode.RET)
@@ -423,7 +423,7 @@ namespace Vext.Compiler.Bytecode_Generator
                 }
 
                 // 2. Create a UserFunction object
-                var userFunc = new UserFunction
+                UserFunction userFunc = new UserFunction
                 {
                     Name = func.FunctionName,
                     Arguments = func.Arguments,
@@ -455,25 +455,25 @@ namespace Vext.Compiler.Bytecode_Generator
                         break;
 
                     case IfStatementNode i:
-                        foreach (var s in i.Body)
+                        foreach (StatementNode s in i.Body)
                             Walk(s);
                         if (i.ElseBody != null)
-                            foreach (var s in i.ElseBody)
+                            foreach (StatementNode s in i.ElseBody)
                                 Walk(s);
                         break;
 
                     case WhileStatementNode w:
-                        foreach (var s in w.Body)
+                        foreach (StatementNode s in w.Body)
                             Walk(s);
                         break;
                     case ForStatementNode fo:
-                        foreach (var s in fo.Body)
+                        foreach (StatementNode s in fo.Body)
                             Walk(s);
                         break;
                 }
             }
 
-            foreach (var stmt in body)
+            foreach (StatementNode stmt in body)
                 Walk(stmt);
 
             return maxSlot + 1;

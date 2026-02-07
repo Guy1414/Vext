@@ -9,7 +9,7 @@ namespace Vext.Compiler.Modules
 
         private void Add(string name, Function fn)
         {
-            if (!Functions.TryGetValue(name, out var list))
+            if (!Functions.TryGetValue(name, out List<Function>? list))
             {
                 list = [];
                 Functions[name] = list;

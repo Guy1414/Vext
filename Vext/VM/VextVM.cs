@@ -119,12 +119,12 @@ namespace Vext.Compiler.VM
             // Load modules
             if (modulesList != null)
             {
-                foreach (var module in modulesList)
+                foreach (Module module in modulesList)
                 {
                     modules[module.Name] = module;
 
-                    foreach (var funcList in module.Functions.Values)
-                        foreach (var fn in funcList)
+                    foreach (List<Function> funcList in module.Functions.Values)
+                        foreach (Function fn in funcList)
                             functions[fn.Name] = fn;
                 }
             }
@@ -132,9 +132,9 @@ namespace Vext.Compiler.VM
             // Load default functions
             if (defaults != null)
             {
-                foreach (var funcList in defaults.Functions.Values)
+                foreach (List<Function> funcList in defaults.Functions.Values)
                 {
-                    foreach (var fn in funcList)
+                    foreach (Function fn in funcList)
                     {
                         functions[fn.Name] = fn;
                     }
@@ -166,7 +166,7 @@ namespace Vext.Compiler.VM
 
             while (ip < code.Length)
             {
-                ref readonly var instr = ref code[ip];
+                ref readonly Instruction instr = ref code[ip];
 
                 //Console.WriteLine($"IP: {ip} | OP: {instr.Op} | SP: {sp}");
 
@@ -233,7 +233,7 @@ namespace Vext.Compiler.VM
                             {
                                 double lNum = left.AsNumber;
                                 double rNum = right.AsNumber;
-                                var res = instr.Op switch
+                                VextValue res = instr.Op switch
                                 {
                                     VextVMBytecode.ADD => new VextValue { Type = VextType.Number, AsNumber = lNum + rNum },
                                     VextVMBytecode.SUB => new VextValue { Type = VextType.Number, AsNumber = lNum - rNum },
@@ -255,7 +255,7 @@ namespace Vext.Compiler.VM
                             // 3. Handle Boolean Equality
                             else if (left.Type == VextType.Bool && right.Type == VextType.Bool)
                             {
-                                var res = instr.Op switch
+                                VextValue res = instr.Op switch
                                 {
                                     VextVMBytecode.EQ => new VextValue { Type = VextType.Bool, AsBool = left.AsBool == right.AsBool },
                                     VextVMBytecode.NEQ => new VextValue { Type = VextType.Bool, AsBool = left.AsBool != right.AsBool },
@@ -304,7 +304,7 @@ namespace Vext.Compiler.VM
                         }
 
                     case VextVMBytecode.JMP_IF_VAR_OP_CONST:
-                        var (slot, op, limit, targetJMPIF) = ((int, string, double, int))instr.Arg!;
+                        (int slot, string op, double limit, int targetJMPIF) = ((int, string, double, int))instr.Arg!;
                         if (variables[slot].Type != VextType.Number)
                             throw new Exception($"JMP_IF_VAR_OP_CONST used on non-numeric variable at slot {slot}");
 
@@ -332,20 +332,20 @@ namespace Vext.Compiler.VM
                         return Pop(ref sp);
 
                     case VextVMBytecode.CALL:
-                        var (funcInfo, argCount) = ((object, int))instr.Arg!;
+                        (object funcInfo, int argCount) = ((object, int))instr.Arg!;
                         VextValue callResult = ExecuteCall(funcInfo, argCount, ref sp);
                         if (callResult.Type != VextType.Null)
                             Push(ref sp, callResult);
                         break;
 
                     case VextVMBytecode.CALL_VOID:
-                        var (funcInfoV, argCountV) = ((object, int))instr.Arg!;
+                        (object funcInfoV, int argCountV) = ((object, int))instr.Arg!;
                         ExecuteCall(funcInfoV, argCountV, ref sp);
                         break;
 
 
                     case VextVMBytecode.DEF_FUNC:
-                        var userFunc = (UserFunction)instr.Arg!;
+                        UserFunction userFunc = (UserFunction)instr.Arg!;
                         functions[userFunc.Name] = userFunc;
                         break;
 
@@ -358,7 +358,7 @@ namespace Vext.Compiler.VM
                     case VextVMBytecode.NOT:
                         if (sp == 0)
                             throw new Exception("Stack empty: cannot NOT");
-                        var top = Pop(ref sp);
+                        VextValue top = Pop(ref sp);
                         top.AsBool = !top.AsBool;
                         Push(ref sp, top);
                         break;
@@ -398,24 +398,24 @@ namespace Vext.Compiler.VM
                 // MODULE CALL
                 if (funcName.Contains('.'))
                 {
-                    var parts = funcName.Split('.');
-                    var moduleName = parts[0];
-                    var functionName = parts[1];
+                    string[] parts = funcName.Split('.');
+                    string moduleName = parts[0];
+                    string functionName = parts[1];
 
-                    if (!modules.TryGetValue(moduleName, out var module))
+                    if (!modules.TryGetValue(moduleName, out Module? module))
                         throw new Exception($"Module '{moduleName}' not loaded.");
 
-                    if (!module.Functions.TryGetValue(functionName, out var candidates))
+                    if (!module.Functions.TryGetValue(functionName, out List<Function>? candidates))
                         throw new Exception($"Function '{functionName}' not found in module '{moduleName}'.");
 
-                    var matched = candidates.FirstOrDefault(fn => (fn.Parameters?.Count ?? 0) == argCount)
+                    Function matched = candidates.FirstOrDefault(fn => (fn.Parameters?.Count ?? 0) == argCount)
                         ?? throw new Exception($"Module '{moduleName}' has no overload for '{functionName}' taking {argCount} args.");
 
                     // Native functions consume arguments as objects
-                    var args = new object[argCount];
+                    object[] args = new object[argCount];
                     for (int i = argCount - 1; i >= 0; i--)
                     {
-                        var v = Pop(ref sp);
+                        VextValue v = Pop(ref sp);
                         args[i] = v.Type switch
                         {
                             VextType.Number => v.AsNumber,
@@ -429,16 +429,16 @@ namespace Vext.Compiler.VM
                 }
 
                 // GLOBAL / USER FUNCTION
-                if (!functions.TryGetValue(funcName, out var funcObj))
+                if (!functions.TryGetValue(funcName, out object? funcObj))
                     throw new Exception($"Function '{funcName}' not defined.");
 
                 // Native global
                 if (funcObj is Function nativeFunc)
                 {
-                    var args = new object[argCount];
+                    object[] args = new object[argCount];
                     for (int i = argCount - 1; i >= 0; i--)
                     {
-                        var v = Pop(ref sp);
+                        VextValue v = Pop(ref sp);
                         args[i] = v.Type switch
                         {
                             VextType.Number => v.AsNumber,
@@ -457,10 +457,10 @@ namespace Vext.Compiler.VM
                     //Console.WriteLine($"[CALL] Entering {userFunc.Name} with SP={sp}");
 
                     // Snapshot locals
-                    var snapshot = (VextValue[])variables.Clone();
+                    VextValue[] snapshot = (VextValue[])variables.Clone();
 
                     // Run function body
-                    var ret = Run(userFunc.Body, ref sp);
+                    VextValue ret = Run(userFunc.Body, ref sp);
 
                     // Restore locals
                     variables = snapshot;

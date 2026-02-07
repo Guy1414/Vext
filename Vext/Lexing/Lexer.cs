@@ -19,7 +19,7 @@ namespace Vext.Compiler.Lexing
 
         public List<Token> Tokenize()
         {
-            var tokens = new List<Token>();
+            List<Token> tokens = [];
 
             while (currentIndex < vextCode.Length)
             {

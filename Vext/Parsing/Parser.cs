@@ -25,7 +25,7 @@ namespace Vext.Compiler.Parsing
         /// may be empty if no valid statements are found.</returns>
         public List<StatementNode> Parse()
         {
-            var statements = new List<StatementNode>();
+            List<StatementNode> statements = [];
             while (currentToken < tokens.Count && tokens[currentToken].TokenType != TokenType.EOF)
             {
                 StatementNode? stmt = null;
@@ -36,7 +36,7 @@ namespace Vext.Compiler.Parsing
                 {
                     // Shouldn't normally happen because Parse methods report errors instead of throwing,
                     // but catch any unexpected exception to convert into an error and attempt to continue.
-                    var tok = currentToken < tokens.Count ? tokens[currentToken] : new Token(TokenType.EOF, "", 0, 0, 0);
+                    Token tok = currentToken < tokens.Count ? tokens[currentToken] : new Token(TokenType.EOF, "", 0, 0, 0);
                     ReportError(ex.Message, tok.Line, tok.StartColumn, tok.Line, tok.EndColumn);
                 }
 
@@ -45,7 +45,7 @@ namespace Vext.Compiler.Parsing
                     statements.Add(stmt);
                 } else
                 {
-                    var tok = CurrentToken();
+                    Token tok = CurrentToken();
                     ReportError($"Unexpected token '{tok.Value}'", tok.Line, tok.StartColumn, tok.Line, tok.EndColumn);
                     // attempt to recover by skipping one token
                     if (currentToken < tokens.Count)
@@ -83,7 +83,7 @@ namespace Vext.Compiler.Parsing
                 {
                     if (Peek().TokenType == TokenType.Identifier && Peek(2).TokenType == TokenType.Punctuation && Peek(2).Value == "(")
                     {
-                        var func = ParseFunctionDeclaration();
+                        FunctionDefinitionNode? func = ParseFunctionDeclaration();
                         if (func != null)
                             return func;
                     } else if (Peek().TokenType == TokenType.Identifier)
@@ -92,7 +92,7 @@ namespace Vext.Compiler.Parsing
                             (Peek(2).TokenType == TokenType.Punctuation && Peek(2).Value == ";"))
 
                         {
-                            var decl = ParseVariableDeclaration();
+                            VariableDeclarationNode? decl = ParseVariableDeclaration();
                             Expect(TokenType.Punctuation, ";");
                             if (decl != null)
                                 return decl;
@@ -114,22 +114,22 @@ namespace Vext.Compiler.Parsing
                     }
                 } else if (token.Value == "if")
                 {
-                    var stmt = ParseIfStatement();
+                    IfStatementNode? stmt = ParseIfStatement();
                     if (stmt != null)
                         return stmt;
                 } else if (token.Value == "while")
                 {
-                    var stmt = ParseWhileStatement();
+                    WhileStatementNode? stmt = ParseWhileStatement();
                     if (stmt != null)
                         return stmt;
                 } else if (token.Value == "for")
                 {
-                    var stmt = ParseForStatement();
+                    ForStatementNode? stmt = ParseForStatement();
                     if (stmt != null)
                         return stmt;
                 } else if (token.Value == "return")
                 {
-                    var rtrn = ParseReturn();
+                    ReturnStatementNode? rtrn = ParseReturn();
                     Expect(TokenType.Punctuation, ";");
                     if (rtrn != null)
                         return rtrn;
@@ -228,15 +228,15 @@ namespace Vext.Compiler.Parsing
             Token name = Expect(TokenType.Identifier);
 
             Expect(TokenType.Punctuation, "("); // consume '('
-            var arguments = new List<FunctionParameterNode>();
+            List<FunctionParameterNode> arguments = [];
 
             // handle empty calls like func()
-            var tok = CurrentToken();
+            Token tok = CurrentToken();
             if (!(tok.TokenType == TokenType.Punctuation && tok.Value == ")"))
             {
                 while (true)
                 {
-                    var param = ParseFunctionParameter();
+                    FunctionParameterNode? param = ParseFunctionParameter();
                     if (param == null)
                     {
                         Token startToken = CurrentToken();
@@ -256,10 +256,10 @@ namespace Vext.Compiler.Parsing
             Expect(TokenType.Punctuation, ")"); // consume ')'
 
             Expect(TokenType.Punctuation, "{"); // consume opening brace
-            var body = new List<StatementNode>();
+            List<StatementNode> body = [];
             while (!(CurrentToken().TokenType == TokenType.Punctuation && CurrentToken().Value == "}"))
             {
-                var statement = ParseStatement();
+                StatementNode? statement = ParseStatement();
                 if (statement == null)
                 {
                     // try to recover: skip until '}' or ';'
@@ -321,10 +321,10 @@ namespace Vext.Compiler.Parsing
         {
             // current token should be '(' when this is called (caller ensures that)
             Expect(TokenType.Punctuation, "("); // consume '('
-            var arguments = new List<ExpressionNode>();
+            List<ExpressionNode> arguments = [];
 
             // handle empty calls like func()
-            var tok = CurrentToken();
+            Token tok = CurrentToken();
             if (!(tok.TokenType == TokenType.Punctuation && tok.Value == ")"))
             {
                 while (true)
@@ -356,16 +356,16 @@ namespace Vext.Compiler.Parsing
         {
             Token ifToken = Expect(TokenType.Keyword, "if");
             Expect(TokenType.Punctuation, "(");
-            var expr = ParseExpression(0);
+            ExpressionNode expr = ParseExpression(0);
             Expect(TokenType.Punctuation, ")");
 
-            var body = new List<StatementNode>();
+            List<StatementNode> body = [];
 
             if (Match(TokenType.Punctuation, "{"))
             {
                 while (!(CurrentToken().TokenType == TokenType.Punctuation && CurrentToken().Value == "}"))
                 {
-                    var statement = ParseStatement();
+                    StatementNode? statement = ParseStatement();
                     if (statement == null)
                     {
                         // recover
@@ -381,7 +381,7 @@ namespace Vext.Compiler.Parsing
             } else
             {
                 // single statement if
-                var stmt = ParseStatement();
+                StatementNode? stmt = ParseStatement();
                 if (stmt == null)
                 {
 
@@ -494,12 +494,12 @@ namespace Vext.Compiler.Parsing
 
             Expect(TokenType.Punctuation, ")");
 
-            var body = new List<StatementNode>();
+            List<StatementNode> body = [];
             if (Match(TokenType.Punctuation, "{"))
             {
                 while (!(CurrentToken().TokenType == TokenType.Punctuation && CurrentToken().Value == "}"))
                 {
-                    var stmt = ParseStatement();
+                    StatementNode? stmt = ParseStatement();
                     if (stmt == null)
                     {
                         // recover
@@ -515,7 +515,7 @@ namespace Vext.Compiler.Parsing
             } else
             {
                 // single statement body
-                var stmt = ParseStatement();
+                StatementNode? stmt = ParseStatement();
                 if (stmt == null)
                 {
                     ReportError("Invalid single-line for body", forToken.Line, forToken.StartColumn, CurrentToken().Line, CurrentToken().EndColumn);
@@ -541,16 +541,16 @@ namespace Vext.Compiler.Parsing
         {
             Token whileToken = Expect(TokenType.Keyword, "while");
             Expect(TokenType.Punctuation, "(");
-            var expr = ParseExpression(0);
+            ExpressionNode expr = ParseExpression(0);
             Expect(TokenType.Punctuation, ")");
 
-            var body = new List<StatementNode>();
+            List<StatementNode> body = [];
 
             if (Match(TokenType.Punctuation, "{"))
             {
                 while (!(CurrentToken().TokenType == TokenType.Punctuation && CurrentToken().Value == "}"))
                 {
-                    var statement = ParseStatement();
+                    StatementNode? statement = ParseStatement();
                     if (statement == null)
                     {
                         // recover
@@ -566,7 +566,7 @@ namespace Vext.Compiler.Parsing
             } else
             {
                 // single statement else
-                var stmt = ParseStatement();
+                StatementNode? stmt = ParseStatement();
                 if (stmt == null)
                 {
                     ReportError("Invalid single-line while body", whileToken.Line, whileToken.StartColumn, CurrentToken().Line, CurrentToken().EndColumn);
@@ -745,7 +745,7 @@ namespace Vext.Compiler.Parsing
                 tokens[currentToken].TokenType == TokenType.Operator &&
                 (tokens[currentToken].Value == "++" || tokens[currentToken].Value == "--"))
             {
-                var op = tokens[currentToken];
+                Token op = tokens[currentToken];
                 Advance();
 
                 left = new UnaryExpressionNode
@@ -760,7 +760,7 @@ namespace Vext.Compiler.Parsing
 
             while (currentToken < tokens.Count && tokens[currentToken].TokenType == TokenType.Operator)
             {
-                var opToken = tokens[currentToken];
+                Token opToken = tokens[currentToken];
 
                 if (opToken.Value == "=")
                     break;
@@ -831,7 +831,7 @@ namespace Vext.Compiler.Parsing
         {
             if (currentToken >= tokens.Count)
                 return false;
-            var t = tokens[currentToken];
+            Token t = tokens[currentToken];
             if (t.TokenType != type)
                 return false;
             if (value != null && t.Value != value)
@@ -855,7 +855,7 @@ namespace Vext.Compiler.Parsing
         {
             if (!Match(type, value))
             {
-                var tok = currentToken < tokens.Count ? tokens[currentToken] : new Token(TokenType.EOF, "", 0, 0, 0);
+                Token tok = currentToken < tokens.Count ? tokens[currentToken] : new Token(TokenType.EOF, "", 0, 0, 0);
                 ReportError($"Expected {type}{(value != null ? $" '{value}'" : "")} at token {currentToken}, {CurrentToken().Value} {CurrentToken().TokenType}", tok.Line, tok.StartColumn, tok.Line, tok.EndColumn);
 
                 // return a best-effort token so parsing can continue

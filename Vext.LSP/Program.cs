@@ -1,6 +1,7 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 using Vext.Compiler;
+using Vext.Compiler.Lexing;
 using Vext.Compiler.Semantic;
 using Vext.Compiler.VM;
 using Vext.LSP;
@@ -72,7 +73,7 @@ class Program
             return 1;
         }
 
-        var result = new Result();
+        Result result = new Result();
 
         try
         {
@@ -94,7 +95,7 @@ class Program
             }
 
             // 2. Add Lexer tokens that are usually not in AST (Comments, Strings, Numbers, Keywords that might be missed)
-            foreach (var t in compileResult.Tokens)
+            foreach (Token t in compileResult.Tokens)
             {
                 string type = "";
                 switch (t.TokenType)
