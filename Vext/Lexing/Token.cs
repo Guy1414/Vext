@@ -29,7 +29,7 @@
         /// <summary>
         /// Represents the ending column number of the token.
         /// </summary>
-        public int EndColumn => eColumn;
+        public int EndColumn { get; set; } = eColumn;
     }
 
     /// <summary>

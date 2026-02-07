@@ -147,9 +147,9 @@ class Program
                     result.Errors.Add(new ErrorInfo
                     {
                         Message = ed.Message,
-                        Line = Math.Max(0, ed.LspLine),
-                        StartColumn = Math.Max(0, ed.LspStartCol),
-                        EndColumn = Math.Max(ed.LspStartCol + 1, ed.LspEndCol),
+                        Line = Math.Max(0, ed.LspLine - 1),
+                        StartColumn = Math.Max(0, ed.LspStartCol - 1),
+                        EndColumn = Math.Max(0, ed.LspEndCol),
                         Severity = ed.LspSeverity.ToString().ToLower()
                     });
                 }

@@ -123,7 +123,7 @@ function errorsToDiagnostics(errors: ErrorInfo[]): Diagnostic[] {
         DiagnosticSeverity.Error,
       range: Range.create(
         Position.create(e.line, e.startColumn),
-        Position.create(e.line, Math.max(e.startColumn + 1, e.endColumn))
+        Position.create(e.line, e.endColumn)
       ),
       message: e.message ?? "Unknown error",
       source: "vext-compiler",
