@@ -143,7 +143,7 @@ function assertNoOverlappingTokens(tokens: TokenInfo[], uri: string) {
     const prev = sorted[i - 1];
     const curr = sorted[i];
 
-    if (curr.line === prev.line && curr.startColumn <= prev.endColumn) {
+    if (curr.line === prev.line && curr.startColumn < prev.endColumn) {
       diagnostics.push({
         severity: DiagnosticSeverity.Error,
         range: Range.create(
@@ -281,7 +281,7 @@ connection.languages.semanticTokens.on(async (params) => {
       builder.push(
         t.line,
         t.startColumn,
-        (t.endColumn - t.startColumn) + 1,
+        (t.endColumn - t.startColumn) ,
         tokenType,
         modifiers
       );
