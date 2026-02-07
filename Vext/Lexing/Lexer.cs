@@ -164,7 +164,7 @@ namespace Vext.Compiler.Lexing
             while (currentIndex < vextCode.Length && (char.IsLetterOrDigit(vextCode[currentIndex]) || vextCode[currentIndex] == '_'))
                 Advance();
 
-            string value = vextCode[start..currentIndex];
+            string value = vextCode[start..currentIndex - 1];
 
             TokenType type = LanguageSpecs.Keywords.Contains(value) ? TokenType.Keyword :
                              LanguageSpecs.Booleans.Contains(value) ? TokenType.Boolean :
