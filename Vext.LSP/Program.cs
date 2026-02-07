@@ -115,9 +115,8 @@ class Program
 
                     // Only add if no token already exists at the exact same line/start/end
                     bool alreadyExists = processedTokens.Any(pt =>
-                        pt.Line == t.Line - 1 &&
-                        pt.StartColumn == start &&
-                        pt.EndColumn == end
+                        pt.Line == t.Line &&
+                        (pt.StartColumn <= end && pt.EndColumn >= start)
                     );
 
                     if (!alreadyExists)
