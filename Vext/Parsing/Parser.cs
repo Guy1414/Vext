@@ -153,6 +153,8 @@ namespace Vext.Compiler.Parsing
                     return new IncrementStatementNode
                     {
                         VariableName = name.Value,
+                        VariableStartColumn = name.StartColumn,
+                        VariableEndColumn = name.EndColumn,
                         IsIncrement = op.Value == "++",
                         Line = name.Line,
                         StartColumn = name.StartColumn,
@@ -317,7 +319,7 @@ namespace Vext.Compiler.Parsing
             };
         }
 
-        private FunctionCallNode ParseFunctionCall(string name, int line, int column)
+        private FunctionCallNode ParseFunctionCall(string name, int line, int column, int eColumn)
         {
             // current token should be '(' when this is called (caller ensures that)
             Expect(TokenType.Punctuation, "("); // consume '('
@@ -336,7 +338,7 @@ namespace Vext.Compiler.Parsing
             }
 
             Expect(TokenType.Punctuation, ")"); // consume ')'
-            return new FunctionCallNode { FunctionName = name, Arguments = arguments, Line = line, StartColumn = column, EndColumn = CurrentToken().EndColumn };
+            return new FunctionCallNode { FunctionName = name, FunctionNameStartColumn = column, FunctionNameEndColumn = eColumn, Arguments = arguments, Line = line, StartColumn = column, EndColumn = CurrentToken().EndColumn };
         }
 
         private ReturnStatementNode? ParseReturn()
@@ -670,12 +672,16 @@ namespace Vext.Compiler.Parsing
                     Token funcToken = Expect(TokenType.Identifier);
 
                     // Expect '(' after function name
-                    FunctionCallNode functionCall = ParseFunctionCall(funcToken.Value, funcToken.Line, funcToken.StartColumn);
+                    FunctionCallNode functionCall = ParseFunctionCall(funcToken.Value, funcToken.Line, funcToken.StartColumn, funcToken.EndColumn);
 
                     return new ModuleAccessNode
                     {
                         ModuleName = moduleName,
+                        ModuleNameStartColumn = token.StartColumn,
+                        ModuleNameEndColumn = token.EndColumn,
                         FunctionName = funcToken.Value,
+                        FunctionNameStartColumn = funcToken.StartColumn,
+                        FunctionNameEndColumn = funcToken.EndColumn,
                         Arguments = functionCall.Arguments,
                         Line = token.Line,
                         StartColumn = token.StartColumn,
@@ -686,7 +692,7 @@ namespace Vext.Compiler.Parsing
                 else if (next.TokenType == TokenType.Punctuation && next.Value == "(")
                 {
                     Advance(); // consume identifier
-                    return ParseFunctionCall(token.Value, token.Line, token.StartColumn);
+                    return ParseFunctionCall(token.Value, token.Line, token.StartColumn, token.EndColumn);
                 }
 
                 // Otherwise, just a variable
@@ -974,6 +980,8 @@ namespace Vext.Compiler.Parsing
     class FunctionCallNode : ExpressionNode
     {
         public required string FunctionName { get; set; }
+        public required int FunctionNameStartColumn { get; set; }
+        public required int FunctionNameEndColumn { get; set; }
         public required List<ExpressionNode> Arguments { get; set; } = [];
         public string? ReturnType { get; set; } = "unknown";
     }
@@ -981,6 +989,8 @@ namespace Vext.Compiler.Parsing
     class ModuleAccessNode : FunctionCallNode
     {
         public required string ModuleName { get; set; }
+        public required int ModuleNameStartColumn { get; set; }
+        public required int ModuleNameEndColumn { get; set; }
     }
 
     class FunctionDefinitionNode : StatementNode
@@ -1064,6 +1074,8 @@ namespace Vext.Compiler.Parsing
     {
         public int SlotIndex;
         public required string VariableName { get; set; }
+        public required int VariableStartColumn { get; set; }
+        public required int VariableEndColumn { get; set; }
         public bool IsIncrement { get; set; }
         public int OperatorLine { get; set; }
         public int OperatorStartColumn { get; set; }

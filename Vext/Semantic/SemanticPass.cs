@@ -142,7 +142,7 @@ namespace Vext.Compiler.Semantic
                 if (stmt.Arguments != null)
                     foreach (FunctionParameterNode p in stmt.Arguments)
                     {
-                        AddToken(p.Line, p.StartColumn, p.StartColumn + p.Type.Length, "type");
+                        AddToken(p.Line, p.StartColumn, p.EndColumn, "type");
                         AddToken(p.NameLine, p.NameStartColumn, p.NameEndColumn, "variable", "parameter", "declaration");
                     }
             }
@@ -306,7 +306,7 @@ namespace Vext.Compiler.Semantic
                                 ReportError($"Cannot apply increment operator to type '{decl.VariableType}'.", inc.Line, inc.StartColumn, inc.EndColumn);
 
                             // Add token for increment variable
-                            AddToken(inc.Line, inc.StartColumn, inc.StartColumn + inc.VariableName.Length, "variable");
+                            AddToken(inc.Line, inc.VariableStartColumn, inc.VariableEndColumn, "variable");
 
                             // Operator token
                             if (inc.OperatorLine > 0)
@@ -321,7 +321,7 @@ namespace Vext.Compiler.Semantic
                     break;
 
                 case ReturnStatementNode r:
-                    AddToken(r.Line, r.StartColumn, r.StartColumn + 6, "keyword", "control"); // "return"
+                    AddToken(r.Line, r.StartColumn, r.EndColumn, "keyword", "control"); // "return"
                     if (r.Expression != null)
                     {
                         CheckExpression(r.Expression);
@@ -338,7 +338,7 @@ namespace Vext.Compiler.Semantic
 
                 case IfStatementNode i:
                     {
-                        AddToken(i.Line, i.StartColumn, i.StartColumn + 2, "keyword", "control"); // "if"
+                        AddToken(i.Line, i.StartColumn, i.EndColumn, "keyword", "control"); // "if"
                         CheckExpression(i.Condition);
                         BitArray beforeIf = new BitArray(assignedSlots.Peek());
 
@@ -369,7 +369,7 @@ namespace Vext.Compiler.Semantic
                     }
 
                 case WhileStatementNode w:
-                    AddToken(w.Line, w.StartColumn, w.StartColumn + 5, "keyword", "control"); // "while"
+                    AddToken(w.Line, w.StartColumn, w.EndColumn, "keyword", "control"); // "while"
                     CheckExpression(w.Condition);
 
                     BitArray beforeW = new BitArray(assignedSlots.Peek());
@@ -389,7 +389,7 @@ namespace Vext.Compiler.Semantic
                     break;
 
                 case ForStatementNode fo:
-                    AddToken(fo.Line, fo.StartColumn, fo.StartColumn + 3, "keyword", "control"); // "for"
+                    AddToken(fo.Line, fo.StartColumn, fo.EndColumn, "keyword", "control"); // "for"
                     if (fo.Initialization != null)
                     {
                         switch (fo.Initialization)
@@ -451,7 +451,7 @@ namespace Vext.Compiler.Semantic
                                     if (decl.VariableType != "int" && decl.VariableType != "float")
                                         ReportError($"Cannot apply increment operator to type '{decl.VariableType}'.", inc.Line, inc.StartColumn, inc.EndColumn);
 
-                                    AddToken(inc.Line, inc.StartColumn, inc.StartColumn + inc.VariableName.Length, "variable");
+                                    AddToken(inc.Line, inc.StartColumn, inc.VariableEndColumn, "variable");
 
                                     if (inc.OperatorLine > 0)
                                         AddToken(inc.OperatorLine, inc.OperatorStartColumn, inc.OperatorEndColumn, "operator");
@@ -490,8 +490,8 @@ namespace Vext.Compiler.Semantic
             switch (expr)
             {
                 case ModuleAccessNode m:
-                    AddToken(m.Line, m.StartColumn, m.StartColumn + m.ModuleName.Length, "variable", "readonly", "static"); // Module as variable-ish
-                    AddToken(m.Line, m.StartColumn + m.ModuleName.Length + 1, m.StartColumn + m.ModuleName.Length + 1 + m.FunctionName.Length, "function", "call");
+                    AddToken(m.Line, m.ModuleNameStartColumn, m.ModuleNameEndColumn, "variable", "readonly", "static"); // Module as variable-ish
+                    AddToken(m.Line, m.FunctionNameStartColumn, m.FunctionNameEndColumn, "function", "call");
                     foreach (ExpressionNode? arg in m.Arguments)
                         CheckExpression(arg);
                     break;
@@ -733,7 +733,7 @@ namespace Vext.Compiler.Semantic
                 string rightType = GetExpressionType(u.Right);
 
                 // Add token for operator
-                AddToken(u.Line, u.StartColumn, u.StartColumn + u.Operator.Length, "operator");
+                AddToken(u.Line, u.StartColumn, u.EndColumn, "operator");
 
                 if (rightType == "error")
                     return "error";
@@ -767,7 +767,7 @@ namespace Vext.Compiler.Semantic
                 string op = b.Operator;
 
                 // Add token for operator
-                AddToken(b.Line, b.StartColumn, b.StartColumn + b.Operator.Length, "operator");
+                AddToken(b.Line, b.StartColumn, b.EndColumn, "operator");
 
                 if (leftType == "error" || rightType == "error")
                     return "error";
@@ -825,13 +825,13 @@ namespace Vext.Compiler.Semantic
                     if (match)
                     {
                         f.ReturnType = fn.ReturnType;
-                        AddToken(f.Line, f.StartColumn, f.StartColumn + f.FunctionName.Length, "function", "call");
+                        AddToken(f.Line, f.StartColumn, f.FunctionNameEndColumn, "function", "call");
                         return fn.ReturnType;
                     }
                 }
 
                 ReportError($"No matching overload for function '{f.FunctionName}'.", f.Line, f.StartColumn, f.EndColumn);
-                AddToken(f.Line, f.StartColumn, f.StartColumn + f.FunctionName.Length, "function", "call");
+                AddToken(f.Line, f.StartColumn, f.EndColumn, "function", "call");
                 return "error";
             }
             if (expr is ModuleAccessNode mod)
