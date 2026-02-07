@@ -148,9 +148,20 @@ function assertNoOverlappingTokens(tokens: TokenInfo[], uri: string) {
         severity: DiagnosticSeverity.Error,
         range: Range.create(
           Position.create(curr.line, curr.startColumn),
-          Position.create(curr.line, curr.endColumn)
+          Position.create(curr.line, curr.endColumn + 1)
         ),
         message: `Semantic token overlap detected: '${prev.type}' [${prev.startColumn}-${prev.endColumn}] overlaps with '${curr.type}' [${curr.startColumn}-${curr.endColumn}]`,
+        source: "vext-compiler",
+      });
+    }
+    if (curr.endColumn - curr.startColumn == 0) {
+      diagnostics.push({
+        severity: DiagnosticSeverity.Error,
+        range: Range.create(
+          Position.create(curr.line, curr.startColumn),
+          Position.create(curr.line, curr.endColumn)
+        ),
+        message: `length is 0`,
         source: "vext-compiler",
       });
     }

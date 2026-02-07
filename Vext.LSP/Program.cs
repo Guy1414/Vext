@@ -88,7 +88,7 @@ class Program
                 {
                     Line = st.Line - 1,
                     StartColumn = st.StartColumn - 1,
-                    EndColumn = st.EndColumn,
+                    EndColumn = st.EndColumn - 1,
                     Type = st.Type,
                     IsDeclaration = st.Modifiers.Contains("declaration")
                 });
@@ -111,7 +111,7 @@ class Program
                 if (!string.IsNullOrEmpty(type))
                 {
                     int start = t.StartColumn - 1; // convert to 0-based
-                    int end = t.EndColumn;         // exclusive end
+                    int end = t.EndColumn;
 
                     // Check for overlap using exclusive range logic
                     bool overlaps = processedTokens.Any(pt =>
