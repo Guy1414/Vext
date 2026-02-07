@@ -88,7 +88,7 @@ class Program
                 {
                     Line = st.Line - 1,
                     StartColumn = st.StartColumn - 1,
-                    EndColumn = st.EndColumn - 1,
+                    EndColumn = st.EndColumn,
                     Type = st.Type,
                     IsDeclaration = st.Modifiers.Contains("declaration")
                 });
@@ -97,49 +97,44 @@ class Program
             // 2. Add Lexer tokens that are usually not in AST (Comments, Strings, Numbers, Keywords that might be missed)
             foreach (Token t in compileResult.Tokens)
             {
-                string type = "";
-                switch (t.TokenType)
+                string type = t.TokenType switch
                 {
-                    case Vext.Compiler.Lexing.TokenType.Comment:
-                        type = "comment";
-                        break;
-                    case Vext.Compiler.Lexing.TokenType.String:
-                        type = "string";
-                        break;
-                    case Vext.Compiler.Lexing.TokenType.Numeric:
-                        type = "number";
-                        break;
-                    case Vext.Compiler.Lexing.TokenType.Boolean:
-                        type = "boolean";
-                        break;
-                    case Vext.Compiler.Lexing.TokenType.Keyword:
-                        type = "keyword";
-                        break;
-                    case Vext.Compiler.Lexing.TokenType.Operator:
-                        type = "operator";
-                        break;
-                }
+                    TokenType.Comment => "comment",
+                    TokenType.String => "string",
+                    TokenType.Numeric => "number",
+                    TokenType.Boolean => "boolean",
+                    TokenType.Keyword => "keyword",
+                    TokenType.Operator => "operator",
+                    _ => ""
+                };
 
                 if (!string.IsNullOrEmpty(type))
                 {
+                    int start = t.StartColumn - 1; // convert to 0-based
+                    int end = t.EndColumn;         // exclusive end
+
+                    // Check for overlap using exclusive range logic
                     bool overlaps = processedTokens.Any(pt =>
-                                    pt.Line == (t.Line - 1) &&
-                                    ((t.StartColumn - 1 >= pt.StartColumn && t.StartColumn - 1 <= pt.EndColumn) ||
-                                    (t.EndColumn - 1 >= pt.StartColumn && t.EndColumn - 1 <= pt.EndColumn)));
+                        pt.Line == t.Line - 1 &&
+                        !(end <= pt.StartColumn || start >= pt.EndColumn)
+                    );
+
                     if (!overlaps)
                     {
                         processedTokens.Add(new TokenInfo
                         {
                             Line = t.Line - 1,
-                            StartColumn = t.StartColumn - 1,
-                            EndColumn = t.EndColumn - 1,
-                            Type = type,
+                            StartColumn = start,
+                            EndColumn = end,
+                            Type = type
                         });
                     }
                 }
             }
 
-            result.Tokens = [.. processedTokens.OrderBy(t => t.Line).ThenBy(t => t.StartColumn)];
+            result.Tokens = [.. processedTokens
+                .OrderBy(t => t.Line)
+                .ThenBy(t => t.StartColumn)];
 
             if (compileResult.Errors.Count > 0)
             {
