@@ -114,18 +114,18 @@ class Program
                     int end = t.EndColumn;
 
                     // Only add if no token already exists at the exact same line/start/end
-                    bool alreadyExists = processedTokens.Any(pt =>
-                        pt.Line == t.Line &&
-                        (pt.StartColumn <= end && pt.EndColumn >= start)
-                    );
+                    bool overlaps = processedTokens.Any(pt =>
+                         pt.Line == t.Line - 1 &&
+                         !(t.EndColumn <= pt.StartColumn || t.StartColumn - 1 >= pt.EndColumn)
+                     );
 
-                    if (!alreadyExists)
+                    if (!overlaps)
                     {
                         processedTokens.Add(new TokenInfo
                         {
                             Line = t.Line - 1,
-                            StartColumn = start,
-                            EndColumn = end,
+                            StartColumn = t.StartColumn - 1,
+                            EndColumn = t.EndColumn,
                             Type = type
                         });
                     }
