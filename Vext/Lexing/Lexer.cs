@@ -36,8 +36,6 @@ namespace Vext.Compiler.Lexing
 
                 if (char.IsDigit(current))
                     tokens.Add(ReadNumber());
-                else if (char.IsLetter(current) || current == '_')
-                    tokens.Add(ReadIdentifierOrKeyword());
                 else if (current == '"' || current == '\'')
                     tokens.Add(ReadString(current));
                 else if (IsOperator(current))
@@ -47,7 +45,9 @@ namespace Vext.Compiler.Lexing
                     int col = currentColumn;
                     Advance();
                     tokens.Add(new Token(TokenType.Punctuation, current.ToString(), currentLine, col, col));
-                } else
+                } else if (char.IsLetter(current) || current == '_')
+                    tokens.Add(ReadIdentifierOrKeyword());
+                else
                 {
                     tokens.Add(new Token(TokenType.Unknown, current.ToString(), currentLine, currentColumn, currentColumn));
                     ReportError($"Unexpected character '{current}'", currentLine, currentColumn, currentLine, currentColumn - 1);
