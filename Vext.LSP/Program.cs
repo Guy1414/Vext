@@ -115,9 +115,9 @@ class Program
 
                     // Only add if no token already exists at the exact same line/start/end
                     bool overlaps = processedTokens.Any(pt =>
-                         pt.Line == t.Line - 1 &&
-                         !(t.EndColumn <= pt.StartColumn || t.StartColumn - 1 >= pt.EndColumn)
-                     );
+                        pt.Line == t.Line - 1 &&
+                        !(t.EndColumn <= pt.StartColumn || t.StartColumn - 1 >= pt.EndColumn)
+                    );
 
                     if (!overlaps)
                     {
