@@ -113,13 +113,14 @@ class Program
                     int start = t.StartColumn - 1; // convert to 0-based
                     int end = t.EndColumn;
 
-                    // Check for overlap using exclusive range logic
-                    bool overlaps = processedTokens.Any(pt =>
+                    // Only add if no token already exists at the exact same line/start/end
+                    bool alreadyExists = processedTokens.Any(pt =>
                         pt.Line == t.Line - 1 &&
-                        !(end <= pt.StartColumn || start >= pt.EndColumn)
+                        pt.StartColumn == start &&
+                        pt.EndColumn == end
                     );
 
-                    if (!overlaps)
+                    if (!alreadyExists)
                     {
                         processedTokens.Add(new TokenInfo
                         {
