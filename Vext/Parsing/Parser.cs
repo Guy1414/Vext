@@ -50,7 +50,8 @@ namespace Vext.Compiler.Parsing
                     // attempt to recover by skipping one token
                     while (currentToken < tokens.Count && !(tokens[currentToken].TokenType == TokenType.Punctuation && tokens[currentToken].Value == ";"))
                         Advance();
-                    Advance(); // skip the ;
+                    if (tokens[currentToken].TokenType == TokenType.Punctuation && tokens[currentToken].Value == ";")
+                        Advance(); // skip the ;
                 }
             }
             return (statements);
@@ -103,7 +104,9 @@ namespace Vext.Compiler.Parsing
                             // attempt to recover by skipping to next semicolon or newline
                             while (currentToken < tokens.Count && !(tokens[currentToken].TokenType == TokenType.Punctuation && tokens[currentToken].Value == ";"))
                                 Advance();
-                            Advance(); // skip the ;
+                            if (tokens[currentToken].TokenType == TokenType.Punctuation && tokens[currentToken].Value == ";")
+                                Advance(); // skip the ;
+
                             Token lastToken = CurrentToken();
                             ReportError("Invalid variable declaration", startToken.Line, startToken.StartColumn, lastToken.Line, lastToken.EndColumn);
                             return null;
@@ -205,7 +208,8 @@ namespace Vext.Compiler.Parsing
                     while (currentToken < tokens.Count && !(tokens[currentToken].TokenType == TokenType.Punctuation && tokens[currentToken].Value == ";"))
                         Advance();
 
-                    Advance(); // skip the ;
+                    if (tokens[currentToken].TokenType == TokenType.Punctuation && tokens[currentToken].Value == ";")
+                        Advance(); // skip the ;
 
                     Token endToken = CurrentToken();
                     ReportError("Only function calls can be used as expression statements", startToken.Line, startToken.StartColumn, endToken.Line, endToken.EndColumn);
@@ -480,7 +484,8 @@ namespace Vext.Compiler.Parsing
                     while (currentToken < tokens.Count && !(tokens[currentToken].TokenType == TokenType.Punctuation && tokens[currentToken].Value == ";"))
                         Advance();
 
-                    Advance(); // skip the ;
+                    if (tokens[currentToken].TokenType == TokenType.Punctuation && tokens[currentToken].Value == ";")
+                        Advance(); // skip the ;
                 }
             }
             Expect(TokenType.Punctuation, ";");
