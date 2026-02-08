@@ -10,9 +10,7 @@ import {
   Range,
   Position,
   SemanticTokensBuilder,
-  DocumentHighlight,
-  DocumentHighlightKind,
-  WorkspaceEdit 
+  SemanticTokens
 } from "vscode-languageserver/node";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { spawn } from "child_process";
@@ -62,20 +60,11 @@ const enum TokenModifier {
   readonly = 1 << 1,
 }
 
-interface SymbolOccurrence {
-  name: string;
-  line: number;
-  startColumn: number;
-  endColumn: number;
-  isWrite: boolean;
-}
-
 interface CompileResult {
   success: boolean;
   errors: ErrorInfo[];
   output?: RunOutput;
   tokens?: TokenInfo[];
-  symbols?: SymbolOccurrence[];
 }
 
 // --- Compile helper using stdin ---
@@ -188,10 +177,6 @@ connection.onInitialize((_params: InitializeParams) => {
   return <InitializeResult>{
     capabilities: {
       textDocumentSync: TextDocumentSyncKind.Incremental,
-      documentHighlightProvider: true,
-      renameProvider: {
-        prepareProvider: false
-      },
       semanticTokensProvider: {
         legend: {
           tokenTypes: [
@@ -211,76 +196,6 @@ connection.onInitialize((_params: InitializeParams) => {
       }
     },
   };
-});
-
-connection.onDocumentHighlight(async (params) => {
-  const doc = documents.get(params.textDocument.uri);
-  if (!doc) return [];
-
-  const code = doc.getText();
-  const pos = params.position;
-
-  const result = await compileVextFromText(code, false);
-  if (!result.symbols) return [];
-
-  // Find symbol under cursor
-  const target = result.symbols.find(s =>
-    s.line === pos.line &&
-    pos.character >= s.startColumn &&
-    pos.character < s.endColumn
-  );
-
-  if (!target) return [];
-
-  return result.symbols
-    .filter(s => s.name === target.name)
-    .map(s => ({
-      range: Range.create(
-        Position.create(s.line, s.startColumn),
-        Position.create(s.line, s.endColumn)
-      ),
-      kind: s.isWrite
-        ? DocumentHighlightKind.Write
-        : DocumentHighlightKind.Read
-    }));
-});
-
-connection.onRenameRequest(async (params) => {
-  const doc = documents.get(params.textDocument.uri);
-  if (!doc) return null;
-
-  const code = doc.getText();
-  const pos = params.position;
-  const newName = params.newName;
-
-  const result = await compileVextFromText(code, false);
-  if (!result.symbols) return null;
-
-  const target = result.symbols.find(s =>
-    s.line === pos.line &&
-    pos.character >= s.startColumn &&
-    pos.character < s.endColumn
-  );
-
-  if (!target) return null;
-
-  const edits = result.symbols
-    .filter(s => s.name === target.name)
-    .map(s => ({
-      range: Range.create(
-        Position.create(s.line, s.startColumn),
-        Position.create(s.line, s.endColumn)
-      ),
-      newText: newName
-    }));
-
-  const workspaceEdit: WorkspaceEdit = {
-    changes: {
-      [params.textDocument.uri]: edits
-    }
-  };
-
-  return workspaceEdit;
 });
 
 documents.onDidChangeContent(async (change) => {
