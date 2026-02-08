@@ -282,7 +282,7 @@ namespace Vext.Compiler.Semantic
                                 ReportError($"Cannot assign '{rhsType}' to '{decl.VariableType}'.", a.Line, a.StartColumn, a.EndColumn);
 
                             // Variable token
-                            AddToken(a.Line, a.VariableStartColumn, a.VariableEndColumn + a.VariableName.Length, "variable");
+                            AddToken(a.Line, a.VariableStartColumn, a.VariableEndColumn, "variable");
 
                             // Operator token
                             if (a.OperatorLine > 0)
