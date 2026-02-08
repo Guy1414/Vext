@@ -389,7 +389,7 @@ namespace Vext.Compiler.Semantic
                     break;
 
                 case ForStatementNode fo:
-                    AddToken(fo.Line, fo.StartColumn, fo.EndColumn, "keyword", "control"); // "for"
+                    AddToken(fo.Line, fo.KeywordColumnStart, fo.KeywordColumnEnd, "keyword", "control"); // "for"
                     if (fo.Initialization != null)
                     {
                         switch (fo.Initialization)

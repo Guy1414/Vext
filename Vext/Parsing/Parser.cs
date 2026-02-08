@@ -48,7 +48,7 @@ namespace Vext.Compiler.Parsing
                     Token tok = CurrentToken();
                     ReportError($"Unexpected token '{tok.Value}'", tok.Line, tok.StartColumn, tok.Line, tok.EndColumn);
                     // attempt to recover by skipping one token
-                    if (currentToken < tokens.Count)
+                    while (currentToken < tokens.Count && !(tokens[currentToken].TokenType == TokenType.Punctuation && tokens[currentToken].Value == ";"))
                         Advance();
                 }
             }
@@ -722,8 +722,8 @@ namespace Vext.Compiler.Parsing
             } else
             {
                 ReportError($"Unexpected token '{token.Value}'", token.Line, token.StartColumn, CurrentToken().Line, CurrentToken().EndColumn);
-                // attempt to recover by advancing once and returning a dummy literal
-                if (currentToken < tokens.Count)
+                // attempt to recover by advancing and returning a dummy literal
+                while (currentToken < tokens.Count && !(tokens[currentToken].TokenType == TokenType.Punctuation && tokens[currentToken].Value == ";"))
                     Advance();
                 return new LiteralNode { Value = 0, IsError = true, Line = token.Line, StartColumn = token.StartColumn, EndColumn = tokens[currentToken - 1].EndColumn };
             }
@@ -749,9 +749,10 @@ namespace Vext.Compiler.Parsing
                 Token tok = CurrentToken();
                 ReportError("Assignment is not allowed in this context", tok.Line, tok.StartColumn, tok.Line, tok.StartColumn);
                 Token badToken = CurrentToken();
-                // consume the problematic token to avoid infinite loop
-                if (currentToken < tokens.Count)
+                // consume the problematic tokens to avoid infinite loop
+                while (currentToken < tokens.Count && !(tokens[currentToken].TokenType == TokenType.Punctuation && tokens[currentToken].Value == ";"))
                     Advance();
+
                 return new LiteralNode { Value = 0, IsError = true, Line = badToken.Line, StartColumn = badToken.StartColumn, EndColumn = tokens[currentToken - 1].EndColumn };
             }
 
