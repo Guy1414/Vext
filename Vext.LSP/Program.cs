@@ -145,7 +145,7 @@ class Program
                     result.Errors.Add(new ErrorInfo
                     {
                         Message = ed.Message,
-                        Line = Math.Max(0, ed.LspLine - 1),
+                        Line = Math.Max(0, ed.LspLine),
                         StartColumn = Math.Max(0, ed.LspStartCol - 1),
                         EndColumn = Math.Max(0, ed.LspEndCol),
                         Severity = ed.LspSeverity.ToString().ToLower()
