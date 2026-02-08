@@ -702,7 +702,7 @@ namespace Vext.Compiler.Parsing
                         Arguments = functionCall.Arguments,
                         Line = token.Line,
                         StartColumn = token.StartColumn,
-                        EndColumn = tokens[currentToken - 1].EndColumn
+                        EndColumn = tokens[currentToken - 1].StartColumn
                     };
                 }
                 // Regular function call: func()
