@@ -321,7 +321,7 @@ namespace Vext.Compiler.Semantic
                     break;
 
                 case ReturnStatementNode r:
-                    AddToken(r.Line, r.KeywordColumnEnd, r.KeywordColumnEnd, "keyword", "control"); // "return"
+                    AddToken(r.Line, r.KeywordColumnStart, r.KeywordColumnEnd, "keyword", "control"); // "return"
                     if (r.Expression != null)
                     {
                         CheckExpression(r.Expression);
