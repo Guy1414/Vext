@@ -248,7 +248,7 @@ namespace Vext.Compiler.Semantic
                         }
 
                         if (!AreTypesCompatible(v.VariableType, initType))
-                            ReportError($"Type mismatch...", v.Line, v.StartColumn, v.EndColumn);
+                            ReportError($"Type mismatch for variable '{v.Name}': expected '{v.VariableType}' but got '{initType}'.", v.Line, v.StartColumn, v.EndColumn);
 
                         v.Initializer = Fold(v.Initializer);
                     }
@@ -1051,8 +1051,6 @@ namespace Vext.Compiler.Semantic
                 if (AlwaysExits(stmt, returnType))
                     return true;
 
-                // statement does not guarantee exit, execution continues
-                return false;
             }
             return false;
         }

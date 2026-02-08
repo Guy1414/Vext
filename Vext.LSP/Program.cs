@@ -66,7 +66,7 @@ class Program
         } else if (args.Length == 1 && args[0] == "--stdin")
         {
             code = Console.In.ReadToEnd();
-            run = true;
+            run = false;
         } else
         {
             Console.Error.WriteLine("No valid source file provided.");

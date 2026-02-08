@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics;
 using Vext.Compiler.Bytecode_Generator;
-using Vext.Compiler.Diagnostics;
 using Vext.Compiler.Lexing;
 using Vext.Compiler.Modules;
 using Vext.Compiler.Parsing;
@@ -75,8 +74,22 @@ namespace Vext.Compiler
             double semTime = sw.Elapsed.TotalMilliseconds;
             Dictionary<int, string> varMap = semanticPass.GetVariableMap();
 
-            if (Diagnostic.GetErrors().Count > 0)
-                return new CompilationResult(code, statements, [], Diagnostic.GetErrors(), tokens, semanticPass.SemanticTokens, varMap, lexTime, parseTime, semTime, 0, tokens.Count, statements.Count);
+            if (GetErrors().Count > 0)
+                return new CompilationResult(
+                    code,
+                    statements,
+                    [],
+                    GetErrors(),
+                    tokens,
+                    semanticPass.SemanticTokens,
+                    varMap,
+                    lexTime,
+                    parseTime,
+                    semTime,
+                    0,
+                    tokens.Count,
+                    statements.Count
+                );
 
             // 4. Bytecode Generation
             sw.Restart();
@@ -84,7 +97,21 @@ namespace Vext.Compiler
                 BytecodeGenerator.EmitStatement(stmt, instructions);
             double bcTime = sw.Elapsed.TotalMilliseconds;
 
-            return new CompilationResult(code, statements, instructions, Diagnostic.GetErrors(), tokens, semanticPass.SemanticTokens, varMap, lexTime, parseTime, semTime, bcTime, tokens.Count, statements.Count);
+            return new CompilationResult(
+                code,
+                statements,
+                instructions,
+                GetErrors(),
+                tokens,
+                semanticPass.SemanticTokens,
+                varMap,
+                lexTime,
+                parseTime,
+                semTime,
+                bcTime,
+                tokens.Count,
+                statements.Count
+            );
         }
 
         private static void RegisterBuiltIns(SemanticPass pass)
