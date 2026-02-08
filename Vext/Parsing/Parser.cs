@@ -310,6 +310,8 @@ namespace Vext.Compiler.Parsing
             return new FunctionParameterNode
             {
                 Type = type.Value,
+                TypeStartColumn = type.StartColumn,
+                TypeEndColumn = type.EndColumn,
                 Name = name.Value,
                 Initializer = initializer,
                 Line = type.Line,
@@ -641,7 +643,16 @@ namespace Vext.Compiler.Parsing
             {
                 Advance(); // consume '-' or '!'
                 ExpressionNode? right = ParsePrimary(CurrentToken());
-                return new UnaryExpressionNode { Operator = token.Value, Right = right, Line = token.Line, StartColumn = token.StartColumn, EndColumn = token.EndColumn };
+                return new UnaryExpressionNode
+                {
+                    Operator = token.Value,
+                    OperatorColumnStart = token.StartColumn,
+                    OperatorColumnEnd = token.EndColumn,
+                    Right = right,
+                    Line = token.Line,
+                    StartColumn = token.StartColumn,
+                    EndColumn = tokens[currentToken - 1].EndColumn
+                };
             }
 
             if (token.TokenType == TokenType.Punctuation && token.Value == "(")
@@ -763,6 +774,8 @@ namespace Vext.Compiler.Parsing
                 left = new UnaryExpressionNode
                 {
                     Operator = op.Value,
+                    OperatorColumnStart = op.StartColumn,
+                    OperatorColumnEnd = op.EndColumn,
                     Right = left,
                     Line = left.Line,
                     StartColumn = left.StartColumn,
@@ -795,6 +808,8 @@ namespace Vext.Compiler.Parsing
                 {
                     Left = left,
                     Operator = opToken.Value,
+                    OperatorColumnStart = opToken.StartColumn,
+                    OperatorColumnEnd = opToken.EndColumn,
                     Right = right,
                     Line = left.Line,
                     StartColumn = left.StartColumn,
@@ -903,6 +918,8 @@ namespace Vext.Compiler.Parsing
     {
         public required ExpressionNode Left { get; set; }
         public required string Operator { get; set; }
+        public required int OperatorColumnStart { get; set; }
+        public required int OperatorColumnEnd { get; set; }
         public required ExpressionNode Right { get; set; }
     }
 
@@ -1033,6 +1050,14 @@ namespace Vext.Compiler.Parsing
         /// </summary>
         public required string Type { get; set; }
         /// <summary>
+        /// Represents the starting column number in the source code where the parameter's type is defined.
+        /// </summary>
+        public int TypeStartColumn { get; set; }
+        /// <summary>
+        /// Represents the ending column number in the source code where the parameter's type definition ends.
+        /// </summary>
+        public int TypeEndColumn { get; set; }
+        /// <summary>
         /// The name of the parameter.
         /// </summary>
         public required string Name { get; set; }
@@ -1069,6 +1094,8 @@ namespace Vext.Compiler.Parsing
     class UnaryExpressionNode : ExpressionNode
     {
         public required string Operator { get; set; }
+        public required int OperatorColumnStart { get; set; }
+        public required int OperatorColumnEnd { get; set; }
         public required ExpressionNode Right { get; set; }
     }
 
@@ -1079,10 +1106,10 @@ namespace Vext.Compiler.Parsing
         public int VariableStartColumn { get; set; }
         public int VariableEndColumn { get; set; }
         public required string Operator { get; set; }
-        public required ExpressionNode Value { get; set; }
         public int OperatorLine { get; set; }
         public int OperatorStartColumn { get; set; }
         public int OperatorEndColumn { get; set; }
+        public required ExpressionNode Value { get; set; }
     }
 
     class IncrementStatementNode : StatementNode

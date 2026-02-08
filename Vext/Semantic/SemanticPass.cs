@@ -142,7 +142,7 @@ namespace Vext.Compiler.Semantic
                 if (stmt.Arguments != null)
                     foreach (FunctionParameterNode p in stmt.Arguments)
                     {
-                        AddToken(p.Line, p.StartColumn, p.EndColumn, "type");
+                        AddToken(p.Line, p.TypeStartColumn, p.TypeEndColumn, "type");
                         AddToken(p.NameLine, p.NameStartColumn, p.NameEndColumn, "variable", "parameter", "declaration");
                     }
             }
