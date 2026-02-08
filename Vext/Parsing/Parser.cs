@@ -50,6 +50,7 @@ namespace Vext.Compiler.Parsing
                     // attempt to recover by skipping one token
                     while (currentToken < tokens.Count && !(tokens[currentToken].TokenType == TokenType.Punctuation && tokens[currentToken].Value == ";"))
                         Advance();
+
                     if (tokens[currentToken].TokenType == TokenType.Punctuation && tokens[currentToken].Value == ";")
                         Advance(); // skip the ;
                 }
