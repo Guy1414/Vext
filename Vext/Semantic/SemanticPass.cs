@@ -733,7 +733,7 @@ namespace Vext.Compiler.Semantic
                 string rightType = GetExpressionType(u.Right);
 
                 // Add token for operator
-                AddToken(u.Line, u.StartColumn, u.EndColumn, "operator");
+                AddToken(u.Line, u.OperatorColumnStart, u.OperatorColumnEnd, "operator");
 
                 if (rightType == "error")
                     return "error";
@@ -767,7 +767,7 @@ namespace Vext.Compiler.Semantic
                 string op = b.Operator;
 
                 // Add token for operator
-                AddToken(b.Line, b.StartColumn, b.EndColumn, "operator");
+                AddToken(b.Line, b.OperatorColumnStart, b.OperatorColumnEnd, "operator");
 
                 if (leftType == "error" || rightType == "error")
                     return "error";

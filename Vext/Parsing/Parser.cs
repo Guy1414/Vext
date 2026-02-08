@@ -918,8 +918,8 @@ namespace Vext.Compiler.Parsing
     {
         public required ExpressionNode Left { get; set; }
         public required string Operator { get; set; }
-        public required int OperatorColumnStart { get; set; }
-        public required int OperatorColumnEnd { get; set; }
+        public int OperatorColumnStart { get; set; }
+        public int OperatorColumnEnd { get; set; }
         public required ExpressionNode Right { get; set; }
     }
 
