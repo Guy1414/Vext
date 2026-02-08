@@ -285,7 +285,7 @@ namespace Vext.Compiler.Parsing
                 Body = body,
                 Line = returnType.Line,
                 StartColumn = returnType.StartColumn,
-                EndColumn = CurrentToken().EndColumn,
+                EndColumn = tokens[currentToken - 1].EndColumn,
                 NameLine = name.Line,
                 NameStartColumn = name.StartColumn,
                 NameEndColumn = name.EndColumn
@@ -338,7 +338,7 @@ namespace Vext.Compiler.Parsing
             }
 
             Expect(TokenType.Punctuation, ")"); // consume ')'
-            return new FunctionCallNode { FunctionName = name, FunctionNameStartColumn = column, FunctionNameEndColumn = eColumn, Arguments = arguments, Line = line, StartColumn = column, EndColumn = CurrentToken().EndColumn };
+            return new FunctionCallNode { FunctionName = name, FunctionNameStartColumn = column, FunctionNameEndColumn = eColumn, Arguments = arguments, Line = line, StartColumn = column, EndColumn = tokens[currentToken - 1].EndColumn };
         }
 
         private ReturnStatementNode? ParseReturn()
@@ -457,7 +457,7 @@ namespace Vext.Compiler.Parsing
                         Expression = expr,
                         Line = expr.Line,
                         StartColumn = expr.StartColumn,
-                        EndColumn = CurrentToken().EndColumn
+                        EndColumn = tokens[currentToken - 1].EndColumn
                     };
 
                 }
@@ -490,7 +490,7 @@ namespace Vext.Compiler.Parsing
                     Expression = expr,
                     Line = expr.Line,
                     StartColumn = expr.StartColumn,
-                    EndColumn = CurrentToken().EndColumn
+                    EndColumn = tokens[currentToken - 1].EndColumn
                 };
             }
 
@@ -535,7 +535,7 @@ namespace Vext.Compiler.Parsing
                 Body = body,
                 Line = forToken.Line,
                 StartColumn = forToken.StartColumn,
-                EndColumn = CurrentToken().EndColumn
+                EndColumn = tokens[currentToken - 1].EndColumn
             };
         }
 
@@ -582,7 +582,7 @@ namespace Vext.Compiler.Parsing
                 Body = body,
                 Line = whileToken.Line,
                 StartColumn = whileToken.StartColumn,
-                EndColumn = CurrentToken().EndColumn
+                EndColumn = tokens[currentToken - 1].EndColumn
             };
         }
 
@@ -650,15 +650,15 @@ namespace Vext.Compiler.Parsing
                 // support both integer and floating point (user writes float, we make it a double for accuracy)
                 if (token.Value.IndexOfAny(['.', 'e', 'E']) >= 0)
                 {
-                    return new LiteralNode { Value = double.Parse(token.Value, CultureInfo.InvariantCulture), Line = token.Line, StartColumn = token.StartColumn, EndColumn = CurrentToken().EndColumn };
+                    return new LiteralNode { Value = double.Parse(token.Value, CultureInfo.InvariantCulture), Line = token.Line, StartColumn = token.StartColumn, EndColumn = tokens[currentToken - 1].EndColumn };
                 } else
                 {
-                    return new LiteralNode { Value = int.Parse(token.Value, CultureInfo.InvariantCulture), Line = token.Line, StartColumn = token.StartColumn, EndColumn = CurrentToken().EndColumn };
+                    return new LiteralNode { Value = int.Parse(token.Value, CultureInfo.InvariantCulture), Line = token.Line, StartColumn = token.StartColumn, EndColumn = tokens[currentToken - 1].EndColumn };
                 }
             } else if (token.TokenType == TokenType.String)
             {
                 Advance();
-                return new LiteralNode { Value = token.Value, Line = token.Line, StartColumn = token.StartColumn, EndColumn = CurrentToken().EndColumn };
+                return new LiteralNode { Value = token.Value, Line = token.Line, StartColumn = token.StartColumn, EndColumn = tokens[currentToken - 1].EndColumn };
             } else if (token.TokenType == TokenType.Identifier)
             {
                 Token next = Peek(1);
@@ -685,7 +685,7 @@ namespace Vext.Compiler.Parsing
                         Arguments = functionCall.Arguments,
                         Line = token.Line,
                         StartColumn = token.StartColumn,
-                        EndColumn = CurrentToken().EndColumn
+                        EndColumn = tokens[currentToken - 1].EndColumn
                     };
                 }
                 // Regular function call: func()
@@ -697,18 +697,18 @@ namespace Vext.Compiler.Parsing
 
                 // Otherwise, just a variable
                 Advance();
-                return new VariableNode { Name = token.Value, Line = token.Line, StartColumn = token.StartColumn, EndColumn = CurrentToken().EndColumn };
+                return new VariableNode { Name = token.Value, Line = token.Line, StartColumn = token.StartColumn, EndColumn = tokens[currentToken - 1].EndColumn };
             } else if (token.TokenType == TokenType.Boolean)
             {
                 Advance();
-                return new LiteralNode { Value = bool.Parse(token.Value), Line = token.Line, StartColumn = token.StartColumn, EndColumn = CurrentToken().EndColumn };
+                return new LiteralNode { Value = bool.Parse(token.Value), Line = token.Line, StartColumn = token.StartColumn, EndColumn = tokens[currentToken - 1].EndColumn };
             } else
             {
                 ReportError($"Unexpected token '{token.Value}'", token.Line, token.StartColumn, CurrentToken().Line, CurrentToken().EndColumn);
                 // attempt to recover by advancing once and returning a dummy literal
                 if (currentToken < tokens.Count)
                     Advance();
-                return new LiteralNode { Value = 0, IsError = true, Line = token.Line, StartColumn = token.StartColumn, EndColumn = CurrentToken().EndColumn };
+                return new LiteralNode { Value = 0, IsError = true, Line = token.Line, StartColumn = token.StartColumn, EndColumn = tokens[currentToken - 1].EndColumn };
             }
         }
 
@@ -735,7 +735,7 @@ namespace Vext.Compiler.Parsing
                 // consume the problematic token to avoid infinite loop
                 if (currentToken < tokens.Count)
                     Advance();
-                return new LiteralNode { Value = 0, IsError = true, Line = badToken.Line, StartColumn = badToken.StartColumn, EndColumn = CurrentToken().EndColumn };
+                return new LiteralNode { Value = 0, IsError = true, Line = badToken.Line, StartColumn = badToken.StartColumn, EndColumn = tokens[currentToken - 1].EndColumn };
             }
 
             if (currentToken >= tokens.Count)
