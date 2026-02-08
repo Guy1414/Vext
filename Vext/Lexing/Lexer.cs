@@ -270,7 +270,7 @@ namespace Vext.Compiler.Lexing
                 op = c0.ToString();
 
             Advance(op.Length);
-            return new Token(TokenType.Operator, op, currentLine, startCol, currentColumn);
+            return new Token(TokenType.Operator, op, currentLine, startCol, currentColumn - 1);
         }
     }
 }

@@ -758,9 +758,9 @@ namespace Vext.Compiler.Parsing
                 {
                     Operator = op.Value,
                     Right = left,
-                    Line = op.Line,
-                    StartColumn = op.StartColumn,
-                    EndColumn = op.EndColumn
+                    Line = left.Line,
+                    StartColumn = left.StartColumn,
+                    EndColumn =op.EndColumn
                 };
             }
 
@@ -790,9 +790,9 @@ namespace Vext.Compiler.Parsing
                     Left = left,
                     Operator = opToken.Value,
                     Right = right,
-                    Line = opToken.Line,
-                    StartColumn = opToken.StartColumn,
-                    EndColumn = tokens[currentToken - 1].EndColumn
+                    Line = left.Line,
+                    StartColumn = left.StartColumn,
+                    EndColumn = right.EndColumn
                 };
             }
 
