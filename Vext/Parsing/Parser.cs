@@ -432,7 +432,7 @@ namespace Vext.Compiler.Parsing
                 ElseBody = elseBody,
                 Line = ifToken.Line,
                 StartColumn = ifToken.StartColumn,
-                EndColumn = CurrentToken().EndColumn,
+                EndColumn = ifToken.EndColumn,
                 ElseLine = elseToken.Line,
                 ElseStartColumn = elseToken.StartColumn
             };

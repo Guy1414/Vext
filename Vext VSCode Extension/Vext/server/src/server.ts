@@ -131,7 +131,6 @@ function errorsToDiagnostics(errors: ErrorInfo[]): Diagnostic[] {
 }
 
 function assertNoOverlappingTokens(tokens: TokenInfo[], uri: string) {
-  // Sort tokens by line/startColumn just in case
   const sorted = [...tokens].sort((a, b) => {
     if (a.line !== b.line) return a.line - b.line;
     return a.startColumn - b.startColumn;
