@@ -760,7 +760,7 @@ namespace Vext.Compiler.Parsing
                     Right = left,
                     Line = left.Line,
                     StartColumn = left.StartColumn,
-                    EndColumn = op.EndColumn
+                    EndColumn = left.EndColumn
                 };
             }
 
