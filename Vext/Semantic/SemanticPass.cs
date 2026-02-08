@@ -134,7 +134,7 @@ namespace Vext.Compiler.Semantic
                 list.Add(stmt);
 
                 // Token for Return Type
-                AddToken(stmt.Line, stmt.StartColumn, stmt.EndColumn, "type");
+                AddToken(stmt.Line, stmt.ReturnTypeStartColumn, stmt.ReturnTypeEndColumn, "type");
 
                 // Token for Function Name
                 AddToken(stmt.NameLine, stmt.NameStartColumn, stmt.NameEndColumn, "function", "declaration");
@@ -321,7 +321,7 @@ namespace Vext.Compiler.Semantic
                     break;
 
                 case ReturnStatementNode r:
-                    AddToken(r.Line, r.StartColumn, r.EndColumn, "keyword", "control"); // "return"
+                    AddToken(r.Line, r.KeywordColumnEnd, r.KeywordColumnEnd, "keyword", "control"); // "return"
                     if (r.Expression != null)
                     {
                         CheckExpression(r.Expression);
@@ -369,7 +369,7 @@ namespace Vext.Compiler.Semantic
                     }
 
                 case WhileStatementNode w:
-                    AddToken(w.Line, w.StartColumn, w.EndColumn, "keyword", "control"); // "while"
+                    AddToken(w.Line, w.KeywordColumnStart, w.KeywordColumnEnd, "keyword", "control"); // "while"
                     CheckExpression(w.Condition);
 
                     BitArray beforeW = new BitArray(assignedSlots.Peek());

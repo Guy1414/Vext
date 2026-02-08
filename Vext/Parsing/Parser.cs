@@ -280,6 +280,8 @@ namespace Vext.Compiler.Parsing
             return new FunctionDefinitionNode
             {
                 ReturnType = returnType.Value,
+                ReturnTypeStartColumn = returnType.StartColumn,
+                ReturnTypeEndColumn = returnType.EndColumn,
                 FunctionName = name.Value,
                 Arguments = arguments,
                 Body = body,
@@ -346,11 +348,11 @@ namespace Vext.Compiler.Parsing
             Token rtrnToken = Expect(TokenType.Keyword, "return");
             if (CurrentToken().TokenType == TokenType.Punctuation && CurrentToken().Value == ";")
             {
-                return new ReturnStatementNode { Expression = null, Line = rtrnToken.Line, StartColumn = rtrnToken.StartColumn, EndColumn = tokens[currentToken - 1].EndColumn };
+                return new ReturnStatementNode { KeywordColumnStart = rtrnToken.StartColumn, KeywordColumnEnd = rtrnToken.EndColumn, Expression = null, Line = rtrnToken.Line, StartColumn = rtrnToken.StartColumn, EndColumn = tokens[currentToken - 1].EndColumn };
             } else
             {
                 ExpressionNode expr = ParseExpression();
-                return new ReturnStatementNode { Expression = expr, Line = rtrnToken.Line, StartColumn = rtrnToken.StartColumn, EndColumn = tokens[currentToken - 1].EndColumn };
+                return new ReturnStatementNode { KeywordColumnStart = rtrnToken.StartColumn, KeywordColumnEnd = rtrnToken.EndColumn, Expression = expr, Line = rtrnToken.Line, StartColumn = rtrnToken.StartColumn, EndColumn = tokens[currentToken - 1].EndColumn };
             }
         }
 
@@ -529,6 +531,8 @@ namespace Vext.Compiler.Parsing
 
             return new ForStatementNode
             {
+                KeywordColumnStart = forToken.StartColumn,
+                KeywordColumnEnd = forToken.EndColumn,
                 Initialization = initialization,
                 Condition = condition,
                 Increment = increment,
@@ -578,6 +582,8 @@ namespace Vext.Compiler.Parsing
 
             return new WhileStatementNode
             {
+                KeywordColumnStart = whileToken.StartColumn,
+                KeywordColumnEnd = whileToken.EndColumn,
                 Condition = expr,
                 Body = body,
                 Line = whileToken.Line,
@@ -911,6 +917,7 @@ namespace Vext.Compiler.Parsing
         public int SlotIndex;
         public required string Name { get; set; }
     }
+
     /// <summary>
     /// Represents a statement in the abstract syntax tree (AST) of the programming language.
     /// </summary>
@@ -960,12 +967,16 @@ namespace Vext.Compiler.Parsing
 
     class WhileStatementNode : StatementNode
     {
+        public required int KeywordColumnStart { get; set; }
+        public required int KeywordColumnEnd { get; set; }
         public required ExpressionNode Condition { get; set; }
         public required List<StatementNode> Body { get; set; }
     }
 
     class ForStatementNode : StatementNode
     {
+        public required int KeywordColumnStart { get; set; }
+        public required int KeywordColumnEnd { get; set; }
         public StatementNode? Initialization { get; set; }
         public ExpressionNode? Condition { get; set; }
         public StatementNode? Increment { get; set; }
@@ -974,6 +985,8 @@ namespace Vext.Compiler.Parsing
 
     class ReturnStatementNode : StatementNode
     {
+        public required int KeywordColumnStart { get; set; }
+        public required int KeywordColumnEnd { get; set; }
         public required ExpressionNode? Expression { get; set; } = null;
     }
 
@@ -996,6 +1009,8 @@ namespace Vext.Compiler.Parsing
     class FunctionDefinitionNode : StatementNode
     {
         public required string ReturnType { get; set; }
+        public int ReturnTypeStartColumn { get; set; }
+        public int ReturnTypeEndColumn { get; set; }
         public required string FunctionName { get; set; }
         public int NameLine { get; set; }
         public int NameStartColumn { get; set; }
