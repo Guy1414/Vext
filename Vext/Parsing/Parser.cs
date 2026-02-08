@@ -635,7 +635,7 @@ namespace Vext.Compiler.Parsing
             {
                 Advance(); // consume '-' or '!'
                 ExpressionNode? right = ParsePrimary(CurrentToken());
-                return new UnaryExpressionNode { Operator = token.Value, Right = right, Line = token.Line, StartColumn = token.StartColumn, EndColumn = tokens[currentToken - 1].EndColumn };
+                return new UnaryExpressionNode { Operator = token.Value, Right = right, Line = token.Line, StartColumn = token.StartColumn, EndColumn = token.EndColumn };
             }
 
             if (token.TokenType == TokenType.Punctuation && token.Value == "(")
@@ -760,7 +760,7 @@ namespace Vext.Compiler.Parsing
                     Right = left,
                     Line = left.Line,
                     StartColumn = left.StartColumn,
-                    EndColumn =op.EndColumn
+                    EndColumn = op.EndColumn
                 };
             }
 
