@@ -825,7 +825,7 @@ namespace Vext.Compiler.Semantic
                     if (match)
                     {
                         f.ReturnType = fn.ReturnType;
-                        AddToken(f.Line, f.StartColumn, f.FunctionNameEndColumn, "function", "call");
+                        AddToken(f.Line, f.FunctionNameStartColumn, f.FunctionNameEndColumn, "function", "call");
                         return fn.ReturnType;
                     }
                 }
