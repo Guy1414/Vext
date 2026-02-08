@@ -169,8 +169,6 @@ function assertNoOverlappingTokens(tokens: TokenInfo[], uri: string) {
   if (diagnostics.length > 0) {
     // Send diagnostics so they appear as red squiggles in the editor
     connection.sendDiagnostics({ uri, diagnostics });
-    // Also throw to stop further processing if desired
-    throw new Error("Semantic token overlap detected; see editor for details.");
   }
 }
 
