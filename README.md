@@ -78,9 +78,9 @@ Vext is a programming language designed for performance, simplicity, and express
 
 ### Standard Library
 - `print()` for console output
-- `len()` for getting length of string
+- `len()` for getting the length of a string (non-string arguments raise an error)
 
-- Math functions: `Math.pow(float num, float power)`, `Math.sqrt(float num)`, `Math.sin()`, `Math.cos()`, `Math.tan()`, `Math.log()`, `Math.exp()`, `Math.random()`, `Math.random(float min, float max)`, `Math.abs(float num)`, `Math.round(float num)`, `Math.floor(float num)`, `Math.ceil(float num)`, `Math.min(float num)`, `Math.max(float num)`
+- Math functions: `Math.pow(float num, float power)`, `Math.sqrt(float num)`, `Math.sin(float num)`, `Math.cos(float num)`, `Math.tan(float num)`, `Math.log(float num)`, `Math.exp(float num)`, `Math.random()`, `Math.random(float min, float max)`, `Math.abs(float num)`, `Math.round(float num)`, `Math.floor(float num)`, `Math.ceil(float num)`, `Math.min(float a, float b)`, `Math.max(float a, float b)`
 
 ### Compiler Architecture
 Vext features a full compilation pipeline:
