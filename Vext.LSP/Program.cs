@@ -86,7 +86,7 @@ class Program
             {
                 processedTokens.Add(new TokenInfo
                 {
-                    Line = st.Line - 1,
+                    Line = st.Line,
                     StartColumn = st.StartColumn - 1,
                     EndColumn = st.EndColumn,
                     Type = st.Type,
@@ -114,7 +114,7 @@ class Program
                     int end = t.EndColumn;
 
                     bool overlaps = processedTokens.Any(pt =>
-                        pt.Line == t.Line - 1 &&
+                        pt.Line == t.Line &&
                         !(t.EndColumn <= pt.StartColumn || t.StartColumn - 1 >= pt.EndColumn)
                     );
 
