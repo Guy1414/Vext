@@ -122,7 +122,7 @@ class Program
                     {
                         processedTokens.Add(new TokenInfo
                         {
-                            Line = t.Line - 1,
+                            Line = t.Line,
                             StartColumn = t.StartColumn - 1,
                             EndColumn = t.EndColumn,
                             Type = type
