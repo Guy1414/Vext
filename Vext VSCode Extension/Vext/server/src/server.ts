@@ -77,26 +77,41 @@ namespace RunCodeRequest {
 function compileVextFromText(code: string, run = false): Promise<CompileResult> {
   return new Promise((resolve, reject) => {
     const bridgePath = path.resolve(__dirname, '..', '..', 'compiler', 'Vext.LSP.exe');
+    
     if (!fs.existsSync(bridgePath)) {
       connection.window.showErrorMessage(`Compiler missing at: ${bridgePath}`);
       return reject(`File not found: ${bridgePath}`);
     }
+
     const args = ["--stdin"];
     if (run) args.push("--run");
 
-    const proc = spawn(`"${bridgePath}"`, args, { windowsHide: true, shell: true });
+    // Change: shell: false is safer for killing the process directly on Windows
+    const proc = spawn(bridgePath, args, { windowsHide: true, shell: false });
 
     let stdout = "";
     let stderr = "";
 
+    // Timer to prevent zombie processes
+    const timeout = setTimeout(() => {
+      if (!proc.killed) {
+        proc.kill('SIGKILL');
+        reject("Compiler timed out (5s limit)");
+      }
+    }, 5000);
+
     proc.stdout.on("data", (data) => (stdout += data.toString()));
     proc.stderr.on("data", (data) => (stderr += data.toString()));
 
-    proc.on("error", (err) => reject(err.message));
+    proc.on("error", (err) => {
+      clearTimeout(timeout);
+      reject(err.message);
+    });
 
-    proc.on("close", (code) => {
-      if (code !== 0) {
-        reject(stderr || `Bridge exited with code ${code}`);
+    proc.on("close", (exitCode) => {
+      clearTimeout(timeout);
+      if (exitCode !== 0) {
+        reject(stderr || `Bridge exited with code ${exitCode}`);
         return;
       }
       try {
@@ -107,7 +122,13 @@ function compileVextFromText(code: string, run = false): Promise<CompileResult> 
       }
     });
 
-    // Send code to stdin
+    // Handle stdin errors (e.g. if proc dies before write)
+    proc.stdin.on('error', (err) => {
+      clearTimeout(timeout);
+      proc.kill();
+      reject("Stdin error: " + err.message);
+    });
+
     proc.stdin.write(code);
     proc.stdin.end();
   });
