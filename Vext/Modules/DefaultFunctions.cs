@@ -35,7 +35,7 @@ namespace Vext.Compiler.Modules
 
             Add("print", new Function("print", 1, args =>
             {
-                Console.WriteLine(args[0]?.ToString()); // TODO: Handle sending prints to VSCode
+                // Console.WriteLine(args[0]?.ToString()); // TODO: Handle sending prints to VSCode
                 return null!;
             })
             {
