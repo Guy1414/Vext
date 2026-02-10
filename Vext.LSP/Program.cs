@@ -56,17 +56,20 @@ class Program
 
     static int Main(string[] args)
     {
-        string code;
-        bool run;
-        // Accept file path or stdin
-        if (args.Length >= 1 && File.Exists(args[0]))
+        string code = "";
+        bool run = false;
+
+        bool useStdin = args.Contains("--stdin");
+        run = args.Contains("--run");
+
+        string? fileArg = args.FirstOrDefault(a => !a.StartsWith("--") && File.Exists(a));
+
+        if (fileArg != null)
         {
-            code = File.ReadAllText(args[0]);
-            run = args.Length > 1 && args[1] == "--run";
-        } else if (args.Length == 1 && args[0] == "--stdin")
+            code = File.ReadAllText(fileArg);
+        } else if (useStdin)
         {
             code = Console.In.ReadToEnd();
-            run = false;
         } else
         {
             Console.Error.WriteLine("No valid source file provided.");

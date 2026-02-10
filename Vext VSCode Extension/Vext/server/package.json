@@ -1,5 +1,5 @@
 {
-  "name": "Vext",
+  "name": "vext",
   "description": "Language Server Protocol support for the Vext language",
   "version": "1.0.0",
   "license": "MIT",

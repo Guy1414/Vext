@@ -1,12 +1,17 @@
 import * as path from "path";
+import * as vscode from 'vscode';
 import { workspace, ExtensionContext } from "vscode";
-
 import {
   LanguageClient,
   LanguageClientOptions,
   ServerOptions,
   TransportKind,
 } from "vscode-languageclient/node";
+
+interface RunOutput {
+  time: number;
+  finalState: any[];
+}
 
 let client: LanguageClient;
 
@@ -38,14 +43,43 @@ export function activate(context: ExtensionContext) {
 
   // Create the language client and start the client.
   client = new LanguageClient(
-    "Vext language-server-id",
-    "Vext language server",
+    "vextLanguageServer",
+    "Vext Language Server",
     serverOptions,
     clientOptions
   );
 
   // Start the client. This will also launch the server
   client.start();
+
+  let outputChannel: vscode.OutputChannel | undefined;
+
+  const runCommand = vscode.commands.registerCommand('vext.runCode', async () => {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) return;
+
+    const code = editor.document.getText();
+
+    if (!outputChannel) {
+      outputChannel = vscode.window.createOutputChannel('Vext Run');
+    }
+
+    outputChannel.clear();
+    outputChannel.show(true); // true = preserve focus in the editor
+
+    try {
+      const result = await client.sendRequest<RunOutput>('vext/runCode', { code });
+
+      outputChannel.appendLine(`✅ Ran successfully in ${result.time}ms`);
+      outputChannel.appendLine('--- Output ---');
+      outputChannel.appendLine(JSON.stringify(result.finalState, null, 2));
+    } catch (err: any) {
+      vscode.window.showErrorMessage('Failed to run Vext code: ' + (err.message || err));
+      outputChannel.appendLine('❌ Run failed: ' + (err.message || err));
+    }
+  });
+
+    context.subscriptions.push(runCommand);
 }
 
 export function deactivate(): Thenable<void> | undefined {

@@ -33,7 +33,28 @@
       {"id": "declaration", "description": "Declaration token modifier"},
       {"id": "readonly", "description": "Readonly token modifier"}
     ],
-    "configuration": {}
+    "configuration": {},
+    "commands": [
+      {
+        "command": "vext.runCode",
+        "title": "Run Vext Code"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "vext.runCode",
+          "when": "editorLangId == vext",
+          "group": "navigation"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "vext.runCode",
+          "when": "editorLangId == vext"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",

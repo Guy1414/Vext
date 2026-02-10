@@ -12,6 +12,7 @@ import {
   SemanticTokensBuilder,
   SemanticTokens
 } from "vscode-languageserver/node";
+import { RequestType } from 'vscode-languageserver';
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { spawn } from "child_process";
 import * as path from "path";
@@ -65,6 +66,10 @@ interface CompileResult {
   errors: ErrorInfo[];
   output?: RunOutput;
   tokens?: TokenInfo[];
+}
+
+namespace RunCodeRequest {
+  export const type = new RequestType<{ code: string }, RunOutput, void>('vext/runCode');
 }
 
 // --- Compile helper using stdin ---
@@ -216,6 +221,18 @@ documents.onDidChangeContent(async (change) => {
     // }
   } catch (err: any) {
     connection.window.showErrorMessage("Compiler error: " + err);
+  }
+});
+
+connection.onRequest(RunCodeRequest.type, async (params) => {
+  try {
+    const result = await compileVextFromText(params.code, true); // <-- pass `--run`
+    if (result.output) {
+      return result.output;
+    }
+    return { time: 0, finalState: [] };
+  } catch (err) {
+    throw new Error(err as string);
   }
 });
 
