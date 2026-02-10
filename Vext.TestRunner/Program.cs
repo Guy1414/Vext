@@ -221,16 +221,19 @@ class Program
         Console.ReadLine();
 
         VextValue[] finalState = null!;
+        string output = "";
         Stopwatch execSw = Stopwatch.StartNew();
         try
         {
             phase = "Execution";
             PrintHeader("EXECUTION PHASE");
 
-            (double execTime, VextValue[] state) = VextEngine.Run(result.Instructions);
+            (double execTime, VextValue[] state, string stdout) = VextEngine.Run(result.Instructions);
             finalState = state;
             execSw.Stop();
             executionTime = execSw.Elapsed.TotalMilliseconds;
+
+            output = stdout ?? "";
 
             Console.ForegroundColor = ConsoleColor.Green;
             Console.WriteLine($"\n[✓] Execution finished in {executionTime:F4} ms\n");
@@ -241,6 +244,10 @@ class Program
             Console.WriteLine($"\nCRITICAL ERROR during {phase}: {ex.Message}");
             Console.ResetColor();
         }
+
+        PrintHeader("Output");
+        Console.ForegroundColor = ConsoleColor.Magenta;
+        Console.WriteLine(output);
 
         // --- Final VM State ---
         PrintHeader("FINAL VM STATE");
@@ -278,6 +285,11 @@ class Program
         Console.WriteLine(new string('=', 65));
         Console.WriteLine($"\nTotal Run Time: {(executionTime + compileTime):F4} ms\n");
         Console.WriteLine(new string('=', 65));
+
+        PrintHeader("Output");
+        Console.ForegroundColor = ConsoleColor.Magenta;
+        Console.WriteLine(output);
+        Console.ResetColor();
     }
 
     static void DisplayState(Dictionary<int, string> varMap, VextValue[] values)

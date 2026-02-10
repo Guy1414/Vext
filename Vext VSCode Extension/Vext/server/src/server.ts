@@ -34,6 +34,7 @@ interface ErrorInfo {
 interface RunOutput {
   time: number;
   finalState: any[];
+  stdout: string;
 }
 
 interface TokenInfo {

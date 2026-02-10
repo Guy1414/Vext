@@ -43,6 +43,7 @@ class Program
     {
         public double Time { get; set; }
         public VextValue[] FinalState { get; set; } = [];
+        public string Stdout { get; set; } = "";
     }
 
     // Full result object
@@ -161,11 +162,13 @@ class Program
 
                 if (run)
                 {
-                    (double time, VextValue[] finalState) = VextEngine.Run(compileResult.Instructions);
+                    (double time, VextValue[] finalState, string stdout) = VextEngine.Run(compileResult.Instructions);
+
                     result.Output = new RunOutput
                     {
                         Time = time,
-                        FinalState = finalState
+                        FinalState = finalState,
+                        Stdout = stdout
                     };
                 }
             }

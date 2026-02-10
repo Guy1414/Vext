@@ -131,7 +131,7 @@ namespace Vext.Compiler
         /// </summary>
         /// <param name="instructions"></param>
         /// <returns></returns>
-        public static (double Time, VextValue[] FinalState) Run(List<Instruction> instructions)
+        public static (double Time, VextValue[] FinalState, string Stdout) Run(List<Instruction> instructions)
         {
             Stopwatch sw = Stopwatch.StartNew();
             Module mathModule = new MathFunctions { Name = "Math" }.Initialize();
@@ -141,8 +141,11 @@ namespace Vext.Compiler
             VextVM vm = new VextVM(modulesList: [mathModule], defaults: defaults);
             int sp = 0;
             vm.Run(instructions, ref sp);
+
+            string stdout = RuntimeOutput.Flush();
+
             sw.Stop();
-            return (sw.Elapsed.TotalMilliseconds, vm.GetVariables());
+            return (sw.Elapsed.TotalMilliseconds, vm.GetVariables(), stdout);
         }
     }
 }

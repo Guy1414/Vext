@@ -11,6 +11,7 @@ import {
 interface RunOutput {
   time: number;
   finalState: any[];
+  stdout?: string;
 }
 
 let client: LanguageClient;
@@ -61,7 +62,7 @@ export function activate(context: ExtensionContext) {
     const code = editor.document.getText();
 
     if (!outputChannel) {
-      outputChannel = vscode.window.createOutputChannel('Vext Run');
+      outputChannel = vscode.window.createOutputChannel('Vext');
     }
 
     outputChannel.clear();
@@ -71,6 +72,15 @@ export function activate(context: ExtensionContext) {
       const result = await client.sendRequest<RunOutput>('vext/runCode', { code });
 
       outputChannel.appendLine(`✅ Ran successfully in ${result.time}ms`);
+
+      const stdout = result.stdout ?? '';
+
+      if (stdout.trim().length > 0) {
+        outputChannel.appendLine(stdout);
+      } else {
+        outputChannel.appendLine('(no output)');
+      }
+
       outputChannel.appendLine('--- Output ---');
       outputChannel.appendLine(JSON.stringify(result.finalState, null, 2));
     } catch (err: any) {
