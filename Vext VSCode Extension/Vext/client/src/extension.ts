@@ -80,9 +80,6 @@ export function activate(context: ExtensionContext) {
       } else {
         outputChannel.appendLine('(no output)');
       }
-
-      outputChannel.appendLine('--- Output ---');
-      outputChannel.appendLine(JSON.stringify(result.finalState, null, 2));
     } catch (err: any) {
       vscode.window.showErrorMessage('Failed to run Vext code: ' + (err.message || err));
       outputChannel.appendLine('❌ Run failed: ' + (err.message || err));

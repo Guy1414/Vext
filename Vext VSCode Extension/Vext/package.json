@@ -37,7 +37,8 @@
     "commands": [
       {
         "command": "vext.runCode",
-        "title": "Run Vext Code"
+        "title": "Run Vext Code",
+        "icon": "$(debug-start)"
       }
     ],
     "menus": {
