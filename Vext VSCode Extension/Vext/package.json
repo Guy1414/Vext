@@ -1,10 +1,9 @@
 {
   "name": "vext",
   "displayName": "Vext Language Support",
-  "description": "Language Server Protocol support for the Vext language", 
+  "description": "Language Server Protocol support for the Vext language",
   "license": "MIT",
   "version": "1.0.0",
-  "categories": [],
   "engines": {
     "vscode": "^1.75.0"
   },
@@ -18,22 +17,25 @@
         "configuration": "./language-configuration.json"
       }
     ],
+    "grammars": [
+      {
+        "language": "vext",
+        "scopeName": "source.vext",
+        "path": "./syntaxes/vext.tmlanguage.json"
+      }
+    ],
     "semanticTokenTypes": [
-      {"id": "keyword", "description": "Keyword token type"},
-      {"id": "variable", "description": "Variable token type"},
-      {"id": "function", "description": "Function token type"},
-      {"id": "type", "description": "Type token type"},
-      {"id": "string", "description": "String token type"},
-      {"id": "number", "description": "Number token type"},
-      {"id": "boolean", "description": "Boolean token type"},
-      {"id": "comment", "description": "Comment token type"},
-      {"id": "operator", "description": "Operator token type"}
+      { "id": "type", "description": "Mapping to int, float, string, etc." },
+      { "id": "function", "description": "Mapping to function names" },
+      { "id": "variable", "description": "Local variables and parameters" },
+      { "id": "keyword", "description": "Control flow keywords" },
+      { "id": "operator", "description": "Vext operators like ** or %" }
     ],
     "semanticTokenModifiers": [
-      {"id": "declaration", "description": "Declaration token modifier"},
-      {"id": "readonly", "description": "Readonly token modifier"}
+      { "id": "declaration", "description": "Used when defining a new symbol" },
+      { "id": "readonly", "description": "For constant values" },
+      { "id": "static", "description": "For static members" }
     ],
-    "configuration": {},
     "commands": [
       {
         "command": "vext.runCode",
@@ -47,12 +49,6 @@
           "command": "vext.runCode",
           "when": "editorLangId == vext",
           "group": "navigation"
-        }
-      ],
-      "commandPalette": [
-        {
-          "command": "vext.runCode",
-          "when": "editorLangId == vext"
         }
       ]
     }

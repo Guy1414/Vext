@@ -1,0 +1,50 @@
+{
+  "name": "Vext",
+  "scopeName": "source.vext",
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#strings" },
+    { "include": "#keywords" },
+    { "include": "#storage-types" },
+    { "include": "#operators" },
+    { "include": "#numbers" }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        { "name": "comment.line.double-slash.vext", "match": "//.*" },
+        { "name": "comment.block.vext", "begin": "/\\*", "end": "\\*/" }
+      ]
+    },
+    "keywords": {
+      "patterns": [{
+        "name": "keyword.control.vext",
+        "match": "\\b(if|else|while|for|return)\\b"
+      }]
+    },
+    "storage-types": {
+      "patterns": [{
+        "name": "storage.type.vext",
+        "match": "\\b(int|float|bool|string|auto|void|numeral)\\b"
+      }]
+    },
+    "operators": {
+      "patterns": [
+        {
+          "name": "keyword.operator.vext",
+          "match": "==|!=|<=|>=|\\+=|-=|\\*=|&&|\\|\\||\\+\\+|--|\\*\\*|[\\+\\-\\*\\/=%!<>]"
+        }
+      ]
+    },
+    "strings": {
+      "name": "string.quoted.double.vext",
+      "begin": "\"",
+      "end": "\"",
+      "patterns": [{ "name": "constant.character.escape.vext", "match": "\\\\." }]
+    },
+    "numbers": {
+      "name": "constant.numeric.vext",
+      "match": "\\b\\d+(\\.\\d+)?\\b"
+    }
+  }
+}
