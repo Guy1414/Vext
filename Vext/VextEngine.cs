@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+
 using Vext.Compiler.Bytecode_Generator;
 using Vext.Compiler.Lexing;
 using Vext.Compiler.Modules;
@@ -6,7 +7,7 @@ using Vext.Compiler.Parsing;
 using Vext.Compiler.Semantic;
 using Vext.Compiler.Shared;
 using Vext.Compiler.VM;
-using Vext.Modules;
+
 using static Vext.Compiler.Diagnostics.Diagnostic;
 
 namespace Vext.Compiler

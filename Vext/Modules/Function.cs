@@ -1,6 +1,6 @@
 ﻿using Vext.Compiler.Parsing;
 
-namespace Vext.Modules
+namespace Vext.Compiler.Modules
 {
     /// <summary>
     /// Represents a function within a module or as a defaultFunction.

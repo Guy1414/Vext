@@ -1,7 +1,7 @@
 ﻿using System.Runtime.InteropServices;
+
 using Vext.Compiler.Modules;
 using Vext.Compiler.Shared;
-using Vext.Modules;
 
 namespace Vext.Compiler.VM
 {

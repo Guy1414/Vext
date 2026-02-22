@@ -1,6 +1,4 @@
-﻿using Vext.Modules;
-
-namespace Vext.Compiler.Modules
+﻿namespace Vext.Compiler.Modules
 {
     internal class Module
     {
