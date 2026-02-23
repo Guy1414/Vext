@@ -45,6 +45,7 @@ namespace Vext.Compiler.Semantic
         private static void ReportWarning(string message, int startLine, int startCol, int endCol) => Diagnostic.ReportWarning(message, startLine, startCol, startLine, endCol);
         private static void ReportInfo(string message, int startLine, int startCol, int endCol) => Diagnostic.ReportInfo(message, startLine, startCol, startLine, endCol);
         private static void ReportHint(string message, int startLine, int startCol, int endCol) => Diagnostic.ReportHint(message, startLine, startCol, startLine, endCol);
+
         public void Pass()
         {
             functions.Clear();
