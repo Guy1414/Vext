@@ -498,43 +498,43 @@ namespace Vext.Compiler.Semantic
                         CheckExpression(arg);
                     break;
                 case VariableNode v:
-                    {
-                        VariableDeclarationNode? decl = ResolveVariable(v.Name);
+                    VariableDeclarationNode? decl = ResolveVariable(v.Name);
 
-                        if (decl == null)
+                    if (decl == null)
+                    {
+                        ReportError(
+                            $"Variable '{v.Name}' used before declaration.",
+                            v.Line,
+                            v.StartColumn,
+                            v.EndColumn
+                        );
+                    } else
+                    {
+                        v.SlotIndex = decl.SlotIndex;
+
+                        if (!assignedSlots.Peek().Get(decl.SlotIndex))
                         {
-                            ReportError(
-                                $"Variable '{v.Name}' used before declaration.",
+                            ReportWarning(
+                                $"Variable '{v.Name}' may be unassigned when used.",
                                 v.Line,
                                 v.StartColumn,
                                 v.EndColumn
                             );
-                        } else
-                        {
-                            v.SlotIndex = decl.SlotIndex;
-
-                            if (!assignedSlots.Peek().Get(decl.SlotIndex))
-                            {
-                                ReportWarning(
-                                    $"Variable '{v.Name}' may be unassigned when used.",
-                                    v.Line,
-                                    v.StartColumn,
-                                    v.EndColumn
-                                );
-                            }
-
-                            AddToken(v.Line, v.StartColumn, v.EndColumn, "variable");
                         }
-                        break;
+
+                        AddToken(v.Line, v.StartColumn, v.EndColumn, "variable");
                     }
+                    break;
 
                 case UnaryExpressionNode u:
                     CheckExpression(u.Right);
                     break;
+
                 case BinaryExpressionNode b:
                     CheckExpression(b.Left);
                     CheckExpression(b.Right);
                     break;
+
                 case FunctionCallNode c:
                     foreach (ExpressionNode arg in c.Arguments)
                         CheckExpression(arg);

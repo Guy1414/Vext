@@ -102,7 +102,6 @@ namespace Vext.Compiler.VM
     /// across threads without external synchronization.</remarks>
     internal class VextVM
     {
-        //private readonly Stack<object?> runtimeStack = new();
         private VextValue[] stack = new VextValue[256];
         private VextValue[] variables = new VextValue[64];
         private readonly Dictionary<string, object> functions = [];
@@ -159,7 +158,6 @@ namespace Vext.Compiler.VM
         /// access, type mismatch, or an invalid jump target.</exception>
         public VextValue Run(List<Instruction> instructions, ref int sp)
         {
-            // sp = Stack Pointer
             int ip = 0; // Instruction Pointer
 
             ReadOnlySpan<Instruction> code = CollectionsMarshal.AsSpan(instructions);

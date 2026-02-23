@@ -12,6 +12,11 @@
         public static readonly HashSet<string> ControlKeywords = ["if", "else", "while", "for", "return"];
 
         /// <summary>
+        /// Gets the pattern matching keywords supported by the Vext programming language.
+        /// </summary>
+        public static readonly HashSet<string> IsMatchKeywords = ["is", "as"];
+
+        /// <summary>
         /// Gets the boolean literals supported by the Vext programming language.
         /// </summary>
         public static readonly HashSet<string> Booleans = ["true", "false"];
@@ -35,7 +40,7 @@
         /// Gets all keywords supported by the Vext programming language, including
         /// control flow keywords and return types.
         /// </summary>
-        public static readonly HashSet<string> Keywords = [.. ReturnTypes, .. ControlKeywords];
+        public static readonly HashSet<string> Keywords = [.. ReturnTypes, .. ControlKeywords, .. IsMatchKeywords];
 
         /// <summary>
         /// Defines the operator precedence levels used by the Vext programming language.
@@ -56,7 +61,7 @@
         /// <summary>
         /// Gets the punctuation characters used by the Vext programming language.
         /// </summary>
-        public const string Punctuation = ";,.(){}";
+        public const string Punctuation = ";,.(){}|";
 
         /// <summary>
         /// Gets the operator characters used by the Vext programming language.
