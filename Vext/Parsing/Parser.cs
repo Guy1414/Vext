@@ -1,4 +1,5 @@
 ﻿using System.Globalization;
+
 using Vext.Compiler.Diagnostics;
 using Vext.Compiler.Lexing;
 using Vext.Compiler.Shared;
