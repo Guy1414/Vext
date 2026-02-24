@@ -21,6 +21,8 @@ namespace Vext.Compiler.Semantic
         private readonly Dictionary<int, string> slotToNameMap = [];
         private int variableSlotIndex = 0;
 
+        private readonly HashSet<string> knownModules = ["Math"];
+
         public List<FunctionDefinitionNode> GetDiscoveredFunctions() => functions;
         public Dictionary<int, string> GetVariableMap() => slotToNameMap;
 
@@ -495,7 +497,11 @@ namespace Vext.Compiler.Semantic
             {
                 case MemberAccessNode m:
                     // If it's a potential module call (Math.sqrt), don't check the receiver as a variable
-                    bool isPotentialModule = m.Receiver is VariableNode vRec && ResolveVariable(vRec.Name) == null;
+                    bool isPotentialModule =
+                        m.Receiver is VariableNode vRec &&
+                        ResolveVariable(vRec.Name) == null &&
+                        knownModules.Contains(vRec.Name);
+
                     if (!isPotentialModule)
                         CheckExpression(m.Receiver);
 
@@ -866,7 +872,8 @@ namespace Vext.Compiler.Semantic
                                 for (int i = 0; i < ps.Count; i++)
                                 {
                                     string argType = GetExpressionType(m.Arguments[i]);
-                                    if (!AreTypesCompatible(ps[i].Type, argType)) { match = false; break; }
+                                    if (!AreTypesCompatible(ps[i].Type, argType))
+                                    { match = false; break; }
                                 }
                                 if (match)
                                 {
@@ -882,7 +889,8 @@ namespace Vext.Compiler.Semantic
 
                 // 2. Otherwise it must be an instance member access, so get the receiver type
                 string receiverType = GetExpressionType(m.Receiver);
-                if (receiverType == "error") return "error";
+                if (receiverType == "error")
+                    return "error";
 
                 // Instance methods/properties (Intrinsic)
                 if (m.MemberName == "type" && m.Arguments == null)
