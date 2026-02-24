@@ -836,14 +836,22 @@ namespace Vext.Compiler.Semantic
                 foreach (FunctionDefinitionNode fn in candidates)
                 {
                     List<FunctionParameterNode> ps = fn.Arguments ?? [];
-                    if (ps.Count != f.Arguments.Count)
+                    if (ps.Count > f.Arguments.Count)
                         continue;
 
                     bool match = true;
                     for (int i = 0; i < ps.Count; i++)
                     {
-                        if (ps[i].Initializer != null)
+                        if (i >= f.Arguments.Count)
+                        {
+                            if (ps[i].Initializer == null)
+                            {
+                                match = false;
+                                break;
+                            }
+
                             continue;
+                        }
 
                         string argType = GetExpressionType(f.Arguments[i]);
                         if (!AreTypesCompatible(ps[i].Type, argType))
