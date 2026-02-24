@@ -80,13 +80,12 @@ function compileVextFromText(code: string, run = false): Promise<CompileResult> 
     
     if (!fs.existsSync(bridgePath)) {
       connection.window.showErrorMessage(`Compiler missing at: ${bridgePath}`);
-      return reject(`File not found: ${bridgePath}`);
+      return reject(`File not found at: ${bridgePath}`);
     }
 
     const args = ["--stdin"];
     if (run) args.push("--run");
 
-    // Change: shell: false is safer for killing the process directly on Windows
     const proc = spawn(bridgePath, args, { windowsHide: true, shell: false });
 
     let stdout = "";
