@@ -836,23 +836,30 @@ namespace Vext.Compiler.Semantic
                 foreach (FunctionDefinitionNode fn in candidates)
                 {
                     List<FunctionParameterNode> ps = fn.Arguments ?? [];
-                    if (ps.Count > f.Arguments.Count)
+
+                    // More arguments than parameters is always invalid
+                    if (f.Arguments.Count > ps.Count)
                         continue;
 
                     bool match = true;
+
                     for (int i = 0; i < ps.Count; i++)
                     {
                         if (i >= f.Arguments.Count)
                         {
+                            // Argument not provided
                             if (ps[i].Initializer == null)
                             {
-                                match = false;
+                                match = false; // missing argument with no default
                                 break;
+                            } else
+                            {
+                                // Optional/default exists
+                                continue;
                             }
-
-                            continue;
                         }
 
+                        // Argument provided, check type
                         string argType = GetExpressionType(f.Arguments[i]);
                         if (!AreTypesCompatible(ps[i].Type, argType))
                         {
@@ -869,9 +876,11 @@ namespace Vext.Compiler.Semantic
                     }
                 }
 
+                // No matching function
                 ReportError($"No matching overload for function '{f.FunctionName}'.", f.Line, f.StartColumn, f.EndColumn);
                 AddToken(f.Line, f.StartColumn, f.EndColumn, "function", "call");
                 return "error";
+
             }
             if (expr is MemberAccessNode m)
             {
