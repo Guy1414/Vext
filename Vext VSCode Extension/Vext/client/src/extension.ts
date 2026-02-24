@@ -69,6 +69,35 @@ export function activate(context: ExtensionContext) {
     outputChannel.show(true); // true = preserve focus in the editor
 
     try {
+      const activeEditor = vscode.window.activeTextEditor;
+      if (activeEditor) {
+        const diagnostics = vscode.languages.getDiagnostics(activeEditor.document.uri);
+
+        const hasErrors = diagnostics.some(d => d.severity === vscode.DiagnosticSeverity.Error);
+
+        if (hasErrors) {
+          // 1. Filter to get ONLY the actual errors for the count
+          const errorCount = diagnostics.filter(d => d.severity === vscode.DiagnosticSeverity.Error).length;
+
+          // 2. Show the Modal
+          vscode.window.showErrorMessage(
+            "Execution Blocked", 
+            { 
+              modal: true, 
+              detail: `You have ${errorCount} critical error(s) in this file. Please fix them before running.` 
+            },
+            "Show Problems" 
+          ).then(selection => {
+            if (selection === "Show Problems") {
+              // 3. This built-in command opens the Problems view automatically
+              vscode.commands.executeCommand("workbench.actions.view.problems");
+            }
+          });
+
+          return; // Stop execution
+        }
+      }
+
       const result = await client.sendRequest<RunOutput>('vext/runCode', { code });
 
       outputChannel.appendLine(`✅ Ran successfully in ${result.time}ms`);

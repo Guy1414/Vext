@@ -100,6 +100,15 @@ namespace Vext.Compiler.Bytecode_Generator
                     EmitExpression(arg, instructions);
                 }
 
+                VextVMBytecode op = f.ReturnType != "void" ? VextVMBytecode.CALL : VextVMBytecode.CALL_VOID;
+
+                instructions.Add(new Instruction
+                {
+                    Op = op,
+                    Arg = (f.FunctionName as object, f.Arguments?.Count ?? 0),
+                    LineNumber = f.Line,
+                    ColumnNumber = f.StartColumn
+                });
             } else if (expr is MemberAccessNode m)
             {
                 if (m.IsModuleCall && m.Receiver is VariableNode vMod)
@@ -127,9 +136,12 @@ namespace Vext.Compiler.Bytecode_Generator
                             EmitExpression(arg, instructions);
 
                     string targetName;
-                    if (m.MemberName == "type" && m.Arguments == null) targetName = "__v_gettype";
-                    else if (m.MemberName == "ToString" && m.Arguments != null && m.Arguments.Count == 0) targetName = "__v_tostring";
-                    else throw new Exception($"Unsupported member access: {m.MemberName}");
+                    if (m.MemberName == "type" && m.Arguments == null)
+                        targetName = "__v_gettype";
+                    else if (m.MemberName == "ToString" && m.Arguments != null && m.Arguments.Count == 0)
+                        targetName = "__v_tostring";
+                    else
+                        throw new Exception($"Unsupported member access: {m.MemberName}");
 
                     VextVMBytecode op = m.ReturnType == "void" ? VextVMBytecode.CALL_VOID : VextVMBytecode.CALL;
                     instructions.Add(new Instruction

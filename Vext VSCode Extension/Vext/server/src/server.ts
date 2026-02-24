@@ -9,8 +9,7 @@ import {
   DiagnosticSeverity,
   Range,
   Position,
-  SemanticTokensBuilder,
-  SemanticTokens
+  SemanticTokensBuilder
 } from "vscode-languageserver/node";
 import { RequestType } from 'vscode-languageserver';
 import { TextDocument } from "vscode-languageserver-textdocument";

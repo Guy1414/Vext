@@ -1,7 +1,9 @@
 ﻿using System.Diagnostics;
+
 using Vext.Compiler;
 using Vext.Compiler.Shared;
 using Vext.Compiler.VM;
+
 using static Vext.Compiler.Diagnostics.Diagnostic;
 
 class Program
@@ -61,15 +63,27 @@ class Program
         }
 
         // --- 8. Functions & Nested Calls ---
-        int square(int n) { return n * n; }
-        float multiply(float a, float b) { return a * b; }
-        string greet(string name) { return "Hello, " + name + "!"; }
+        int square(int n)
+        {
+            return n * n;
+        }
+
+        float multiply(float a, float b)
+        {
+            return a * b;
+        }
+
+        string greet(string name = "Guy")
+        {
+            return "Hello, " + name + "!";
+        }
         int addThree(auto a, auto b, auto c) { return a + b + c; } // auto allows int/float mix
 
         int sq = square(3);
         int val = addThree(1, 2, sq);
         float calc = multiply(2.5, square(4));
         string message = greet("Vext");
+        string message1 = greet();
 
         // --- 9. Nested Expressions & Constant Folding ---
         float complexCalc = ((2 + 3) * (5 - 1) / 2) + Math.pow(2, 3) - 4;
@@ -126,6 +140,17 @@ class Program
         print("empty: '" + empty + "', zero: " + zero + ", negative: " + negative + ", negativeFloat: " + negativeFloat);
         print("falseVal: " + falseVal + ", trueVal: " + trueVal + ", specialChars: " + specialChars);
         print("Big While Loop: " + x);
+
+        int x1 = 10;
+        print("Type of x: " + x1.type);
+        print("String of x: " + x1.ToString());
+        float f1 = 3.14;
+        print("Type of f: " + f1.type);
+        print("String of f: " + f1.ToString());
+        // Chaining
+        print("Chained type: " + x1.ToString().type);
+        // Module access
+        print("Sqrt of 16: " + Math.sqrt(16));
         """;
     }
 
