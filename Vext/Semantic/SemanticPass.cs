@@ -21,6 +21,8 @@ namespace Vext.Compiler.Semantic
         private readonly Dictionary<int, string> slotToNameMap = [];
         private int variableSlotIndex = 0;
 
+        private readonly Dictionary<ExpressionNode, string> expressionTypeCache = [];
+
         private readonly HashSet<string> knownModules = ["Math"];
 
         public List<FunctionDefinitionNode> GetDiscoveredFunctions() => functions;
@@ -711,6 +713,16 @@ namespace Vext.Compiler.Semantic
         /// "error" if the type cannot be determined or if the expression is invalid.</returns>
         private string GetExpressionType(ExpressionNode expr)
         {
+            if (expressionTypeCache.TryGetValue(expr, out var cached))
+                return cached;
+
+            string type = ComputeExpressionType(expr);
+
+            return expressionTypeCache[expr] = type;
+        }
+
+        private string ComputeExpressionType(ExpressionNode expr)
+        {
             if (expr is LiteralNode l)
             {
                 string type = l.Value switch
@@ -882,7 +894,7 @@ namespace Vext.Compiler.Semantic
                                 }
                             }
                         }
-                        ReportError($"No matching overload for function 1234 '{fullName}'.", m.Line, m.StartColumn, m.EndColumn);
+                        ReportError($"No matching overload for function '{fullName}'.", m.Line, m.StartColumn, m.EndColumn);
                         return "error";
                     }
                 }
