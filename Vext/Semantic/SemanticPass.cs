@@ -77,6 +77,7 @@ namespace Vext.Compiler.Semantic
         /// is added alongside existing definitions. This allows for function overloading by name.</remarks>
         /// <param name="builtIns">The collection of built-in functions to register. Each function in the collection must have a unique name
         /// within the set of built-ins.</param>
+        /// <param name="prefix"></param>
         public void RegisterBuiltInFunctions(IEnumerable<Function> builtIns, string? prefix = null)
         {
             foreach (Function f in builtIns)
@@ -1092,6 +1093,7 @@ namespace Vext.Compiler.Semantic
             {
                 if (scope.Variables.TryGetValue(name, out VariableDeclarationNode? decl))
                     return decl;
+
                 scope = scope.Parent;
             }
             return null;
