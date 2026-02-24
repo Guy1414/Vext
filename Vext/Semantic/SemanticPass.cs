@@ -842,6 +842,9 @@ namespace Vext.Compiler.Semantic
                     bool match = true;
                     for (int i = 0; i < ps.Count; i++)
                     {
+                        if (ps[i].Initializer != null)
+                            continue;
+
                         string argType = GetExpressionType(f.Arguments[i]);
                         if (!AreTypesCompatible(ps[i].Type, argType))
                         {
