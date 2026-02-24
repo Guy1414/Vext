@@ -1,10 +1,12 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
+
 using Vext.Compiler;
 using Vext.Compiler.Lexing;
 using Vext.Compiler.Semantic;
 using Vext.Compiler.VM;
 using Vext.LSP;
+
 using static Vext.Compiler.Diagnostics.Diagnostic;
 
 [JsonSerializable(typeof(Program.Result))]
@@ -150,8 +152,8 @@ class Program
                     {
                         Message = ed.Message,
                         Line = Math.Max(0, ed.LspLine),
-                        StartColumn = Math.Max(0, ed.LspStartCol - 1),
-                        EndColumn = Math.Max(0, ed.LspEndCol),
+                        StartColumn = Math.Max(0, ed.LspStartCol),
+                        EndColumn = Math.Max(0, ed.LspEndCol + 1),
                         Severity = ed.LspSeverity.ToString().ToLower()
                     });
                 }
