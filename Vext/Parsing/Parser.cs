@@ -652,6 +652,8 @@ namespace Vext.Compiler.Parsing
         /// unary operation.</returns>
         private ExpressionNode ParsePrimary(Token token)
         {
+            ExpressionNode left;
+
             if (token.TokenType == TokenType.Operator && (token.Value == "-" || token.Value == "!"))
             {
                 Advance(); // consume '-' or '!'
@@ -673,73 +675,89 @@ namespace Vext.Compiler.Parsing
                 Advance(); // consume '('
                 ExpressionNode expr = ParseExpression();
                 Expect(TokenType.Punctuation, ")");
-                return expr;
+                left = expr;
             } else if (token.TokenType == TokenType.Numeric)
             {
                 Advance();
                 // support both integer and floating point (user writes float, we make it a double for accuracy)
                 if (token.Value.IndexOfAny(['.', 'e', 'E']) >= 0)
                 {
-                    return new LiteralNode { Value = double.Parse(token.Value, CultureInfo.InvariantCulture), Line = token.Line, StartColumn = token.StartColumn, EndColumn = tokens[currentToken - 1].EndColumn };
+                    left = new LiteralNode { Value = double.Parse(token.Value, CultureInfo.InvariantCulture), Line = token.Line, StartColumn = token.StartColumn, EndColumn = tokens[currentToken - 1].EndColumn };
                 } else
                 {
-                    return new LiteralNode { Value = int.Parse(token.Value, CultureInfo.InvariantCulture), Line = token.Line, StartColumn = token.StartColumn, EndColumn = tokens[currentToken - 1].EndColumn };
+                    left = new LiteralNode { Value = int.Parse(token.Value, CultureInfo.InvariantCulture), Line = token.Line, StartColumn = token.StartColumn, EndColumn = tokens[currentToken - 1].EndColumn };
                 }
             } else if (token.TokenType == TokenType.String)
             {
                 Advance();
-                return new LiteralNode { Value = token.Value, Line = token.Line, StartColumn = token.StartColumn, EndColumn = tokens[currentToken - 1].EndColumn };
+                left = new LiteralNode { Value = token.Value, Line = token.Line, StartColumn = token.StartColumn, EndColumn = tokens[currentToken - 1].EndColumn };
             } else if (token.TokenType == TokenType.Identifier)
             {
                 Token next = Peek(1);
 
-                // Module function call: moduleName.func()
-                if (next.TokenType == TokenType.Punctuation && next.Value == ".")
-                {
-                    string moduleName = token.Value;
-                    Advance(); // consume module name
-                    Expect(TokenType.Punctuation, ".");
-                    Token funcToken = Expect(TokenType.Identifier);
-
-                    // Expect '(' after function name
-                    FunctionCallNode functionCall = ParseFunctionCall(funcToken.Value, funcToken.Line, funcToken.StartColumn, funcToken.EndColumn);
-
-                    return new ModuleAccessNode
-                    {
-                        ModuleName = moduleName,
-                        ModuleNameStartColumn = token.StartColumn,
-                        ModuleNameEndColumn = token.EndColumn,
-                        FunctionName = funcToken.Value,
-                        FunctionNameStartColumn = funcToken.StartColumn,
-                        FunctionNameEndColumn = funcToken.EndColumn,
-                        Arguments = functionCall.Arguments,
-                        Line = token.Line,
-                        StartColumn = token.StartColumn,
-                        EndColumn = tokens[currentToken - 1].EndColumn
-                    };
-                }
                 // Regular function call: func()
-                else if (next.TokenType == TokenType.Punctuation && next.Value == "(")
+                if (next.TokenType == TokenType.Punctuation && next.Value == "(")
                 {
                     Advance(); // consume identifier
-                    return ParseFunctionCall(token.Value, token.Line, token.StartColumn, token.EndColumn);
+                    left = ParseFunctionCall(token.Value, token.Line, token.StartColumn, token.EndColumn);
+                } else
+                {
+                    // Otherwise, just a variable
+                    Advance();
+                    left = new VariableNode { Name = token.Value, Line = token.Line, StartColumn = token.StartColumn, EndColumn = tokens[currentToken - 1].EndColumn };
                 }
-
-                // Otherwise, just a variable
-                Advance();
-                return new VariableNode { Name = token.Value, Line = token.Line, StartColumn = token.StartColumn, EndColumn = tokens[currentToken - 1].EndColumn };
             } else if (token.TokenType == TokenType.Boolean)
             {
                 Advance();
-                return new LiteralNode { Value = bool.Parse(token.Value), Line = token.Line, StartColumn = token.StartColumn, EndColumn = tokens[currentToken - 1].EndColumn };
+                left = new LiteralNode { Value = bool.Parse(token.Value), Line = token.Line, StartColumn = token.StartColumn, EndColumn = tokens[currentToken - 1].EndColumn };
             } else
             {
                 ReportError($"Unexpected token '{token.Value}'", token.Line, token.StartColumn, CurrentToken().Line, CurrentToken().EndColumn);
                 // attempt to recover by advancing and returning a dummy literal
                 while (currentToken < tokens.Count && !(tokens[currentToken].TokenType == TokenType.Punctuation && tokens[currentToken].Value == ";"))
                     Advance();
-                return new LiteralNode { Value = 0, IsError = true, Line = token.Line, StartColumn = token.StartColumn, EndColumn = tokens[currentToken - 1].EndColumn };
+                left = new LiteralNode { Value = 0, IsError = true, Line = token.Line, StartColumn = token.StartColumn, EndColumn = tokens[currentToken - 1].EndColumn };
             }
+
+            // --- Member Access Suffix (.member or .method()) ---
+            while (currentToken < tokens.Count && CurrentToken().TokenType == TokenType.Punctuation && CurrentToken().Value == ".")
+            {
+                Advance(); // consume '.'
+                Token memberToken = Expect(TokenType.Identifier);
+
+                if (currentToken < tokens.Count && CurrentToken().TokenType == TokenType.Punctuation && CurrentToken().Value == "(")
+                {
+                    // Method call: receiver.method(...)
+                    FunctionCallNode call = ParseFunctionCall(memberToken.Value, memberToken.Line, memberToken.StartColumn, memberToken.EndColumn);
+                    left = new MemberAccessNode
+                    {
+                        Receiver = left,
+                        MemberName = memberToken.Value,
+                        MemberNameStartColumn = memberToken.StartColumn,
+                        MemberNameEndColumn = memberToken.EndColumn,
+                        Arguments = call.Arguments,
+                        Line = left.Line,
+                        StartColumn = left.StartColumn,
+                        EndColumn = call.EndColumn
+                    };
+                } else
+                {
+                    // Property access: receiver.property
+                    left = new MemberAccessNode
+                    {
+                        Receiver = left,
+                        MemberName = memberToken.Value,
+                        MemberNameStartColumn = memberToken.StartColumn,
+                        MemberNameEndColumn = memberToken.EndColumn,
+                        Arguments = null,
+                        Line = left.Line,
+                        StartColumn = left.StartColumn,
+                        EndColumn = memberToken.EndColumn
+                    };
+                }
+            }
+
+            return left;
         }
 
         /// <summary>
@@ -1030,11 +1048,15 @@ namespace Vext.Compiler.Parsing
         public string? ReturnType { get; set; } = "unknown";
     }
 
-    class ModuleAccessNode : FunctionCallNode
+    class MemberAccessNode : ExpressionNode
     {
-        public required string ModuleName { get; set; }
-        public required int ModuleNameStartColumn { get; set; }
-        public required int ModuleNameEndColumn { get; set; }
+        public required ExpressionNode Receiver { get; set; }
+        public required string MemberName { get; set; }
+        public int MemberNameStartColumn { get; set; }
+        public int MemberNameEndColumn { get; set; }
+        public List<ExpressionNode>? Arguments { get; set; } = null;
+        public bool IsModuleCall { get; set; } = false;
+        public string ReturnType { get; set; } = "auto";
     }
 
     class FunctionDefinitionNode : StatementNode

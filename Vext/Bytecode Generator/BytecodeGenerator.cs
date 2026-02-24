@@ -100,27 +100,44 @@ namespace Vext.Compiler.Bytecode_Generator
                     EmitExpression(arg, instructions);
                 }
 
-                string targetName = f is ModuleAccessNode modCall
-                    ? $"{modCall.ModuleName}.{modCall.FunctionName}"
-                    : f.FunctionName;
-
-                if (f.ReturnType == "void")
+            } else if (expr is MemberAccessNode m)
+            {
+                if (m.IsModuleCall && m.Receiver is VariableNode vMod)
                 {
+                    // Static module call: Module.Func(...)
+                    if (m.Arguments != null)
+                        foreach (ExpressionNode arg in m.Arguments)
+                            EmitExpression(arg, instructions);
+
+                    string fullName = $"{vMod.Name}.{m.MemberName}";
+                    VextVMBytecode op = m.ReturnType == "void" ? VextVMBytecode.CALL_VOID : VextVMBytecode.CALL;
                     instructions.Add(new Instruction
                     {
-                        Op = VextVMBytecode.CALL_VOID,
-                        Arg = (targetName as object, f.Arguments.Count),
-                        LineNumber = f.Line,
-                        ColumnNumber = f.StartColumn
+                        Op = op,
+                        Arg = (fullName as object, m.Arguments?.Count ?? 0),
+                        LineNumber = m.Line,
+                        ColumnNumber = m.StartColumn
                     });
                 } else
                 {
+                    // Instance member (Intrinsic)
+                    EmitExpression(m.Receiver, instructions);
+                    if (m.Arguments != null)
+                        foreach (ExpressionNode arg in m.Arguments)
+                            EmitExpression(arg, instructions);
+
+                    string targetName;
+                    if (m.MemberName == "type" && m.Arguments == null) targetName = "__v_gettype";
+                    else if (m.MemberName == "ToString" && m.Arguments != null && m.Arguments.Count == 0) targetName = "__v_tostring";
+                    else throw new Exception($"Unsupported member access: {m.MemberName}");
+
+                    VextVMBytecode op = m.ReturnType == "void" ? VextVMBytecode.CALL_VOID : VextVMBytecode.CALL;
                     instructions.Add(new Instruction
                     {
-                        Op = VextVMBytecode.CALL,
-                        Arg = (targetName as object, f.Arguments.Count),
-                        LineNumber = f.Line,
-                        ColumnNumber = f.StartColumn
+                        Op = op,
+                        Arg = (targetName as object, (m.Arguments?.Count ?? 0) + 1), // +1 for the receiver
+                        LineNumber = m.Line,
+                        ColumnNumber = m.StartColumn
                     });
                 }
             } else if (expr is UnaryExpressionNode u)
@@ -487,6 +504,7 @@ namespace Vext.Compiler.Bytecode_Generator
             return expr switch
             {
                 FunctionCallNode call => call.ReturnType != "void",
+                MemberAccessNode m => m.ReturnType != "void",
                 UnaryExpressionNode u when u.Operator == "++" || u.Operator == "--" => false,
                 _ => true
             };

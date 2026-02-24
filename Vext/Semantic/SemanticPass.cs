@@ -77,14 +77,15 @@ namespace Vext.Compiler.Semantic
         /// is added alongside existing definitions. This allows for function overloading by name.</remarks>
         /// <param name="builtIns">The collection of built-in functions to register. Each function in the collection must have a unique name
         /// within the set of built-ins.</param>
-        public void RegisterBuiltInFunctions(IEnumerable<Function> builtIns)
+        public void RegisterBuiltInFunctions(IEnumerable<Function> builtIns, string? prefix = null)
         {
             foreach (Function f in builtIns)
             {
-                if (!builtInFunctions.TryGetValue(f.Name, out List<FunctionDefinitionNode>? list))
+                string fullName = prefix == null ? f.Name : $"{prefix}.{f.Name}";
+                if (!builtInFunctions.TryGetValue(fullName, out List<FunctionDefinitionNode>? list))
                 {
                     list = [];
-                    builtInFunctions[f.Name] = list;
+                    builtInFunctions[fullName] = list;
                 }
                 int slot = 0;
                 list.Add(new FunctionDefinitionNode
@@ -491,11 +492,17 @@ namespace Vext.Compiler.Semantic
         {
             switch (expr)
             {
-                case ModuleAccessNode m:
-                    AddToken(m.Line, m.ModuleNameStartColumn, m.ModuleNameEndColumn, "variable", "readonly", "static"); // Module as variable-ish
-                    AddToken(m.Line, m.FunctionNameStartColumn, m.FunctionNameEndColumn, "function", "call");
-                    foreach (ExpressionNode? arg in m.Arguments)
-                        CheckExpression(arg);
+                case MemberAccessNode m:
+                    // If it's a potential module call (Math.sqrt), don't check the receiver as a variable
+                    bool isPotentialModule = m.Receiver is VariableNode vRec && ResolveVariable(vRec.Name) == null;
+                    if (!isPotentialModule)
+                        CheckExpression(m.Receiver);
+
+                    if (m.Arguments != null)
+                    {
+                        foreach (ExpressionNode arg in m.Arguments)
+                            CheckExpression(arg);
+                    }
                     break;
                 case VariableNode v:
                     VariableDeclarationNode? decl = ResolveVariable(v.Name);
@@ -836,41 +843,62 @@ namespace Vext.Compiler.Semantic
                 AddToken(f.Line, f.StartColumn, f.EndColumn, "function", "call");
                 return "error";
             }
-            if (expr is ModuleAccessNode mod)
+            if (expr is MemberAccessNode m)
             {
-                string fullName = mod.ModuleName + "." + mod.FunctionName;
-
-                if (!builtInFunctions.TryGetValue(fullName, out List<FunctionDefinitionNode>? builtIns))
+                // 1. Check if it's a module call FIRST: Module.Func()
+                if (m.Receiver is VariableNode vRec && ResolveVariable(vRec.Name) == null)
                 {
-                    ReportError($"No matching overload for function '{fullName}'.", mod.Line, mod.StartColumn, mod.EndColumn);
-                    return "error";
-                }
-
-                foreach (FunctionDefinitionNode fn in builtIns)
-                {
-                    List<FunctionParameterNode> ps = fn.Arguments ?? [];
-                    if (ps.Count != mod.Arguments.Count)
-                        continue;
-
-                    bool match = true;
-                    for (int i = 0; i < ps.Count; i++)
+                    string fullName = $"{vRec.Name}.{m.MemberName}";
+                    if (builtInFunctions.TryGetValue(fullName, out List<FunctionDefinitionNode>? builtIns))
                     {
-                        string argType = GetExpressionType(mod.Arguments[i]);
-                        if (!AreTypesCompatible(ps[i].Type, argType))
+                        m.IsModuleCall = true;
+                        // Add tokens for Module.Func
+                        AddToken(vRec.Line, vRec.StartColumn, vRec.EndColumn, "variable", "readonly", "static");
+                        AddToken(m.Line, m.MemberNameStartColumn, m.MemberNameEndColumn, "function", "call");
+
+                        foreach (FunctionDefinitionNode fn in builtIns)
                         {
-                            match = false;
-                            break;
+                            List<FunctionParameterNode> ps = fn.Arguments ?? [];
+                            if (m.Arguments != null && ps.Count == m.Arguments.Count)
+                            {
+                                bool match = true;
+                                for (int i = 0; i < ps.Count; i++)
+                                {
+                                    string argType = GetExpressionType(m.Arguments[i]);
+                                    if (!AreTypesCompatible(ps[i].Type, argType)) { match = false; break; }
+                                }
+                                if (match)
+                                {
+                                    m.ReturnType = fn.ReturnType;
+                                    return fn.ReturnType;
+                                }
+                            }
                         }
-                    }
-
-                    if (match)
-                    {
-                        mod.ReturnType = fn.ReturnType;
-                        return fn.ReturnType;
+                        ReportError($"No matching overload for function '{fullName}'.", m.Line, m.StartColumn, m.EndColumn);
+                        return "error";
                     }
                 }
 
-                ReportError($"No matching overload for function '{fullName}'.", mod.Line, mod.StartColumn, mod.EndColumn);
+                // 2. Otherwise it must be an instance member access, so get the receiver type
+                string receiverType = GetExpressionType(m.Receiver);
+                if (receiverType == "error") return "error";
+
+                // Instance methods/properties (Intrinsic)
+                if (m.MemberName == "type" && m.Arguments == null)
+                {
+                    AddToken(m.Line, m.MemberNameStartColumn, m.MemberNameEndColumn, "property", "readonly");
+                    m.ReturnType = "string";
+                    return "string";
+                }
+
+                if (m.MemberName == "ToString" && m.Arguments != null && m.Arguments.Count == 0)
+                {
+                    AddToken(m.Line, m.MemberNameStartColumn, m.MemberNameEndColumn, "function", "call");
+                    m.ReturnType = "string";
+                    return "string";
+                }
+
+                ReportError($"Type '{receiverType}' does not have a member '{m.MemberName}'.", m.Line, m.MemberNameStartColumn, m.MemberNameEndColumn);
                 return "error";
             }
 
