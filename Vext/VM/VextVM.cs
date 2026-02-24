@@ -187,7 +187,7 @@ namespace Vext.Compiler.VM
                     case VextVMBytecode.STORE_VAR:
                         if (sp == 0)
                         {
-                            Console.WriteLine($"ERROR: Tried to STORE_VAR {instr.Arg} but stack is empty!");
+                            Console.Error.WriteLine($"ERROR: Tried to STORE_VAR {instr.Arg} but stack is empty!");
                             break;
                         }
                         EnsureCapacity(instr.ArgInt);

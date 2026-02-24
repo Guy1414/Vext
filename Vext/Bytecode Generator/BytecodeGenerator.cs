@@ -427,6 +427,10 @@ namespace Vext.Compiler.Bytecode_Generator
                 for (int i = func.Arguments.Count - 1; i >= 0; i--)
                 {
                     FunctionParameterNode arg = func.Arguments[i];
+
+                    if (arg.Initializer != null)
+                        EmitExpression(arg.Initializer, funcInstructions); // push default if needed
+
                     funcInstructions.Add(new Instruction
                     {
                         Op = VextVMBytecode.STORE_VAR,
