@@ -427,14 +427,19 @@ namespace Vext.Compiler.Semantic
                         }
                     }
 
-                    if (fo.Condition != null)
+                    fo.Condition ??= new LiteralNode
                     {
-                        CheckExpression(fo.Condition);
+                        Line = fo.Line,
+                        StartColumn = fo.KeywordColumnStart,
+                        EndColumn = fo.KeywordColumnEnd,
+                        Value = true,
+                    };
 
-                        string forType = GetExpressionType(fo.Condition);
-                        if (forType != "bool" && forType != "error")
-                            ReportError($"For condition must be boolean, got '{forType}'.", fo.Line, fo.StartColumn, fo.EndColumn);
-                    }
+                    CheckExpression(fo.Condition);
+
+                    string forType = GetExpressionType(fo.Condition);
+                    if (forType != "bool" && forType != "error")
+                        ReportError($"For condition must be boolean, got '{forType}'.", fo.Line, fo.StartColumn, fo.EndColumn);
 
                     if (fo.Increment != null)
                     {

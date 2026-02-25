@@ -256,16 +256,8 @@ namespace Vext.Compiler.Bytecode_Generator
                 instructions[jumpIndex].Arg = instructions.Count;
             } else if (stmt is ForStatementNode forStmt)
             {
-                forStmt.Initialization ??= new VariableDeclarationNode
-                {
-                    Name = "i",
-                    VariableType = "int",
-                    DeclaredType = "int",
-                    Initializer = new LiteralNode { Value = 0, Line = forStmt.Line, StartColumn = forStmt.StartColumn },
-                    Line = forStmt.Line,
-                    StartColumn = forStmt.StartColumn
-                };
-                EmitStatement(forStmt.Initialization, instructions);
+                if (forStmt.Initialization != null)
+                    EmitStatement(forStmt.Initialization, instructions);
 
                 int loopStart = instructions.Count;
 
@@ -291,14 +283,8 @@ namespace Vext.Compiler.Bytecode_Generator
                         EmitStatement(s, instructions);
 
                     // Increment
-                    forStmt.Increment ??= new IncrementStatementNode
-                    {
-                        VariableName = "i",
-                        IsIncrement = true,
-                        Line = forStmt.Line,
-                        StartColumn = forStmt.StartColumn
-                    };
-                    EmitStatement(forStmt.Increment, instructions);
+                    if (forStmt.Increment != null)
+                        EmitStatement(forStmt.Increment, instructions);
 
                     // Loop back
                     instructions.Add(new Instruction { Op = VextVMBytecode.JMP, Arg = loopStart, LineNumber = forStmt.Line, ColumnNumber = forStmt.StartColumn });
@@ -308,23 +294,15 @@ namespace Vext.Compiler.Bytecode_Generator
                     return;
                 }
 
-                forStmt.Condition ??= new BinaryExpressionNode { Left = new VariableNode { Name = "i" }, Operator = "<", Right = new LiteralNode { Value = 10 }, Line = forStmt.Line, StartColumn = forStmt.StartColumn };
-
-                EmitExpression(forStmt.Condition, instructions);
+                EmitExpression(forStmt.Condition!, instructions);
                 int jumpIndex = instructions.Count;
                 instructions.Add(new Instruction { Op = VextVMBytecode.JMP_IF_FALSE, Arg = -1, LineNumber = forStmt.Line, ColumnNumber = forStmt.StartColumn });
 
                 foreach (StatementNode s in forStmt.Body)
                     EmitStatement(s, instructions);
 
-                forStmt.Increment ??= new IncrementStatementNode
-                {
-                    VariableName = "i",
-                    IsIncrement = true,
-                    Line = forStmt.Line,
-                    StartColumn = forStmt.StartColumn
-                };
-                EmitStatement(forStmt.Increment, instructions);
+                if (forStmt.Increment != null)
+                    EmitStatement(forStmt.Increment, instructions);
 
                 instructions.Add(new Instruction { Op = VextVMBytecode.JMP, Arg = loopStart, LineNumber = forStmt.Line, ColumnNumber = forStmt.StartColumn });
                 instructions[jumpIndex].Arg = instructions.Count;
