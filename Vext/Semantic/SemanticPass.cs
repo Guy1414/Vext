@@ -430,8 +430,8 @@ namespace Vext.Compiler.Semantic
                     ExpressionNode condition = fo.Condition ?? new LiteralNode
                     {
                         Value = true,
-                        Line = fo.Line
                     };
+                    fo.Condition = condition;
 
                     CheckExpression(condition);
 
