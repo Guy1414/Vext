@@ -13,6 +13,10 @@ using static Vext.Compiler.Diagnostics.Diagnostic;
 [JsonSerializable(typeof(Program.Result))]
 [JsonSerializable(typeof(Program.ErrorInfo))]
 [JsonSerializable(typeof(Program.RunOutput))]
+[JsonSerializable(typeof(Program.TokenInfo))]
+[JsonSerializable(typeof(List<Program.TokenInfo>))]
+[JsonSerializable(typeof(Program.KeywordInfo))]
+[JsonSerializable(typeof(Program.KeywordInfo[]))]
 [JsonSerializable(typeof(VextValue))]
 [JsonSerializable(typeof(VextValue[]))]
 [JsonSerializable(typeof(Response))]
@@ -165,8 +169,8 @@ class Program
                         processedTokens.Add(new TokenInfo
                         {
                             Line = t.Line - 1,
-                            StartColumn = t.StartColumn - 1,
-                            EndColumn = t.EndColumn,
+                            StartColumn = start,
+                            EndColumn = end,
                             Type = type
                         });
                     }
