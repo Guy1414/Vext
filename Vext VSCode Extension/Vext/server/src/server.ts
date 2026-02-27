@@ -9,9 +9,11 @@ import {
   DiagnosticSeverity,
   Range,
   Position,
-  SemanticTokensBuilder
+  SemanticTokensBuilder,
+  CompletionItem,
+  CompletionItemKind
 } from "vscode-languageserver/node";
-import { RequestType } from 'vscode-languageserver';
+import { InsertTextFormat, RequestType } from 'vscode-languageserver';
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { spawn } from "child_process";
 import * as path from "path";
@@ -61,11 +63,19 @@ const enum TokenModifier {
   readonly = 1 << 1,
 }
 
+interface KeywordInfo {
+  label: string;
+  kind: typeof CompletionItemKind.Keyword;
+  insertTextFormat: 2;
+  insertText: string;
+}
+
 interface CompileResult {
   success: boolean;
   errors: ErrorInfo[];
   output?: RunOutput;
   tokens?: TokenInfo[];
+  keywords: KeywordInfo[];
 }
 
 namespace RunCodeRequest {
@@ -202,6 +212,10 @@ connection.onInitialize((_params: InitializeParams) => {
   return <InitializeResult>{
     capabilities: {
       textDocumentSync: TextDocumentSyncKind.Incremental,
+      completionProvider: {
+        resolveProvider: false,
+        triggerCharacters: ["."]
+      },
       semanticTokensProvider: {
         legend: {
           tokenTypes: [
@@ -327,6 +341,68 @@ connection.languages.semanticTokens.on(async (params) => {
     return builder.build();
   }
 });
+
+connection.onCompletion(async (params) => {
+  const doc = documents.get(params.textDocument.uri);
+  if (!doc) return [];
+
+  const code = doc.getText();
+
+  try {
+    const result = await compileVextFromText(code, false);
+
+    const items: CompletionItem[] = [];
+
+    // 1. Keywords
+    const keywords = result.keywords;
+
+    for (const k of keywords) {
+      items.push({
+        label: k.label,
+        kind: k.kind,
+        insertTextFormat: k.insertTextFormat,
+        insertText: k.insertText,
+      });
+    }
+
+    // 2. Variables / Functions from semantic tokens
+    if (result.tokens) {
+      for (const t of result.tokens) {
+        if (!t.isDeclaration) continue;
+
+        if (t.type === "variable") {
+          items.push({
+            label: extractIdentifierFromDocument(doc, t),
+            kind: CompletionItemKind.Variable
+          });
+        }
+
+        if (t.type === "function") {
+          items.push({
+            label: extractIdentifierFromDocument(doc, t),
+            kind: CompletionItemKind.Function
+          });
+        }
+      }
+    }
+
+    const unique = new Map<string, CompletionItem>();
+
+    for (const item of items) {
+      unique.set(item.label, item);
+    }
+
+    return Array.from(unique.values());
+  } catch {
+    return [];
+  }
+});
+
+function extractIdentifierFromDocument(doc: TextDocument, token: TokenInfo): string {
+  const start = Position.create(token.line, token.startColumn);
+  const end = Position.create(token.line, token.endColumn);
+  return doc.getText(Range.create(start, end));
+}
 
 // --- Listen ---
 documents.listen(connection);

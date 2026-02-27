@@ -48,6 +48,28 @@ class Program
         public string Stdout { get; set; } = "";
     }
 
+    public class KeywordInfo
+    {
+        public required string Label { get; init; }
+        public required string InsertText { get; init; }
+
+        public static readonly KeywordInfo[] AllKeywords =
+        [
+            new() { Label = "int", InsertText = "int" },
+            new() { Label = "float", InsertText = "float" },
+            new() { Label = "bool", InsertText = "bool" },
+            new() { Label = "string", InsertText = "string" },
+            new() { Label = "auto", InsertText = "auto" },
+            new() { Label = "if", InsertText = "if (${1:condition}) {\n\t$0\n}" },
+            new() { Label = "else", InsertText = "else {\n\t$0\n}" },
+            new() { Label = "while", InsertText = "while (${1:condition}) {\n\t$0\n}" },
+            new() { Label = "for", InsertText = "for (${1:var}; ${2:condition}; ${3:expression}) {\n\t$0\n}" },
+            new() { Label = "return", InsertText = "return ${1:expression};" },
+            new() { Label = "is", InsertText = "is" },
+            new() { Label = "as", InsertText = "as" },
+        ];
+    }
+
     // Full result object
     public class Result
     {
@@ -55,6 +77,7 @@ class Program
         public List<ErrorInfo> Errors { get; set; } = [];
         public RunOutput? Output { get; set; } = null;
         public List<TokenInfo> Tokens { get; set; } = [];
+        public KeywordInfo[] Keywords { get; set; } = KeywordInfo.AllKeywords;
     }
 
     static int Main(string[] args)
