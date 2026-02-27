@@ -18,6 +18,7 @@ import { TextDocument } from "vscode-languageserver-textdocument";
 import { spawn } from "child_process";
 import * as path from "path";
 import * as fs from 'fs';
+import { CompilerBridge } from "./compilerBridge";
 
 // --- Setup connection & documents ---
 const connection = createConnection(ProposedFeatures.all);
@@ -78,67 +79,19 @@ interface CompileResult {
   keywords: KeywordInfo[];
 }
 
+const compileCache = new Map<string, CompileResult>();
+const compiler = new CompilerBridge();
+
 namespace RunCodeRequest {
   export const type = new RequestType<{ code: string }, RunOutput, void>('vext/runCode');
 }
 
-// --- Compile helper using stdin ---
+// --- Compile helper ---
 function compileVextFromText(code: string, run = false): Promise<CompileResult> {
-  return new Promise((resolve, reject) => {
-    const bridgePath = path.resolve(__dirname, '..', '..', 'compiler', 'Vext.LSP.exe');
-    
-    if (!fs.existsSync(bridgePath)) {
-      connection.window.showErrorMessage(`Compiler missing at: ${bridgePath}`);
-      return reject(`File not found at: ${bridgePath}`);
-    }
-
-    const args = ["--stdin"];
-    if (run) args.push("--run");
-
-    const proc = spawn(bridgePath, args, { windowsHide: true, shell: false });
-
-    let stdout = "";
-    let stderr = "";
-
-    // Timer to prevent zombie processes
-    const timeout = setTimeout(() => {
-      if (!proc.killed) {
-        proc.kill('SIGKILL');
-        reject("Compiler timed out (5s limit)");
-      }
-    }, 5000);
-
-    proc.stdout.on("data", (data) => (stdout += data.toString()));
-    proc.stderr.on("data", (data) => (stderr += data.toString()));
-
-    proc.on("error", (err) => {
-      clearTimeout(timeout);
-      reject(err.message);
-    });
-
-    proc.on("close", (exitCode) => {
-      clearTimeout(timeout);
-      if (exitCode !== 0) {
-        reject(stderr || `Bridge exited with code ${exitCode}`);
-        return;
-      }
-      try {
-        const result: CompileResult = JSON.parse(stdout);
-        resolve(result);
-      } catch (parseErr) {
-        reject("Failed to parse compiler output: " + parseErr);
-      }
-    });
-
-    // Handle stdin errors (e.g. if proc dies before write)
-    proc.stdin.on('error', (err) => {
-      clearTimeout(timeout);
-      proc.kill();
-      reject("Stdin error: " + err.message);
-    });
-
-    proc.stdin.write(code);
-    proc.stdin.end();
+  return compiler.request<CompileResult>({
+    type: "compile",
+    run,
+    code
   });
 }
 
@@ -237,34 +190,32 @@ connection.onInitialize((_params: InitializeParams) => {
   };
 });
 
+const pendingCompiles = new Map<string, Promise<CompileResult>>();
+
 documents.onDidChangeContent(async (change) => {
   const uri = change.document.uri;
   const code = change.document.getText();
 
+  const compilePromise = compileVextFromText(code, false);
+  pendingCompiles.set(uri, compilePromise);
+
   try {
-    const result = await compileVextFromText(code, false);
+    const result = await compilePromise;
 
-    // Send diagnostics
-    const diagnostics = errorsToDiagnostics(result.errors || []);
-    connection.sendDiagnostics({ uri, diagnostics });
-
-    // if (result.success) {
-    //   connection.window.showInformationMessage(
-    //     "Compiler ran succesfully."
-    //   );
-    // }
-  } catch (err: any) {
+    // Only update if this is still the latest compile
+    if (pendingCompiles.get(uri) === compilePromise) {
+      compileCache.set(uri, result);
+      connection.sendDiagnostics({ uri, diagnostics: errorsToDiagnostics(result.errors || []) });
+    }
+  } catch (err) {
     connection.window.showErrorMessage("Compiler error: " + err);
   }
 });
 
 connection.onRequest(RunCodeRequest.type, async (params) => {
   try {
-    const result = await compileVextFromText(params.code, true); // <-- pass `--run`
-    if (result.output) {
-      return result.output;
-    }
-    return { time: 0, finalState: [] };
+    const result = await compileVextFromText(params.code, true);
+    return result.output ?? { time: 0, finalState: [] };
   } catch (err) {
     throw new Error(err as string);
   }
@@ -278,8 +229,8 @@ connection.languages.semanticTokens.on(async (params) => {
   const code = doc.getText();
 
   try {
-    const result = await compileVextFromText(code, false);
-    if (!result.tokens) return builder.build();
+    const result = compileCache.get(params.textDocument.uri);
+    if (!result || !result.tokens) return builder.build();
 
     const tokens = [...result.tokens].sort((a, b) => {
       if (a.line !== b.line) return a.line - b.line;
@@ -326,10 +277,13 @@ connection.languages.semanticTokens.on(async (params) => {
       const modifiers =
         t.isDeclaration ? TokenModifier.declaration : 0;
 
+      const length = t.endColumn - t.startColumn;
+      if (length <= 0) continue;
+
       builder.push(
         t.line,
         t.startColumn,
-        (t.endColumn - t.startColumn),
+        length,
         tokenType,
         modifiers
       );
@@ -349,9 +303,11 @@ connection.onCompletion(async (params) => {
   const code = doc.getText();
 
   try {
-    const result = await compileVextFromText(code, false);
+    const result = compileCache.get(params.textDocument.uri);
+    if (!result) return [];
 
     const items: CompletionItem[] = [];
+    const range = getWordRangeAtPosition(doc, params.position);
 
     // 1. Keywords
     const keywords = result.keywords;
@@ -360,27 +316,43 @@ connection.onCompletion(async (params) => {
       items.push({
         label: k.label,
         kind: k.kind,
-        insertTextFormat: k.insertTextFormat,
-        insertText: k.insertText,
+        insertTextFormat: InsertTextFormat.Snippet,
+        textEdit: {
+          range,
+          newText: k.insertText
+        },
+        sortText: "0" + k.label
       });
     }
 
     // 2. Variables / Functions from semantic tokens
     if (result.tokens) {
+      const fullText = doc.getText();
       for (const t of result.tokens) {
         if (!t.isDeclaration) continue;
+        const name = extractIdentifierFromDocument(doc, fullText, t);
 
         if (t.type === "variable") {
           items.push({
-            label: extractIdentifierFromDocument(doc, t),
-            kind: CompletionItemKind.Variable
+            label: name,
+            kind: CompletionItemKind.Variable,
+            textEdit: {
+              range,
+              newText: name
+            },
+            sortText: "1" + name
           });
         }
 
         if (t.type === "function") {
           items.push({
-            label: extractIdentifierFromDocument(doc, t),
-            kind: CompletionItemKind.Function
+            label: name,
+            kind: CompletionItemKind.Function,
+            textEdit: {
+              range,
+              newText: name
+            },
+            sortText: "1" + name
           });
         }
       }
@@ -398,10 +370,24 @@ connection.onCompletion(async (params) => {
   }
 });
 
-function extractIdentifierFromDocument(doc: TextDocument, token: TokenInfo): string {
-  const start = Position.create(token.line, token.startColumn);
-  const end = Position.create(token.line, token.endColumn);
-  return doc.getText(Range.create(start, end));
+function getWordRangeAtPosition(doc: TextDocument, position: Position): Range {
+  const text = doc.getText();
+  const offset = doc.offsetAt(position);
+
+  let start = offset;
+  let end = offset;
+
+  while (start > 0 && /\w/.test(text[start - 1])) start--;
+  while (end < text.length && /\w/.test(text[end])) end++;
+
+  return Range.create(doc.positionAt(start), doc.positionAt(end));
+}
+
+function extractIdentifierFromDocument(doc: TextDocument, fullText: string, token: TokenInfo): string {
+  const startOffset = doc.offsetAt(Position.create(token.line, token.startColumn));
+  const endOffset = doc.offsetAt(Position.create(token.line, token.endColumn));
+  const name = fullText.substring(startOffset, endOffset);
+  return name;
 }
 
 // --- Listen ---
