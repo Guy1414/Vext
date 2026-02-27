@@ -398,6 +398,7 @@ namespace Vext.Compiler.Semantic
 
                 case ForStatementNode fo:
                     AddToken(fo.Line, fo.KeywordColumnStart, fo.KeywordColumnEnd, "keyword", "control"); // "for"
+                    PushScope();
                     if (fo.Initialization != null)
                     {
                         switch (fo.Initialization)
@@ -477,7 +478,7 @@ namespace Vext.Compiler.Semantic
 
                     BitArray beforeFo = new BitArray(assignedSlots.Peek());
 
-                    AnalyzeStatementBlock(fo.Body, func, true);
+                    AnalyzeStatementBlock(fo.Body, func, false);
 
                     BitArray afterFo = new BitArray(assignedSlots.Peek());
 
