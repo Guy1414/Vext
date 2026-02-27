@@ -7,6 +7,7 @@ using Vext.Compiler.Semantic;
 using Vext.Compiler.VM;
 using Vext.LSP;
 
+using static Program;
 using static Vext.Compiler.Diagnostics.Diagnostic;
 
 [JsonSerializable(typeof(Program.Result))]
@@ -14,6 +15,7 @@ using static Vext.Compiler.Diagnostics.Diagnostic;
 [JsonSerializable(typeof(Program.RunOutput))]
 [JsonSerializable(typeof(VextValue))]
 [JsonSerializable(typeof(VextValue[]))]
+[JsonSerializable(typeof(Response))]
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase, Converters = [typeof(VextValueConverter)])]
 internal partial class VextJsonContext : JsonSerializerContext
 {
@@ -48,6 +50,12 @@ class Program
         public string Stdout { get; set; } = "";
     }
 
+    public class Response
+    {
+        public int Id { get; set; }
+        public Result Result { get; set; } = null!;
+    }
+
     public class KeywordInfo
     {
         public required string Label { get; init; }
@@ -80,127 +88,141 @@ class Program
         public KeywordInfo[] Keywords { get; set; } = KeywordInfo.AllKeywords;
     }
 
-    static int Main(string[] args)
+    static int Main()
     {
-        bool useStdin = args.Contains("--stdin");
-        bool run = args.Contains("--run");
-
         string? line;
         while ((line = Console.ReadLine()) != null)
         {
+            if (string.IsNullOrWhiteSpace(line))
+                continue;
 
-            Result result = new Result();
+            using JsonDocument doc = JsonDocument.Parse(line);
+            JsonElement root = doc.RootElement;
+            int id = root.GetProperty("id").GetInt32();
+            string code = root.GetProperty("code").GetString() ?? "";
 
-            try
+            bool run = root.TryGetProperty("run", out var runProp) && runProp.GetBoolean();
+
+            Result result = CompileAndRun(code, run);
+
+            Response response = new Response { Id = id, Result = result };
+
+            // Serialize result to JSON
+            Console.WriteLine(JsonSerializer.Serialize(response, VextJsonContext.Default.Response));
+            Console.Out.Flush();
+        }
+        return 0;
+    }
+
+    public static Result CompileAndRun(string code, bool run)
+    {
+        Result result = new Result { };
+        try
+        {
+            CompilationResult compileResult = VextEngine.Compile(code);
+
+            List<TokenInfo> processedTokens = [];
+
+            // 1. Add Semantic Tokens from SemanticPass
+            foreach (SemanticToken? st in compileResult.SemanticTokens)
             {
-                CompilationResult compileResult = VextEngine.Compile(line);
-
-                List<TokenInfo> processedTokens = [];
-
-                // 1. Add Semantic Tokens from SemanticPass
-                foreach (SemanticToken? st in compileResult.SemanticTokens)
+                processedTokens.Add(new TokenInfo
                 {
-                    processedTokens.Add(new TokenInfo
-                    {
-                        Line = st.Line - 1,
-                        StartColumn = st.StartColumn - 1,
-                        EndColumn = st.EndColumn,
-                        Type = st.Type,
-                        IsDeclaration = st.Modifiers.Contains("declaration")
-                    });
-                }
+                    Line = st.Line - 1,
+                    StartColumn = st.StartColumn - 1,
+                    EndColumn = st.EndColumn,
+                    Type = st.Type,
+                    IsDeclaration = st.Modifiers.Contains("declaration")
+                });
+            }
 
-                // 2. Add Lexer tokens that are usually not in AST (Comments, Strings, Numbers, Keywords that might be missed)
-                foreach (Token t in compileResult.Tokens)
+            // 2. Add Lexer tokens that are usually not in AST (Comments, Strings, Numbers, Keywords that might be missed)
+            foreach (Token t in compileResult.Tokens)
+            {
+                string type = t.TokenType switch
                 {
-                    string type = t.TokenType switch
+                    TokenType.Comment => "comment",
+                    TokenType.String => "string",
+                    TokenType.Numeric => "number",
+                    TokenType.Boolean => "boolean",
+                    TokenType.Keyword => "keyword",
+                    TokenType.Operator => "operator",
+                    _ => ""
+                };
+
+                if (!string.IsNullOrEmpty(type))
+                {
+                    int start = t.StartColumn - 1; // convert to 0-based
+                    int end = t.EndColumn;
+
+                    bool overlaps = processedTokens.Any(pt =>
+                        pt.Line == t.Line - 1 &&
+                        !(t.EndColumn <= pt.StartColumn || t.StartColumn - 1 >= pt.EndColumn)
+                    );
+
+                    if (!overlaps)
                     {
-                        TokenType.Comment => "comment",
-                        TokenType.String => "string",
-                        TokenType.Numeric => "number",
-                        TokenType.Boolean => "boolean",
-                        TokenType.Keyword => "keyword",
-                        TokenType.Operator => "operator",
-                        _ => ""
-                    };
-
-                    if (!string.IsNullOrEmpty(type))
-                    {
-                        int start = t.StartColumn - 1; // convert to 0-based
-                        int end = t.EndColumn;
-
-                        bool overlaps = processedTokens.Any(pt =>
-                            pt.Line == t.Line - 1 &&
-                            !(t.EndColumn <= pt.StartColumn || t.StartColumn - 1 >= pt.EndColumn)
-                        );
-
-                        if (!overlaps)
+                        processedTokens.Add(new TokenInfo
                         {
-                            processedTokens.Add(new TokenInfo
-                            {
-                                Line = t.Line - 1,
-                                StartColumn = t.StartColumn - 1,
-                                EndColumn = t.EndColumn,
-                                Type = type
-                            });
-                        }
+                            Line = t.Line - 1,
+                            StartColumn = t.StartColumn - 1,
+                            EndColumn = t.EndColumn,
+                            Type = type
+                        });
                     }
                 }
+            }
 
-                result.Tokens = [.. processedTokens
+            result.Tokens = [.. processedTokens
                 .GroupBy(t => new { t.Line, t.StartColumn, t.EndColumn, t.Type })
                 .Select(g => g.First())
                 .OrderBy(t => t.Line)
                 .ThenBy(t => t.StartColumn)];
 
 
-                if (compileResult.Errors.Count > 0)
-                {
-                    foreach (ErrorDescriptor ed in compileResult.Errors)
-                    {
-                        result.Errors.Add(new ErrorInfo
-                        {
-                            Message = ed.Message,
-                            Line = Math.Max(0, ed.LspLine),
-                            StartColumn = Math.Max(0, ed.LspStartCol),
-                            EndColumn = Math.Max(0, ed.LspEndCol + 1),
-                            Severity = ed.LspSeverity.ToString().ToLower()
-                        });
-                    }
-                    result.Success = false;
-                } else
-                {
-                    result.Success = true;
-
-                    if (run)
-                    {
-                        (double time, VextValue[] finalState, string stdout) = VextEngine.Run(compileResult.Instructions);
-
-                        result.Output = new RunOutput
-                        {
-                            Time = time,
-                            FinalState = finalState,
-                            Stdout = stdout
-                        };
-                    }
-                }
-            } catch (Exception ex)
+            if (compileResult.Errors.Count > 0)
             {
-                result.Success = false;
-                result.Errors.Add(new ErrorInfo
+                foreach (ErrorDescriptor ed in compileResult.Errors)
                 {
-                    Message = ex.Message,
-                    Line = 0,
-                    StartColumn = 0,
-                    EndColumn = 1,
-                    Severity = "error"
-                });
-            }
+                    result.Errors.Add(new ErrorInfo
+                    {
+                        Message = ed.Message,
+                        Line = Math.Max(0, ed.LspLine),
+                        StartColumn = Math.Max(0, ed.LspStartCol),
+                        EndColumn = Math.Max(0, ed.LspEndCol + 1),
+                        Severity = ed.LspSeverity.ToString().ToLower()
+                    });
+                }
+                result.Success = false;
+            } else
+            {
+                result.Success = true;
 
-            // Serialize result to JSON
-            Console.WriteLine(JsonSerializer.Serialize(result, VextJsonContext.Default.Result));
-            Console.Out.Flush();
+                if (run)
+                {
+                    (double time, VextValue[] finalState, string stdout) = VextEngine.Run(compileResult.Instructions);
+
+                    result.Output = new RunOutput
+                    {
+                        Time = time,
+                        FinalState = finalState,
+                        Stdout = stdout
+                    };
+                }
+            }
+            return result;
+        } catch (Exception ex)
+        {
+            result.Success = false;
+            result.Errors.Add(new ErrorInfo
+            {
+                Message = ex.Message,
+                Line = 0,
+                StartColumn = 0,
+                EndColumn = 1,
+                Severity = "error"
+            });
         }
-        return 0;
+        return result;
     }
 }

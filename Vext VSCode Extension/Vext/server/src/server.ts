@@ -226,7 +226,6 @@ connection.languages.semanticTokens.on(async (params) => {
   if (!doc) return { data: [] };
 
   const builder = new SemanticTokensBuilder();
-  const code = doc.getText();
 
   try {
     const result = compileCache.get(params.textDocument.uri);
@@ -299,8 +298,6 @@ connection.languages.semanticTokens.on(async (params) => {
 connection.onCompletion(async (params) => {
   const doc = documents.get(params.textDocument.uri);
   if (!doc) return [];
-
-  const code = doc.getText();
 
   try {
     const result = compileCache.get(params.textDocument.uri);
