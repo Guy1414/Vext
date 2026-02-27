@@ -28,6 +28,14 @@ export class CompilerBridge {
     this.proc.stdout.on("data", (d) => this.onStdout(d.toString()));
     this.proc.stderr.on("data", (d) => console.error("[compiler]", d.toString()));
 
+    this.proc.on("error", (err) => {
+      console.error("[compiler] process error:", err);
+      for (const p of this.pending.values()) {
+        p.reject(err);
+      }
+      this.pending.clear();
+    });
+
     this.proc.on("exit", (code) => {
       for (const p of this.pending.values()) {
         p.reject(`Compiler exited (${code})`);
@@ -46,7 +54,14 @@ export class CompilerBridge {
 
       if (!line) continue;
 
-      const msg = JSON.parse(line);
+      let msg: any;
+      try {
+        msg = JSON.parse(line);
+      } catch (err) {
+        console.error("[compiler] failed to parse JSON from stdout:", line, err);
+        continue;
+      }
+
       const pending = this.pending.get(msg.id);
       if (!pending) continue;
 
@@ -56,17 +71,31 @@ export class CompilerBridge {
   }
 
   request<T>(payload: Omit<any, "id">): Promise<T> {
-    const id = this.nextId++;
+    if (this.proc.killed) {
+      return Promise.reject("Compiler process has already exited");
+    }
 
+    const id = this.nextId++;
     const msg = JSON.stringify({ id, ...payload }) + "\n";
 
     return new Promise<T>((resolve, reject) => {
       this.pending.set(id, { resolve, reject });
-      this.proc.stdin.write(msg);
+      this.proc.stdin.write(msg, (err) => {
+        if (err) {
+          this.pending.delete(id);
+          reject(err);
+        }
+      });
     });
   }
 
   dispose() {
-    this.proc.kill();
+    if (!this.proc.killed) {
+      this.proc.kill();
+    }
+    // close stdin to signal EOF
+    try {
+      this.proc.stdin.end();
+    } catch {}
   }
 }

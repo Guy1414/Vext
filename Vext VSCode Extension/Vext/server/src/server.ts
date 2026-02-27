@@ -192,7 +192,6 @@ connection.onInitialize((_params: InitializeParams) => {
   };
 });
 
-const pendingCompiles = new Map<string, Promise<CompileResult>>();
 
 documents.onDidChangeContent(async (change) => {
   const uri = change.document.uri;
@@ -203,7 +202,6 @@ documents.onDidChangeContent(async (change) => {
   compileCounter.set(uri, counter);
 
   const compilePromise = compileVextFromText(code, false);
-  pendingCompiles.set(uri, compilePromise);
 
   try {
     const result = await compilePromise;
@@ -217,8 +215,18 @@ documents.onDidChangeContent(async (change) => {
     const diagnostics = errorsToDiagnostics(result.errors ?? []);
     connection.sendDiagnostics({ uri, diagnostics });
   } catch (err) {
+    // clear any stale diagnostics when the compiler itself throws
+    connection.sendDiagnostics({ uri, diagnostics: [] });
+    console.error("compile error", err);
     connection.window.showErrorMessage("Compiler error: " + err);
   }
+});
+
+// when the user closes a document we can drop our caches for it
+documents.onDidClose((e) => {
+  const uri = e.document.uri;
+  compileCache.delete(uri);
+  compileCounter.delete(uri);
 });
 
 connection.onRequest(RunCodeRequest.type, async (params) => {
