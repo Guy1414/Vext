@@ -80,6 +80,8 @@ interface CompileResult {
 }
 
 const compileCache = new Map<string, CompileResult>();
+const compileCounter = new Map<string, number>();
+
 const compiler = new CompilerBridge();
 
 namespace RunCodeRequest {
@@ -196,17 +198,24 @@ documents.onDidChangeContent(async (change) => {
   const uri = change.document.uri;
   const code = change.document.getText();
 
+  // Increment the counter for this document
+  const counter = (compileCounter.get(uri) ?? 0) + 1;
+  compileCounter.set(uri, counter);
+
   const compilePromise = compileVextFromText(code, false);
   pendingCompiles.set(uri, compilePromise);
 
   try {
     const result = await compilePromise;
 
-    // Only update if this is still the latest compile
-    if (pendingCompiles.get(uri) === compilePromise) {
-      compileCache.set(uri, result);
-      connection.sendDiagnostics({ uri, diagnostics: errorsToDiagnostics(result.errors || []) });
-    }
+    // Only act if this is the latest compile for this document
+    if (compileCounter.get(uri) !== counter) return;
+
+    compileCache.set(uri, result);
+
+    // Always send diagnostics, even if empty, to clear previous errors
+    const diagnostics = errorsToDiagnostics(result.errors ?? []);
+    connection.sendDiagnostics({ uri, diagnostics });
   } catch (err) {
     connection.window.showErrorMessage("Compiler error: " + err);
   }
