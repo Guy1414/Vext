@@ -118,18 +118,6 @@ namespace Vext.Compiler
             );
         }
 
-        private static void RegisterBuiltIns(SemanticPass pass)
-        {
-            Module math = new MathFunctions { Name = "Math" }.Initialize();
-            foreach (List<Function> func in math.Functions.Values)
-                pass.RegisterBuiltInFunctions(func, math.Name);
-
-            DefaultFunctions defaults = new DefaultFunctions();
-            defaults.Initialize();
-            foreach (List<Function> func in defaults.Functions.Values)
-                pass.RegisterBuiltInFunctions(func);
-        }
-
         /// <summary>
         /// Runs the provided bytecode instructions in the Vext VM.
         /// </summary>
@@ -137,22 +125,40 @@ namespace Vext.Compiler
         /// <returns></returns>
         public static (double Time, VextValue[] FinalState, string Stdout) Run(List<Instruction> instructions)
         {
-            RuntimeOutput.Flush();
-
             Stopwatch sw = Stopwatch.StartNew();
 
+            RuntimeOutput output = new RuntimeOutput();
+
             Module mathModule = new MathFunctions { Name = "Math" }.Initialize();
-            DefaultFunctions defaults = new DefaultFunctions();
+            DefaultFunctions defaults = new DefaultFunctions(output);
             defaults.Initialize();
 
-            VextVM vm = new VextVM(modulesList: [mathModule], defaults: defaults);
+            VextVM vm = new VextVM(
+                modulesList: [mathModule],
+                defaults: defaults
+            );
+
             int sp = 0;
             vm.Run(instructions, ref sp);
 
-            string stdout = RuntimeOutput.Flush();
+            string stdout = output.Flush();
 
             sw.Stop();
             return (sw.Elapsed.TotalMilliseconds, vm.GetVariables(), stdout);
+        }
+
+        private static void RegisterBuiltIns(SemanticPass pass)
+        {
+            Module math = new MathFunctions { Name = "Math" }.Initialize();
+            foreach (List<Function> func in math.Functions.Values)
+                pass.RegisterBuiltInFunctions(func, math.Name);
+
+            RuntimeOutput dummyOutput = new RuntimeOutput();
+            DefaultFunctions defaults = new DefaultFunctions(dummyOutput);
+            defaults.Initialize();
+
+            foreach (List<Function> func in defaults.Functions.Values)
+                pass.RegisterBuiltInFunctions(func);
         }
     }
 }

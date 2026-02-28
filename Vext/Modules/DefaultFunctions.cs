@@ -2,9 +2,9 @@
 
 namespace Vext.Compiler.Modules
 {
-    internal class DefaultFunctions
+    internal class DefaultFunctions(RuntimeOutput output)
     {
-        public Dictionary<string, List<Function>> Functions { get; private set; } = [];
+        public Dictionary<string, List<Function>> Functions { get; } = [];
 
         private void Add(string name, Function fn)
         {
@@ -20,14 +20,14 @@ namespace Vext.Compiler.Modules
         {
             Add("print", new Function("print", 1, args =>
             {
-                string output = args[0] switch
+                string text = args[0] switch
                 {
                     bool b => b.ToString().ToLower(),
                     string s => s,
                     _ => args[0]?.ToString()?.ToLower() ?? "null"
                 };
 
-                RuntimeOutput.WriteLine(output);
+                output.Write(text);
                 return null!;
             })
             {
@@ -37,7 +37,34 @@ namespace Vext.Compiler.Modules
 
             Add("print", new Function("print", 0, args =>
             {
-                RuntimeOutput.WriteLine("");
+                output.Write("");
+                return null!;
+            })
+            {
+                Parameters = [],
+                ReturnType = "void"
+            });
+
+            Add("println", new Function("println", 1, args =>
+            {
+                string text = args[0] switch
+                {
+                    bool b => b.ToString().ToLower(),
+                    string s => s,
+                    _ => args[0]?.ToString()?.ToLower() ?? "null"
+                };
+
+                output.WriteLine(text);
+                return null!;
+            })
+            {
+                Parameters = [new FunctionParameterNode { Name = "value", Type = "auto" }],
+                ReturnType = "void"
+            });
+
+            Add("println", new Function("println", 0, args =>
+            {
+                output.WriteLine("");
                 return null!;
             })
             {

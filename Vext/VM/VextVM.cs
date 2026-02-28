@@ -131,12 +131,10 @@ namespace Vext.Compiler.VM
             // Load default functions
             if (defaults != null)
             {
-                foreach (List<Function> funcList in defaults.Functions.Values)
+                foreach (KeyValuePair<string, List<Function>> kvp in defaults.Functions)
                 {
-                    foreach (Function fn in funcList)
-                    {
-                        functions[fn.Name] = fn;
-                    }
+                    // store the list of overloads to resolve by arity at call time
+                    functions[kvp.Key] = kvp.Value;
                 }
             }
         }
@@ -434,6 +432,28 @@ namespace Vext.Compiler.VM
                 // GLOBAL / USER FUNCTION
                 if (!functions.TryGetValue(funcName, out object? funcObj))
                     throw new Exception($"Function '{funcName}' not defined.");
+
+                // If multiple overloads stored as List<Function>, resolve by arity
+                if (funcObj is List<Function> candidatesList)
+                {
+                    Function matched = candidatesList.FirstOrDefault(fn => (fn.Parameters?.Count ?? 0) == argCount)
+                        ?? throw new Exception($"Function '{funcName}' has no overload taking {argCount} args.");
+
+                    object[] args = new object[argCount];
+                    for (int i = argCount - 1; i >= 0; i--)
+                    {
+                        VextValue v = Pop(ref sp);
+                        args[i] = v.Type switch
+                        {
+                            VextType.Number => v.AsNumber,
+                            VextType.Bool => v.AsBool,
+                            VextType.String => v.AsString,
+                            _ => null!
+                        };
+                    }
+
+                    return MapToVextValue(matched.Native([.. args]));
+                }
 
                 // Native global
                 if (funcObj is Function nativeFunc)

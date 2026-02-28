@@ -36,29 +36,29 @@ class Program
 
         // --- 4. Strings & Escapes ---
         string escaped = "Line1\\nLine2\\tTabbed\\\"Quote\\'Single";
-        print(escaped);
+        println(escaped);
 
         // --- 5. Comments ---
-        print("Comments ignored");
+        println("Comments ignored");
 
         // --- 6. Conditionals ---
         if (i > 40) {
-            print("i > 40");
+            println("i > 40");
         } else if (i == 42) {
-            print("i == 42");
+            println("i == 42");
         } else {
-            print("i < 40");
+            println("i < 40");
         }
 
         // --- 7. Loops ---
         int total = 0;
         for (int j = 0; j < 5; j++) {
             total += j;
-            if (j % 2 == 0) print("Even: " + j);
+            if (j % 2 == 0) println("Even: " + j);
         }
         int k = 0;
         while (k < 3) {
-            print("While: " + k);
+            println("While: " + k);
             k++;
         }
 
@@ -108,7 +108,7 @@ class Program
         float m = multiply(2.0, 3.0);
         int val1 = addThree(s1, m, 4);
         int deepChain = square(val1);
-        print("Deep chain: " + deepChain);
+        println("Deep chain: " + deepChain);
 
         // --- 16. Full Expression Mix ---
         float finalCalc = ((3 + 5) * (2 - 7) / 2 + Math.pow(2, 3) - 4) / 2 + Math.sqrt(16) - 1;
@@ -130,27 +130,27 @@ class Program
         }
 
         // --- 19. printing everything ---
-        print("sum: " + sum + ", result: " + result + ", concat: " + concat);
-        print("complexBool: " + complexBool + ", testNegation: " + testNegation);
-        print("val: " + val + ", calc: " + calc + ", message: " + message);
-        print("complexCalc: " + complexCalc + ", nestedFold: " + nestedFold);
-        print("logicTest: " + logicTest + ", mod: " + mod + ", exp: " + exp);
-        print("angle: " + angle + ", trigTest: " + trigTest + ", hypot: " + hypot);
-        print("finalCalc: " + finalCalc + ", mixed: " + mixed);
-        print("empty: '" + empty + "', zero: " + zero + ", negative: " + negative + ", negativeFloat: " + negativeFloat);
-        print("falseVal: " + falseVal + ", trueVal: " + trueVal + ", specialChars: " + specialChars);
-        print("Big While Loop: " + x);
+        println("sum: " + sum + ", result: " + result + ", concat: " + concat);
+        println("complexBool: " + complexBool + ", testNegation: " + testNegation);
+        println("val: " + val + ", calc: " + calc + ", message: " + message);
+        println("complexCalc: " + complexCalc + ", nestedFold: " + nestedFold);
+        println("logicTest: " + logicTest + ", mod: " + mod + ", exp: " + exp);
+        println("angle: " + angle + ", trigTest: " + trigTest + ", hypot: " + hypot);
+        println("finalCalc: " + finalCalc + ", mixed: " + mixed);
+        println("empty: '" + empty + "', zero: " + zero + ", negative: " + negative + ", negativeFloat: " + negativeFloat);
+        println("falseVal: " + falseVal + ", trueVal: " + trueVal + ", specialChars: " + specialChars);
+        println("Big While Loop: " + x);
 
         int x1 = 10;
-        print("Type of x: " + x1.type);
-        print("String of x: " + x1.ToString());
+        println("Type of x: " + x1.type);
+        println("String of x: " + x1.ToString());
         float f1 = 3.14;
-        print("Type of f: " + f1.type);
-        print("String of f: " + f1.ToString());
+        println("Type of f: " + f1.type);
+        println("String of f: " + f1.ToString());
         // Chaining
-        print("Chained type: " + x1.ToString().type);
+        println("Chained type: " + x1.ToString().type);
         // Module access
-        print("Sqrt of 16: " + Math.sqrt(16));
+        println("Sqrt of 16: " + Math.sqrt(16));
         """;
     }
 
