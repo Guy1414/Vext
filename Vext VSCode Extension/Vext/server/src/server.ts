@@ -154,8 +154,11 @@ function assertNoOverlappingTokens(tokens: TokenInfo[], uri: string) {
       });
     }
   }
-  
-  connection.sendDiagnostics({ uri, diagnostics });
+
+  if (diagnostics.length > 0) {
+    // Send diagnostics so they appear as red squiggles in the editor
+    connection.sendDiagnostics({ uri, diagnostics });
+  }
 }
 
 // --- LSP Handlers ---
