@@ -10,13 +10,14 @@ using Vext.LSP;
 using static Program;
 using static Vext.Compiler.Diagnostics.Diagnostic;
 
-[JsonSerializable(typeof(Program.Result))]
-[JsonSerializable(typeof(Program.ErrorInfo))]
-[JsonSerializable(typeof(Program.RunOutput))]
-[JsonSerializable(typeof(Program.TokenInfo))]
-[JsonSerializable(typeof(List<Program.TokenInfo>))]
-[JsonSerializable(typeof(Program.KeywordInfo))]
-[JsonSerializable(typeof(Program.KeywordInfo[]))]
+[JsonSerializable(typeof(Result))]
+[JsonSerializable(typeof(ErrorInfo))]
+[JsonSerializable(typeof(List<ErrorInfo>))]
+[JsonSerializable(typeof(RunOutput))]
+[JsonSerializable(typeof(TokenInfo))]
+[JsonSerializable(typeof(List<TokenInfo>))]
+[JsonSerializable(typeof(KeywordInfo))]
+[JsonSerializable(typeof(KeywordInfo[]))]
 [JsonSerializable(typeof(VextValue))]
 [JsonSerializable(typeof(VextValue[]))]
 [JsonSerializable(typeof(Response))]
@@ -130,15 +131,11 @@ class Program
             // 1. Add Semantic Tokens from SemanticPass
             foreach (SemanticToken? st in compileResult.SemanticTokens)
             {
-                // Normalize to 0-based start and 0-based exclusive end
-                int start = Math.Max(0, st.StartColumn - 1);
-                int end = Math.Max(start + 1, st.EndColumn);
-
                 processedTokens.Add(new TokenInfo
                 {
-                    Line = Math.Max(0, st.Line - 1),
-                    StartColumn = start,
-                    EndColumn = end,
+                    Line = st.Line - 1,
+                    StartColumn = st.StartColumn - 1,
+                    EndColumn = st.EndColumn,
                     Type = st.Type,
                     IsDeclaration = st.Modifiers.Contains("declaration")
                 });
@@ -160,12 +157,12 @@ class Program
 
                 if (!string.IsNullOrEmpty(type))
                 {
-                    int start = Math.Max(0, t.StartColumn - 1); // convert to 0-based
-                    int end = Math.Max(start + 1, t.EndColumn); // normalize to exclusive end
+                    int start = t.StartColumn - 1; // convert to 0-based
+                    int end = t.EndColumn;
 
                     bool overlaps = processedTokens.Any(pt =>
                         pt.Line == t.Line - 1 &&
-                        !(end <= pt.StartColumn || start >= pt.EndColumn)
+                        !(t.EndColumn <= pt.StartColumn || t.StartColumn - 1 >= pt.EndColumn)
                     );
 
                     if (!overlaps)
