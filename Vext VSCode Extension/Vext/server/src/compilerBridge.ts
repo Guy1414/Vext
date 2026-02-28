@@ -35,13 +35,6 @@ export class CompilerBridge {
       }
       this.pending.clear();
     });
-
-    this.proc.on("exit", (code) => {
-      for (const p of this.pending.values()) {
-        p.reject(`Compiler exited (${code})`);
-      }
-      this.pending.clear();
-    });
   }
 
   private onStdout(chunk: string) {
@@ -70,24 +63,39 @@ export class CompilerBridge {
     }
   }
 
-  request<T>(payload: Omit<any, "id">): Promise<T> {
+  request<T>(payload: Omit<any, "id">, timeoutMs = 5000): Promise<T> {
     if (this.proc.killed) {
-      return Promise.reject("Compiler process has already exited");
+        return Promise.reject(new Error("Compiler process has already exited"));
     }
 
     const id = this.nextId++;
     const msg = JSON.stringify({ id, ...payload }) + "\n";
 
     return new Promise<T>((resolve, reject) => {
-      this.pending.set(id, { resolve, reject });
-      this.proc.stdin.write(msg, (err) => {
-        if (err) {
-          this.pending.delete(id);
-          reject(err);
+        const timer = setTimeout(() => {
+        if (this.pending.has(id)) {
+            this.pending.delete(id);
+            reject(new Error("Compiler request timed out"));
         }
-      });
+        }, timeoutMs);
+
+        this.pending.set(id, { resolve: (v) => { clearTimeout(timer); resolve(v); }, reject: (r) => { clearTimeout(timer); reject(r); } });
+
+        try {
+        this.proc.stdin.write(msg, (err) => {
+            if (err) {
+            this.pending.delete(id);
+            clearTimeout(timer);
+            reject(err instanceof Error ? err : new Error(String(err)));
+            }
+        });
+        } catch (err) {
+        this.pending.delete(id);
+        clearTimeout(timer);
+        reject(err instanceof Error ? err : new Error(String(err)));
+        }
     });
-  }
+    }
 
   dispose() {
     if (!this.proc.killed) {

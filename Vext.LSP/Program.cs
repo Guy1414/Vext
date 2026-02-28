@@ -170,8 +170,8 @@ class Program
                         processedTokens.Add(new TokenInfo
                         {
                             Line = t.Line - 1,
-                            StartColumn = start,
-                            EndColumn = end,
+                            StartColumn = t.StartColumn - 1,
+                            EndColumn = t.EndColumn,
                             Type = type
                         });
                     }

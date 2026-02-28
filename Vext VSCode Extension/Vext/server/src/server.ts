@@ -401,6 +401,14 @@ function extractIdentifierFromDocument(doc: TextDocument, fullText: string, toke
   return name;
 }
 
+connection.onShutdown(() => {
+  try { compiler.dispose(); } catch {}
+});
+
+connection.onExit(() => {
+  try { compiler.dispose(); } catch {}
+});
+
 // --- Listen ---
 documents.listen(connection);
 connection.listen();

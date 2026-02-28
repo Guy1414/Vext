@@ -19,13 +19,13 @@
     "keywords": {
       "patterns": [{
         "name": "keyword.control.vext",
-        "match": "\\b(if|else|while|for|return)\\b"
+        "match": "\\b(if|else|while|for|return|is|as)\\b"
       }]
     },
     "storage-types": {
       "patterns": [{
         "name": "storage.type.vext",
-        "match": "\\b(int|float|bool|string|auto|void|numeral)\\b"
+        "match": "\\b(int|float|bool|string|auto|void)\\b"
       }]
     },
     "operators": {
