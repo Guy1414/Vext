@@ -229,7 +229,7 @@ namespace Vext.Compiler.Parsing
                 if (expr is not FunctionCallNode)
                 {
                     Token startToken = CurrentToken();
-                    ReportError($"Unexpected identifier", startToken.Line, startToken.StartColumn, startToken.Line, startToken.EndColumn);
+                    ReportError($"Unexpected identifier", startToken.Line, token.StartColumn, startToken.Line, startToken.EndColumn);
                     Match(TokenType.Punctuation, ";"); // consume semicolon if present
                     return null;
                 }
