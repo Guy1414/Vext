@@ -95,33 +95,49 @@ class Program
 
     static int Main()
     {
+        int id = -1;
         try
         {
             string? line;
-        while ((line = Console.ReadLine()) != null)
-        {
-            if (string.IsNullOrWhiteSpace(line))
-                continue;
+            while ((line = Console.ReadLine()) != null)
+            {
+                if (string.IsNullOrWhiteSpace(line))
+                    continue;
 
-            using JsonDocument doc = JsonDocument.Parse(line);
-            JsonElement root = doc.RootElement;
-            int id = root.GetProperty("id").GetInt32();
-            string code = root.GetProperty("code").GetString() ?? "";
+                using JsonDocument doc = JsonDocument.Parse(line);
+                JsonElement root = doc.RootElement;
+                id = root.GetProperty("id").GetInt32();
+                string code = root.GetProperty("code").GetString() ?? "";
 
-            bool run = root.TryGetProperty("run", out var runProp) && runProp.GetBoolean();
+                bool run = root.TryGetProperty("run", out var runProp) && runProp.GetBoolean();
 
-            Result result = CompileAndRun(code, run);
+                Result result = CompileAndRun(code, run);
 
-            Response response = new Response { Id = id, Result = result };
+                Response response = new Response { Id = id, Result = result };
 
-            // Serialize result to JSON
-            Console.WriteLine(JsonSerializer.Serialize(response, VextJsonContext.Default.Response));
-            Console.Out.Flush();
-        }
+                // Serialize result to JSON
+                Console.WriteLine(JsonSerializer.Serialize(response, VextJsonContext.Default.Response));
+                Console.Out.Flush();
+            }
         } catch (Exception ex)
         {
-            Console.Error.WriteLine("[FATAL] " + ex);
-            return 1; // don't exit silently
+            if (id == -1)
+                id = 0;
+
+            Result errorResult = new Result
+            {
+                Success = false,
+                Errors =
+                [
+                    new() { Message = ex.Message, Line = 0, StartColumn = 0, EndColumn = 1, Severity = "error" }
+                ]
+            };
+            Response errorResponse = new Response { Id = id, Result = errorResult };
+            try
+            {
+                Console.WriteLine(JsonSerializer.Serialize(errorResponse, VextJsonContext.Default.Response));
+                Console.Out.Flush();
+            } catch { }
         }
         return 0;
     }

@@ -191,37 +191,46 @@ connection.onInitialize((_params: InitializeParams) => {
   };
 });
 
+const compileTimeouts = new Map<string, NodeJS.Timeout>();
 
-documents.onDidChangeContent(async (change) => {
+documents.onDidChangeContent((change) => {
   const uri = change.document.uri;
-  const code = change.document.getText();
 
-  // Increment the counter for this document
-  const counter = (compileCounter.get(uri) ?? 0) + 1;
-  compileCounter.set(uri, counter);
+  // clear any previous debounce timeout
+  if (compileTimeouts.has(uri)) clearTimeout(compileTimeouts.get(uri)!);
 
-  const compilePromise = compileVextFromText(code, false);
+  // set a new debounce (e.g., 200ms after last keystroke)
+  compileTimeouts.set(uri, setTimeout(async () => {
+    const code = change.document.getText();
 
-  try {
-    const result = await compilePromise;
+    // increment document compile counter
+    const counter = (compileCounter.get(uri) ?? 0) + 1;
+    compileCounter.set(uri, counter);
 
-    // Only act if this is the latest compile for this document
-    if (compileCounter.get(uri) !== counter) return;
+    try {
+      const result = await compileVextFromText(code, false);
 
-    // Always send diagnostics, even if empty, to clear previous errors
-    const diagnostics = errorsToDiagnostics(result.errors ?? []);
-    connection.sendDiagnostics({ uri, diagnostics });
-  } catch (err) {
-    // clear any stale diagnostics when the compiler itself throws
-    connection.sendDiagnostics({ uri, diagnostics: [] });
-    console.error("compile error", err);
-    connection.window.showErrorMessage("Compiler error: " + err);
-  }
+      // only act if this is the latest compile
+      if (compileCounter.get(uri) !== counter) return;
+
+      const diagnostics = errorsToDiagnostics(result.errors ?? []);
+      connection.sendDiagnostics({ uri, diagnostics });
+    } catch (err) {
+      // clear diagnostics on compiler error
+      connection.sendDiagnostics({ uri, diagnostics: [] });
+      console.error("compile error", err);
+      connection.window.showErrorMessage("Compiler error: " + err);
+    }
+  }, 200)); // 200ms debounce delay
 });
 
 documents.onDidClose((e) => {
   const uri = e.document.uri;
   compileCounter.delete(uri);
+  if (compileTimeouts.has(uri)) {
+    clearTimeout(compileTimeouts.get(uri)!);
+    compileTimeouts.delete(uri);
+  }
 });
 
 connection.onRequest(RunCodeRequest.type, async (params) => {
