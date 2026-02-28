@@ -221,7 +221,7 @@ class Program
             result.Success = false;
             result.Errors.Add(new ErrorInfo
             {
-                Message = ex.ToString(),
+                Message = ex.Message,
                 Line = 0,
                 StartColumn = 0,
                 EndColumn = 1,

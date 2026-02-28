@@ -52,7 +52,9 @@ namespace Vext.Compiler.Parsing
                     while (currentToken < tokens.Count && !(tokens[currentToken].TokenType == TokenType.Punctuation && tokens[currentToken].Value == ";"))
                         Advance();
 
-                    if (tokens[currentToken].TokenType == TokenType.Punctuation && tokens[currentToken].Value == ";")
+                    if (currentToken < tokens.Count &&
+                            tokens[currentToken].TokenType == TokenType.Punctuation &&
+                            tokens[currentToken].Value == ";")
                         Advance(); // skip the ;
                 }
             }
