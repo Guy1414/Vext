@@ -64,7 +64,7 @@ export class CompilerBridge {
   }
 
   request<T>(payload: Omit<any, "id">, timeoutMs = 5000): Promise<T> {
-    if (this.proc.killed) {
+    if (!this.proc || this.proc.exitCode !== null) {
         return Promise.reject(new Error("Compiler process has already exited"));
     }
 
@@ -94,6 +94,26 @@ export class CompilerBridge {
         clearTimeout(timer);
         reject(err instanceof Error ? err : new Error(String(err)));
         }
+
+        this.proc.on("exit", (code, signal) => {
+            const err = new Error(`Compiler exited (code=${code}, signal=${signal})`);
+
+            for (const p of this.pending.values()) {
+                p.reject(err);
+            }
+
+            this.pending.clear();
+        });
+
+        this.proc.on("close", () => {
+            const err = new Error("Compiler process closed");
+
+            for (const p of this.pending.values()) {
+                p.reject(err);
+            }
+
+            this.pending.clear();
+        });
     });
     }
 

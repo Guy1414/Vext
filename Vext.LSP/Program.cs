@@ -95,7 +95,9 @@ class Program
 
     static int Main()
     {
-        string? line;
+        try
+        {
+            string? line;
         while ((line = Console.ReadLine()) != null)
         {
             if (string.IsNullOrWhiteSpace(line))
@@ -116,7 +118,11 @@ class Program
             Console.WriteLine(JsonSerializer.Serialize(response, VextJsonContext.Default.Response));
             Console.Out.Flush();
         }
-        return 0;
+        } catch (Exception ex)
+        {
+            Console.Error.WriteLine("[FATAL] " + ex);
+            return 1; // don't exit silently
+        }
     }
 
     public static Result CompileAndRun(string code, bool run)

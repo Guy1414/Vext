@@ -234,13 +234,13 @@ connection.onRequest(RunCodeRequest.type, async (params) => {
 });
 
 connection.languages.semanticTokens.on(async (params) => {
-  const doc = documents.get(params.textDocument.uri);
-  if (!doc) return { data: [] };
-
-  const builder = new SemanticTokensBuilder();
-  const code = doc.getText();
-
   try {
+    const doc = documents.get(params.textDocument.uri);
+    if (!doc) return { data: [] };
+
+    const builder = new SemanticTokensBuilder();
+    const code = doc.getText();
+
     const result = await compileVextFromText(code, false);
     if (!result.tokens) return builder.build();
 
@@ -304,7 +304,7 @@ connection.languages.semanticTokens.on(async (params) => {
     return builder.build();
   } catch (err) {
     console.error("Error building semantic tokens:", err);
-    return builder.build();
+    return { data: [] };
   }
 });
 
