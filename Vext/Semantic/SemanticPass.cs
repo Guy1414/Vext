@@ -120,18 +120,18 @@ namespace Vext.Compiler.Semantic
             foreach (FunctionDefinitionNode stmt in statements.OfType<FunctionDefinitionNode>())
             {
                 if (functions.Any(f => f.FunctionName == stmt.FunctionName && ParametersMatch(f.Arguments, stmt.Arguments)))
-                    ReportError($"Function '{stmt.FunctionName}' with these parameters is already defined.", stmt.Line, stmt.StartColumn, stmt.EndColumn);
+                    ReportError($"Function '{stmt.FunctionName}' with these parameters is already defined", stmt.Line, stmt.StartColumn, stmt.EndColumn);
 
                 if (!IsValidType(stmt.ReturnType))
-                    ReportError($"Unknown return type '{stmt.ReturnType}'.", stmt.Line, stmt.StartColumn, stmt.EndColumn);
+                    ReportError($"Unknown return type '{stmt.ReturnType}'", stmt.Line, stmt.StartColumn, stmt.EndColumn);
 
                 HashSet<string> paramNames = [];
                 foreach (FunctionParameterNode p in stmt.Arguments ?? [])
                 {
                     if (!paramNames.Add(p.Name))
-                        ReportError($"Duplicate parameter name '{p.Name}' in function '{stmt.FunctionName}'.", stmt.Line, stmt.StartColumn, stmt.EndColumn);
+                        ReportError($"Duplicate parameter name '{p.Name}' in function '{stmt.FunctionName}'", stmt.Line, stmt.StartColumn, stmt.EndColumn);
                     if (!IsValidType(p.Type))
-                        ReportError($"Unknown parameter type '{p.Type}'.", stmt.Line, stmt.StartColumn, stmt.EndColumn);
+                        ReportError($"Unknown parameter type '{p.Type}'", stmt.Line, stmt.StartColumn, stmt.EndColumn);
                 }
 
                 functions.Add(stmt);
@@ -192,7 +192,7 @@ namespace Vext.Compiler.Semantic
                 PopScope();
 
                 if (func.ReturnType != "void" && !CheckReturnPath(func.Body, func.ReturnType))
-                    ReportError($"Function '{func.FunctionName}' does not return a value on all code paths.", func.Line, func.StartColumn, func.EndColumn);
+                    ReportError($"Function '{func.FunctionName}' does not return a value on all code paths", func.Line, func.StartColumn, func.EndColumn);
             }
         }
 
@@ -208,7 +208,7 @@ namespace Vext.Compiler.Semantic
                 if (terminated)
                 {
                     ReportWarning(
-                        "Unreachable code detected.",
+                        "Unreachable code detected",
                         stmt.Line,
                         stmt.StartColumn,
                         stmt.EndColumn
@@ -250,13 +250,13 @@ namespace Vext.Compiler.Semantic
                         if (v.VariableType == "auto")
                         {
                             if (initType == "error")
-                                ReportError("Cannot infer type from invalid initializer.", v.Line, v.StartColumn, v.EndColumn);
+                                ReportError("Cannot infer type from invalid initializer", v.Line, v.StartColumn, v.EndColumn);
                             else
                                 v.VariableType = initType;
                         }
 
                         if (!AreTypesCompatible(v.VariableType, initType))
-                            ReportError($"Type mismatch for variable '{v.Name}': expected '{v.VariableType}' but got '{initType}'.", v.Line, v.StartColumn, v.EndColumn);
+                            ReportError($"Type mismatch for variable '{v.Name}': expected '{v.VariableType}' but got '{initType}'", v.Line, v.StartColumn, v.EndColumn);
 
                         v.Initializer = Fold(v.Initializer);
                     }
@@ -276,7 +276,7 @@ namespace Vext.Compiler.Semantic
 
                         if (decl == null)
                         {
-                            ReportError($"Variable '{a.VariableName}' used before declaration.", a.Line, a.StartColumn, a.EndColumn);
+                            ReportError($"Variable '{a.VariableName}' used before declaration", a.Line, a.StartColumn, a.EndColumn);
                         } else
                         {
                             a.SlotIndex = decl.SlotIndex;
@@ -287,7 +287,7 @@ namespace Vext.Compiler.Semantic
 
                             string rhsType = GetExpressionType(a.Value);
                             if (!AreTypesCompatible(decl.VariableType, rhsType))
-                                ReportError($"Cannot assign '{rhsType}' to '{decl.VariableType}'.", a.Line, a.StartColumn, a.EndColumn);
+                                ReportError($"Type mismatch: cannot assign '{rhsType}' to '{decl.VariableType}'", a.Line, a.StartColumn, a.EndColumn);
 
                             // Variable token
                             AddToken(a.Line, a.VariableStartColumn, a.VariableEndColumn, "variable");
@@ -305,13 +305,13 @@ namespace Vext.Compiler.Semantic
 
                         if (decl == null)
                         {
-                            ReportError($"Variable '{inc.VariableName}' used before declaration.", inc.Line, inc.StartColumn, inc.EndColumn);
+                            ReportError($"Variable '{inc.VariableName}' used before declaration", inc.Line, inc.StartColumn, inc.EndColumn);
                         } else
                         {
                             inc.SlotIndex = decl.SlotIndex;
                             assignedSlots.Peek().Set(decl.SlotIndex, true);
                             if (decl.VariableType != "int" && decl.VariableType != "float")
-                                ReportError($"Cannot apply increment operator to type '{decl.VariableType}'.", inc.Line, inc.StartColumn, inc.EndColumn);
+                                ReportError($"Cannot apply increment operator to type '{decl.VariableType}'", inc.Line, inc.StartColumn, inc.EndColumn);
 
                             // Add token for increment variable
                             AddToken(inc.Line, inc.VariableStartColumn, inc.VariableEndColumn, "variable");
@@ -335,12 +335,12 @@ namespace Vext.Compiler.Semantic
                         CheckExpression(r.Expression);
                         string retType = GetExpressionType(r.Expression);
                         if (!AreTypesCompatible(func!.ReturnType, retType))
-                            ReportError($"Function '{func.FunctionName}' expects to return '{func.ReturnType}' but got '{retType}'.", r.Line, r.StartColumn, r.EndColumn);
+                            ReportError($"Function '{func.FunctionName}' expects to return '{func.ReturnType}' but got '{retType}'", r.Line, r.StartColumn, r.EndColumn);
                         r.Expression = Fold(r.Expression);
                     } else
                     {
                         if (func != null && func.ReturnType != "void")
-                            ReportError($"Function declared to return '{func.ReturnType}' but returned nothing.", r.Line, r.StartColumn, r.EndColumn);
+                            ReportError($"Function declared to return '{func.ReturnType}' but returned nothing", r.Line, r.StartColumn, r.EndColumn);
                     }
                     break;
 
@@ -384,7 +384,7 @@ namespace Vext.Compiler.Semantic
 
                     string whileType = GetExpressionType(w.Condition);
                     if (whileType != "bool" && whileType != "error")
-                        ReportError($"While condition must be boolean, got '{whileType}'.", w.Line, w.StartColumn, w.EndColumn);
+                        ReportError($"While condition must be boolean, got '{whileType}'", w.Line, w.StartColumn, w.EndColumn);
 
                     AnalyzeStatementBlock(w.Body, func, true);
 
@@ -409,7 +409,7 @@ namespace Vext.Compiler.Semantic
                                     CheckExpression(vd.Initializer);
                                     string initType = GetExpressionType(vd.Initializer);
                                     if (initType != "int" && initType != "float" && initType != "error")
-                                        ReportError($"For loop initialization must be numeral, got '{initType}'.", vd.Line, vd.StartColumn, vd.EndColumn);
+                                        ReportError($"For loop initialization must be numeral, got '{initType}'", vd.Line, vd.StartColumn, vd.EndColumn);
                                 }
                                 DeclareVariable(vd);
                                 assignedSlots.Peek().Set(vd.SlotIndex, true);
@@ -419,11 +419,11 @@ namespace Vext.Compiler.Semantic
                                 CheckExpression(es.Expression);
                                 string esType = GetExpressionType(es.Expression);
                                 if (esType != "int" && esType != "float" && esType != "error")
-                                    ReportError($"For loop initialization must be numeral, got '{esType}'.", es.Line, es.StartColumn, es.EndColumn);
+                                    ReportError($"For loop initialization must be numeral, got '{esType}'", es.Line, es.StartColumn, es.EndColumn);
                                 break;
 
                             default:
-                                ReportError("For loop initialization must be a variable declaration or expression statement.", fo.Line, fo.Initialization.StartColumn, fo.Initialization.EndColumn);
+                                ReportError("For loop initialization must be a variable declaration or expression statement", fo.Line, fo.Initialization.StartColumn, fo.Initialization.EndColumn);
                                 break;
                         }
                     }
@@ -438,7 +438,7 @@ namespace Vext.Compiler.Semantic
 
                     string forType = GetExpressionType(condition);
                     if (forType != "bool" && forType != "error")
-                        ReportError($"For condition must be boolean, got '{forType}'.", fo.Line, fo.StartColumn, fo.EndColumn);
+                        ReportError($"For condition must be boolean, got '{forType}'", fo.Line, fo.StartColumn, fo.EndColumn);
 
                     if (fo.Increment != null)
                     {
@@ -448,20 +448,20 @@ namespace Vext.Compiler.Semantic
                                 CheckExpression(ies.Expression);
                                 string incrType = GetExpressionType(ies.Expression);
                                 if (incrType != "int" && incrType != "float" && incrType != "error")
-                                    ReportError($"For loop increment must be numeric, got '{incrType}'.", ies.Line, ies.StartColumn, ies.EndColumn);
+                                    ReportError($"For loop increment must be numeric, got '{incrType}'", ies.Line, ies.StartColumn, ies.EndColumn);
                                 break;
 
                             case IncrementStatementNode inc:
                                 VariableDeclarationNode? decl = ResolveVariable(inc.VariableName);
                                 if (decl == null)
                                 {
-                                    ReportError($"Variable '{inc.VariableName}' used before declaration.", inc.Line, inc.StartColumn, inc.EndColumn);
+                                    ReportError($"Variable '{inc.VariableName}' used before declaration", inc.Line, inc.StartColumn, inc.EndColumn);
                                 } else
                                 {
                                     inc.SlotIndex = decl.SlotIndex;
                                     assignedSlots.Peek().Set(decl.SlotIndex, true);
                                     if (decl.VariableType != "int" && decl.VariableType != "float")
-                                        ReportError($"Cannot apply increment operator to type '{decl.VariableType}'.", inc.Line, inc.StartColumn, inc.EndColumn);
+                                        ReportError($"Cannot apply increment operator to type '{decl.VariableType}'", inc.Line, inc.StartColumn, inc.EndColumn);
 
                                     AddToken(inc.Line, inc.StartColumn, inc.VariableEndColumn, "variable");
 
@@ -471,7 +471,7 @@ namespace Vext.Compiler.Semantic
                                 break;
 
                             default:
-                                ReportError("For loop increment must be an expression or increment statement.", fo.Increment.Line, fo.Increment.StartColumn, fo.Increment.EndColumn);
+                                ReportError("For loop increment must be an expression", fo.Increment.Line, fo.Increment.StartColumn, fo.Increment.EndColumn);
                                 break;
                         }
                     }
@@ -523,7 +523,7 @@ namespace Vext.Compiler.Semantic
                     if (decl == null)
                     {
                         ReportError(
-                            $"Variable '{v.Name}' used before declaration.",
+                            $"Variable '{v.Name}' used before declaration",
                             v.Line,
                             v.StartColumn,
                             v.EndColumn
@@ -535,7 +535,7 @@ namespace Vext.Compiler.Semantic
                         if (!assignedSlots.Peek().Get(decl.SlotIndex))
                         {
                             ReportWarning(
-                                $"Variable '{v.Name}' may be unassigned when used.",
+                                $"Variable '{v.Name}' may be unassigned when used",
                                 v.Line,
                                 v.StartColumn,
                                 v.EndColumn
@@ -661,7 +661,7 @@ namespace Vext.Compiler.Semantic
                                 case "/":
                                     if ((rightValue is int ri7 && ri7 == 0) || (rightValue is double rd7 && rd7 == 0))
                                     {
-                                        ReportError("Division by zero is not allowed.", b.Line, b.StartColumn, b.EndColumn);
+                                        ReportError("Division by zero is not allowed", b.Line, b.StartColumn, b.EndColumn);
                                         return b;
                                     } else if (leftValue is int li7 && rightValue is int ri8)
                                         return new LiteralNode { Value = (double)li7 / ri8, Line = b.Line, StartColumn = b.StartColumn, EndColumn = b.EndColumn };
@@ -775,7 +775,7 @@ namespace Vext.Compiler.Semantic
                     case "-":
                         if (rightType != "int" && rightType != "float")
                         {
-                            ReportError($"Operator '-' cannot be applied to type '{rightType}'.", u.Line, u.StartColumn, u.EndColumn);
+                            ReportError($"Operator '-' cannot be applied to type '{rightType}'", u.Line, u.StartColumn, u.EndColumn);
                             return "error";
                         }
                         return rightType;
@@ -783,7 +783,7 @@ namespace Vext.Compiler.Semantic
                     case "!":
                         if (rightType != "bool")
                         {
-                            ReportError($"Operator '!' cannot be applied to type '{rightType}'.", u.Line, u.StartColumn, u.EndColumn);
+                            ReportError($"Operator '!' cannot be applied to type '{rightType}'", u.Line, u.StartColumn, u.EndColumn);
                             return "error";
                         }
                         return "bool";
@@ -811,7 +811,7 @@ namespace Vext.Compiler.Semantic
                 {
                     if (!AreTypesCompatible(leftType, rightType) && !AreTypesCompatible(rightType, leftType))
                     {
-                        ReportError($"Cannot compare '{leftType}' and '{rightType}'.", b.Line, b.StartColumn, b.EndColumn);
+                        ReportError($"Cannot compare '{leftType}' and '{rightType}'", b.Line, b.StartColumn, b.EndColumn);
                         return "error";
                     }
                     return "bool";
@@ -820,7 +820,7 @@ namespace Vext.Compiler.Semantic
                 {
                     if (leftType != "bool" || rightType != "bool")
                     {
-                        ReportError("Logical operators require boolean operands.", b.Line, b.StartColumn, b.EndColumn);
+                        ReportError("Logical operators require boolean operands", b.Line, b.StartColumn, b.EndColumn);
                         return "error";
                     }
                     return "bool";
@@ -881,7 +881,7 @@ namespace Vext.Compiler.Semantic
                 }
 
                 // No matching function
-                ReportError($"No matching overload for function '{f.FunctionName}'.", f.Line, f.StartColumn, f.EndColumn);
+                ReportError($"No matching overload for function '{f.FunctionName}'", f.Line, f.StartColumn, f.EndColumn);
                 AddToken(f.Line, f.StartColumn, f.EndColumn, "function", "call");
                 return "error";
 
@@ -918,7 +918,7 @@ namespace Vext.Compiler.Semantic
                                 }
                             }
                         }
-                        ReportError($"No matching overload for function '{fullName}'.", m.Line, m.StartColumn, m.EndColumn);
+                        ReportError($"No matching overload for function '{fullName}'", m.Line, m.StartColumn, m.EndColumn);
                         return "error";
                     }
                 }
@@ -943,11 +943,11 @@ namespace Vext.Compiler.Semantic
                     return "string";
                 }
 
-                ReportError($"Type '{receiverType}' does not have a member '{m.MemberName}'.", m.Line, m.MemberNameStartColumn, m.MemberNameEndColumn);
+                ReportError($"Type '{receiverType}' does not have a member '{m.MemberName}'", m.Line, m.MemberNameStartColumn, m.MemberNameEndColumn);
                 return "error";
             }
 
-            ReportError("Unknown expression type.", expr.Line, expr.StartColumn, expr.EndColumn);
+            ReportError("Unknown expression type", expr.Line, expr.StartColumn, expr.EndColumn);
             return "error";
         }
 
@@ -980,7 +980,7 @@ namespace Vext.Compiler.Semantic
         {
             if (currentScope!.Variables.ContainsKey(v.Name))
             {
-                ReportError($"Variable '{v.Name}' already defined.", v.Line, v.StartColumn, v.EndColumn);
+                ReportError($"Variable '{v.Name}' already defined", v.Line, v.StartColumn, v.EndColumn);
                 return;
             }
 
@@ -1010,7 +1010,7 @@ namespace Vext.Compiler.Semantic
                 if ((left == "int" && right == "float") || (left == "float" && right == "int"))
                     return "float";
 
-                ReportError($"Operator '+' cannot be applied to '{left}' and '{right}'.", line, startColumn, endColumn);
+                ReportError($"Operator '+' cannot be applied to '{left}' and '{right}'", line, startColumn, endColumn);
                 return "error";
             } else
             {
@@ -1020,7 +1020,7 @@ namespace Vext.Compiler.Semantic
                 }
             }
 
-            ReportError($"Operator '{op}' cannot be applied to '{left}' and '{right}'.", line, startColumn, endColumn);
+            ReportError($"Operator '{op}' cannot be applied to '{left}' and '{right}'", line, startColumn, endColumn);
             return "error";
         }
 
@@ -1063,9 +1063,9 @@ namespace Vext.Compiler.Semantic
                 if (stmt is ReturnStatementNode r)
                 {
                     if (returnType == "void" && r.Expression != null)
-                        ReportError("Void functions cannot return a value.", r.Line, r.StartColumn, r.EndColumn);
+                        ReportError("Void functions cannot return a value", r.Line, r.StartColumn, r.EndColumn);
                     if (returnType != "void" && r.Expression == null)
-                        ReportError($"Function must return a value of type '{returnType}'.", r.Line, r.StartColumn, r.EndColumn);
+                        ReportError($"Function must return a value of type '{returnType}'", r.Line, r.StartColumn, r.EndColumn);
                     return true;
                 }
                 if (stmt is IfStatementNode i)

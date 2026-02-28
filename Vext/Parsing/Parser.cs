@@ -100,7 +100,7 @@ namespace Vext.Compiler.Parsing
         /// context.</remarks>
         /// <returns>A <see cref="StatementNode"/> representing the parsed statement, or <see langword="null"/> if no valid
         /// statement could be parsed.</returns>
-        private StatementNode? ParseStatement(bool expect = true)
+        private StatementNode? ParseStatement()
         {
             Token token = CurrentToken();
             if (token.TokenType == TokenType.Unknown)
@@ -229,7 +229,7 @@ namespace Vext.Compiler.Parsing
                 if (expr is not FunctionCallNode)
                 {
                     Token startToken = CurrentToken();
-                    ReportError("Only function calls can be used as expression statements", startToken.Line, startToken.StartColumn, startToken.Line, startToken.EndColumn);
+                    ReportError($"Unexpected identifier", startToken.Line, startToken.StartColumn, startToken.Line, startToken.EndColumn);
                     Match(TokenType.Punctuation, ";"); // consume semicolon if present
                     return null;
                 }
@@ -296,7 +296,6 @@ namespace Vext.Compiler.Parsing
                     if (currentToken < tokens.Count && tokens[currentToken].TokenType == TokenType.Punctuation && tokens[currentToken].Value == "}")
                         break;
 
-                    Token badToken = CurrentToken();
                     while (currentToken < tokens.Count)
                     {
                         Token t = tokens[currentToken];
@@ -709,9 +708,9 @@ namespace Vext.Compiler.Parsing
             Token type = Expect(TokenType.Keyword);
             Token name = Expect(TokenType.Identifier);
 
-            if (name.Value == "void")
+            if (LanguageSpecs.VariableTypes.Contains(type.Value))
             {
-                ReportError("Variable cannot be of type 'void'", name.Line, name.StartColumn, CurrentToken().Line, CurrentToken().EndColumn);
+                ReportError($"Variable cannot be of type '{type.Value}'", name.Line, type.StartColumn, CurrentToken().Line, CurrentToken().EndColumn);
                 return null;
             }
 
