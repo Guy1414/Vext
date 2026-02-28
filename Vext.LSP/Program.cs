@@ -123,6 +123,7 @@ class Program
             Console.Error.WriteLine("[FATAL] " + ex);
             return 1; // don't exit silently
         }
+        return 0;
     }
 
     public static Result CompileAndRun(string code, bool run)
