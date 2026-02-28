@@ -130,11 +130,15 @@ class Program
             // 1. Add Semantic Tokens from SemanticPass
             foreach (SemanticToken? st in compileResult.SemanticTokens)
             {
+                // Normalize to 0-based start and 0-based exclusive end
+                int start = Math.Max(0, st.StartColumn - 1);
+                int end = Math.Max(start + 1, st.EndColumn);
+
                 processedTokens.Add(new TokenInfo
                 {
-                    Line = st.Line - 1,
-                    StartColumn = st.StartColumn - 1,
-                    EndColumn = st.EndColumn,
+                    Line = Math.Max(0, st.Line - 1),
+                    StartColumn = start,
+                    EndColumn = end,
                     Type = st.Type,
                     IsDeclaration = st.Modifiers.Contains("declaration")
                 });
@@ -156,12 +160,12 @@ class Program
 
                 if (!string.IsNullOrEmpty(type))
                 {
-                    int start = t.StartColumn - 1; // convert to 0-based
-                    int end = t.EndColumn;
+                    int start = Math.Max(0, t.StartColumn - 1); // convert to 0-based
+                    int end = Math.Max(start + 1, t.EndColumn); // normalize to exclusive end
 
                     bool overlaps = processedTokens.Any(pt =>
                         pt.Line == t.Line - 1 &&
-                        !(t.EndColumn <= pt.StartColumn || t.StartColumn - 1 >= pt.EndColumn)
+                        !(end <= pt.StartColumn || start >= pt.EndColumn)
                     );
 
                     if (!overlaps)
@@ -169,8 +173,8 @@ class Program
                         processedTokens.Add(new TokenInfo
                         {
                             Line = t.Line - 1,
-                            StartColumn = t.StartColumn - 1,
-                            EndColumn = t.EndColumn,
+                            StartColumn = start,
+                            EndColumn = end,
                             Type = type
                         });
                     }
