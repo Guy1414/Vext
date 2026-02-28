@@ -79,7 +79,6 @@ interface CompileResult {
   keywords: KeywordInfo[];
 }
 
-const compileCache = new Map<string, CompileResult>();
 const compileCounter = new Map<string, number>();
 
 const compiler = new CompilerBridge();
@@ -155,11 +154,8 @@ function assertNoOverlappingTokens(tokens: TokenInfo[], uri: string) {
       });
     }
   }
-
-  if (diagnostics.length > 0) {
-    // Send diagnostics so they appear as red squiggles in the editor
-    connection.sendDiagnostics({ uri, diagnostics });
-  }
+  
+  connection.sendDiagnostics({ uri, diagnostics });
 }
 
 // --- LSP Handlers ---
@@ -209,8 +205,6 @@ documents.onDidChangeContent(async (change) => {
     // Only act if this is the latest compile for this document
     if (compileCounter.get(uri) !== counter) return;
 
-    compileCache.set(uri, result);
-
     // Always send diagnostics, even if empty, to clear previous errors
     const diagnostics = errorsToDiagnostics(result.errors ?? []);
     connection.sendDiagnostics({ uri, diagnostics });
@@ -222,10 +216,8 @@ documents.onDidChangeContent(async (change) => {
   }
 });
 
-// when the user closes a document we can drop our caches for it
 documents.onDidClose((e) => {
   const uri = e.document.uri;
-  compileCache.delete(uri);
   compileCounter.delete(uri);
 });
 
@@ -243,10 +235,11 @@ connection.languages.semanticTokens.on(async (params) => {
   if (!doc) return { data: [] };
 
   const builder = new SemanticTokensBuilder();
+  const code = doc.getText();
 
   try {
-    const result = compileCache.get(params.textDocument.uri);
-    if (!result || !result.tokens) return builder.build();
+    const result = await compileVextFromText(code, false);
+    if (!result.tokens) return builder.build();
 
     const tokens = [...result.tokens].sort((a, b) => {
       if (a.line !== b.line) return a.line - b.line;
@@ -316,8 +309,9 @@ connection.onCompletion(async (params) => {
   const doc = documents.get(params.textDocument.uri);
   if (!doc) return [];
 
+  const code = doc.getText();
   try {
-    const result = compileCache.get(params.textDocument.uri);
+    const result = await compileVextFromText(code, false);
     if (!result) return [];
 
     const items: CompletionItem[] = [];

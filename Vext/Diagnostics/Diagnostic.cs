@@ -130,5 +130,13 @@
         {
             return _errors;
         }
+
+        /// <summary>
+        /// Clears all recorded diagnostics. Call at the start of a new compilation to avoid stale errors.
+        /// </summary>
+        public static void Clear()
+        {
+            _errors.Clear();
+        }
     }
 }
