@@ -708,7 +708,7 @@ namespace Vext.Compiler.Parsing
             Token type = Expect(TokenType.Keyword);
             Token name = Expect(TokenType.Identifier);
 
-            if (LanguageSpecs.VariableTypes.Contains(type.Value))
+            if (!LanguageSpecs.VariableTypes.Contains(type.Value))
             {
                 ReportError($"Variable cannot be of type '{type.Value}'", name.Line, type.StartColumn, CurrentToken().Line, CurrentToken().EndColumn);
                 return null;
