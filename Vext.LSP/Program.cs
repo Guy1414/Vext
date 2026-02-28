@@ -170,8 +170,8 @@ class Program
                         processedTokens.Add(new TokenInfo
                         {
                             Line = t.Line - 1,
-                            StartColumn = t.StartColumn - 1,
-                            EndColumn = t.EndColumn,
+                            StartColumn = start,
+                            EndColumn = end,
                             Type = type
                         });
                     }
@@ -221,7 +221,7 @@ class Program
             result.Success = false;
             result.Errors.Add(new ErrorInfo
             {
-                Message = ex.Message,
+                Message = ex.ToString(),
                 Line = 0,
                 StartColumn = 0,
                 EndColumn = 1,
