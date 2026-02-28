@@ -8,7 +8,6 @@ namespace Vext.Compiler.Modules
 
         private void Add(string name, Function fn)
         {
-            //name = "Math." + name;
             if (!Functions.TryGetValue(name, out List<Function>? list))
             {
                 list = [];

@@ -18,27 +18,30 @@ namespace Vext.Compiler.Modules
 
         public void Initialize()
         {
-            Add("len", new Function("len", 1, args =>
-            {
-                if (args[0] is string s)
-                    return s.Length;
-                throw new Exception("len() only works on strings");
-            })
-            {
-                Parameters =
-                [
-                    new FunctionParameterNode { Name = "s", Type = "string" }
-                ],
-                ReturnType = "int"
-            });
-
             Add("print", new Function("print", 1, args =>
             {
-                RuntimeOutput.WriteLine(args[0]?.ToString() ?? "null");
+                string output = args[0] switch
+                {
+                    bool b => b.ToString().ToLower(),
+                    string s => s,
+                    _ => args[0]?.ToString()?.ToLower() ?? "null"
+                };
+
+                RuntimeOutput.WriteLine(output);
                 return null!;
             })
             {
                 Parameters = [new FunctionParameterNode { Name = "value", Type = "auto" }],
+                ReturnType = "void"
+            });
+
+            Add("print", new Function("print", 0, args =>
+            {
+                RuntimeOutput.WriteLine("");
+                return null!;
+            })
+            {
+                Parameters = [],
                 ReturnType = "void"
             });
 
@@ -48,7 +51,8 @@ namespace Vext.Compiler.Modules
             {
                 return args[0] switch
                 {
-                    double or int or float => "int",
+                    int => "int",
+                    double or float => "float",
                     bool => "bool",
                     string => "string",
                     null => "null",
@@ -67,6 +71,20 @@ namespace Vext.Compiler.Modules
             {
                 Parameters = [new FunctionParameterNode { Name = "value", Type = "auto" }],
                 ReturnType = "string"
+            });
+
+            Add("__v_len", new Function("__v_len", 1, args =>
+            {
+                if (args[0] is string s)
+                    return s.Length;
+                throw new Exception("Length only works on strings");
+            })
+            {
+                Parameters =
+                [
+                    new FunctionParameterNode { Name = "value", Type = "string" }
+                ],
+                ReturnType = "int"
             });
         }
     }
