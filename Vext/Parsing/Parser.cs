@@ -17,6 +17,37 @@ namespace Vext.Compiler.Parsing
         private static void ReportHint(string message, int startLine, int startCol, int endLine, int endCol) => Diagnostic.ReportHint(message, startLine, startCol, endLine, endCol);
 
         /// <summary>
+        /// Recovers from a parsing error by skipping to a logical statement boundary.
+        /// Stops at semicolons, closing braces, or statement-starting keywords.
+        /// </summary>
+        private void RecoverToStatementBoundary()
+        {
+            while (currentToken < tokens.Count)
+            {
+                Token tok = tokens[currentToken];
+
+                // Stop at semicolons or closing braces
+                if ((tok.TokenType == TokenType.Punctuation && (tok.Value == ";" || tok.Value == "}")))
+                {
+                    // Skip the semicolon but keep the closing brace for the parent context
+                    if (tok.Value == ";")
+                        Advance();
+                    break;
+                }
+
+                // Stop at statement-starting keywords (but not in the middle of an expression)
+                if (tok.TokenType == TokenType.Keyword &&
+                    (LanguageSpecs.ReturnTypes.Contains(tok.Value) ||
+                     tok.Value == "if" || tok.Value == "while" || tok.Value == "for" || tok.Value == "return"))
+                {
+                    break;
+                }
+
+                Advance();
+            }
+        }
+
+        /// <summary>
         /// Parses the input token stream and returns a list of statement nodes representing the parsed statements.
         /// </summary>
         /// <remarks>If a parsing error occurs, the method attempts to recover and continue parsing
@@ -39,6 +70,7 @@ namespace Vext.Compiler.Parsing
                     // but catch any unexpected exception to convert into an error and attempt to continue.
                     Token tok = currentToken < tokens.Count ? tokens[currentToken] : new Token(TokenType.EOF, "", 0, 0, 0);
                     ReportError(ex.Message, tok.Line, tok.StartColumn, tok.Line, tok.EndColumn);
+                    RecoverToStatementBoundary();
                 }
 
                 if (stmt != null)
@@ -46,16 +78,13 @@ namespace Vext.Compiler.Parsing
                     statements.Add(stmt);
                 } else
                 {
+                    // Only report error if one wasn't already reported one in the parsing attempt
                     Token tok = CurrentToken();
-                    ReportError($"Unexpected token '{tok.Value}'", tok.Line, tok.StartColumn, tok.Line, tok.EndColumn);
-                    // attempt to recover by skipping one token
-                    while (currentToken < tokens.Count && !(tokens[currentToken].TokenType == TokenType.Punctuation && tokens[currentToken].Value == ";"))
-                        Advance();
-
-                    if (currentToken < tokens.Count &&
-                            tokens[currentToken].TokenType == TokenType.Punctuation &&
-                            tokens[currentToken].Value == ";")
-                        Advance(); // skip the ;
+                    if (tok.TokenType != TokenType.EOF)
+                    {
+                        ReportError($"Unexpected token '{tok.Value}'", tok.Line, tok.StartColumn, tok.Line, tok.EndColumn);
+                        RecoverToStatementBoundary();
+                    }
                 }
             }
             return (statements);
@@ -99,20 +128,14 @@ namespace Vext.Compiler.Parsing
 
                         {
                             VariableDeclarationNode? decl = ParseVariableDeclaration();
-                            Expect(TokenType.Punctuation, ";");
+                            Match(TokenType.Punctuation, ";"); // consume semicolon if present
                             if (decl != null)
                                 return decl;
                         } else
                         {
                             Token startToken = CurrentToken();
-                            // attempt to recover by skipping to next semicolon or newline
-                            while (currentToken < tokens.Count && !(tokens[currentToken].TokenType == TokenType.Punctuation && tokens[currentToken].Value == ";"))
-                                Advance();
-                            if (tokens[currentToken].TokenType == TokenType.Punctuation && tokens[currentToken].Value == ";")
-                                Advance(); // skip the ;
-
-                            Token lastToken = CurrentToken();
-                            ReportError("Invalid variable declaration", startToken.Line, startToken.StartColumn, lastToken.Line, lastToken.EndColumn);
+                            ReportError("Invalid variable declaration", startToken.Line, startToken.StartColumn, startToken.Line, startToken.EndColumn);
+                            RecoverToStatementBoundary();
                             return null;
                         }
                     } else
@@ -139,7 +162,7 @@ namespace Vext.Compiler.Parsing
                 } else if (token.Value == "return")
                 {
                     ReturnStatementNode? rtrn = ParseReturn();
-                    Expect(TokenType.Punctuation, ";");
+                    Match(TokenType.Punctuation, ";"); // consume semicolon if present
                     if (rtrn != null)
                         return rtrn;
 
@@ -156,8 +179,7 @@ namespace Vext.Compiler.Parsing
                 {
                     Token name = Expect(TokenType.Identifier);
                     Token op = Expect(TokenType.Operator);
-                    if (expect)
-                        Expect(TokenType.Punctuation, ";");
+                    Match(TokenType.Punctuation, ";"); // consume semicolon if present
 
                     return new IncrementStatementNode
                     {
@@ -183,8 +205,7 @@ namespace Vext.Compiler.Parsing
                     Token name = Expect(TokenType.Identifier);
                     Token op = Expect(TokenType.Operator);
                     ExpressionNode value = ParseExpression();
-                    if (expect)
-                        Expect(TokenType.Punctuation, ";");
+                    Match(TokenType.Punctuation, ";"); // consume semicolon if present
 
                     return new AssignmentStatementNode
                     {
@@ -208,21 +229,11 @@ namespace Vext.Compiler.Parsing
                 if (expr is not FunctionCallNode)
                 {
                     Token startToken = CurrentToken();
-                    // try to recover to semicolon
-                    while (currentToken < tokens.Count && !(tokens[currentToken].TokenType == TokenType.Punctuation && tokens[currentToken].Value == ";"))
-                        Advance();
-
-                    if (tokens[currentToken].TokenType == TokenType.Punctuation && tokens[currentToken].Value == ";")
-                        Advance(); // skip the ;
-
-                    Token endToken = CurrentToken();
-                    ReportError("Only function calls can be used as expression statements", startToken.Line, startToken.StartColumn, endToken.Line, endToken.EndColumn);
-
-                    Expect(TokenType.Punctuation, ";");
+                    ReportError("Only function calls can be used as expression statements", startToken.Line, startToken.StartColumn, startToken.Line, startToken.EndColumn);
+                    Match(TokenType.Punctuation, ";"); // consume semicolon if present
                     return null;
                 }
-                if (expect)
-                    Expect(TokenType.Punctuation, ";");
+                Match(TokenType.Punctuation, ";"); // consume semicolon if present
 
                 return new ExpressionStatementNode
                 {
@@ -254,8 +265,10 @@ namespace Vext.Compiler.Parsing
                     if (param == null)
                     {
                         Token startToken = CurrentToken();
-                        // attempt to skip to closing ')'
-                        while (currentToken < tokens.Count && !(tokens[currentToken].TokenType == TokenType.Punctuation && tokens[currentToken].Value == ")"))
+                        // attempt to skip to closing ')' - stop at ) or }
+                        while (currentToken < tokens.Count &&
+                               !(tokens[currentToken].TokenType == TokenType.Punctuation &&
+                               (tokens[currentToken].Value == ")" || tokens[currentToken].Value == "}")))
                             Advance();
 
                         Token endToken = CurrentToken();
@@ -273,16 +286,30 @@ namespace Vext.Compiler.Parsing
             List<StatementNode> body = [];
             while (!(CurrentToken().TokenType == TokenType.Punctuation && CurrentToken().Value == "}"))
             {
+                if (CurrentToken().TokenType == TokenType.EOF)
+                    break;
+
                 StatementNode? statement = ParseStatement();
                 if (statement == null)
                 {
-                    // try to recover: skip until '}' or ';'
+                    // try to recover: skip until '}' or next statement keyword
                     if (currentToken < tokens.Count && tokens[currentToken].TokenType == TokenType.Punctuation && tokens[currentToken].Value == "}")
                         break;
-                    while (currentToken < tokens.Count && !(tokens[currentToken].TokenType == TokenType.Punctuation && (tokens[currentToken].Value == ";" || tokens[currentToken].Value == "}")))
+
+                    Token badToken = CurrentToken();
+                    while (currentToken < tokens.Count)
+                    {
+                        Token t = tokens[currentToken];
+                        // Stop at closing brace or statement keywords
+                        if ((t.TokenType == TokenType.Punctuation && t.Value == "}") ||
+                            (t.TokenType == TokenType.Keyword &&
+                             (LanguageSpecs.ReturnTypes.Contains(t.Value) ||
+                              t.Value == "if" || t.Value == "while" || t.Value == "for" || t.Value == "return")))
+                        {
+                            break;
+                        }
                         Advance();
-                    if (currentToken < tokens.Count && tokens[currentToken].TokenType == TokenType.Punctuation && tokens[currentToken].Value == ";")
-                        Advance();
+                    }
                     continue;
                 }
                 body.Add(statement);
@@ -363,11 +390,32 @@ namespace Vext.Compiler.Parsing
             if (CurrentToken().TokenType == TokenType.Punctuation && CurrentToken().Value == ";")
             {
                 return new ReturnStatementNode { KeywordColumnStart = rtrnToken.StartColumn, KeywordColumnEnd = rtrnToken.EndColumn, Expression = null, Line = rtrnToken.Line, StartColumn = rtrnToken.StartColumn, EndColumn = tokens[currentToken - 1].EndColumn };
+            } else if (IsStatementBoundary())
+            {
+                // Return with no expression at statement boundary
+                return new ReturnStatementNode { KeywordColumnStart = rtrnToken.StartColumn, KeywordColumnEnd = rtrnToken.EndColumn, Expression = null, Line = rtrnToken.Line, StartColumn = rtrnToken.StartColumn, EndColumn = rtrnToken.EndColumn };
             } else
             {
                 ExpressionNode expr = ParseExpression();
                 return new ReturnStatementNode { KeywordColumnStart = rtrnToken.StartColumn, KeywordColumnEnd = rtrnToken.EndColumn, Expression = expr, Line = rtrnToken.Line, StartColumn = rtrnToken.StartColumn, EndColumn = tokens[currentToken - 1].EndColumn };
             }
+        }
+
+        /// <summary>
+        /// Checks if the current token is at a statement boundary (closing brace, EOF, or keyword starting a new statement).
+        /// </summary>
+        private bool IsStatementBoundary()
+        {
+            Token tok = CurrentToken();
+            if (tok.TokenType == TokenType.EOF)
+                return true;
+            if (tok.TokenType == TokenType.Punctuation && (tok.Value == "}" || tok.Value == ";"))
+                return true;
+            if (tok.TokenType == TokenType.Keyword &&
+                (LanguageSpecs.ReturnTypes.Contains(tok.Value) ||
+                 tok.Value == "if" || tok.Value == "while" || tok.Value == "for" || tok.Value == "return" || tok.Value == "else"))
+                return true;
+            return false;
         }
 
         private IfStatementNode? ParseIfStatement()
@@ -383,14 +431,27 @@ namespace Vext.Compiler.Parsing
             {
                 while (!(CurrentToken().TokenType == TokenType.Punctuation && CurrentToken().Value == "}"))
                 {
+                    if (CurrentToken().TokenType == TokenType.EOF)
+                        break;
+
                     StatementNode? statement = ParseStatement();
                     if (statement == null)
                     {
-                        // recover
-                        while (currentToken < tokens.Count && !(tokens[currentToken].TokenType == TokenType.Punctuation && (tokens[currentToken].Value == ";" || tokens[currentToken].Value == "}")))
+                        // recover - skip to closing brace or next statement
+                        while (currentToken < tokens.Count)
+                        {
+                            Token t = tokens[currentToken];
+                            if ((t.TokenType == TokenType.Punctuation && (t.Value == "}" || t.Value == ";")) ||
+                                (t.TokenType == TokenType.Keyword &&
+                                 (LanguageSpecs.ReturnTypes.Contains(t.Value) ||
+                                  t.Value == "if" || t.Value == "while" || t.Value == "for" || t.Value == "return")))
+                            {
+                                if (t.Value == ";")
+                                    Advance();
+                                break;
+                            }
                             Advance();
-                        if (currentToken < tokens.Count && tokens[currentToken].TokenType == TokenType.Punctuation && tokens[currentToken].Value == ";")
-                            Advance();
+                        }
                         continue;
                     }
                     body.Add(statement);
@@ -417,14 +478,27 @@ namespace Vext.Compiler.Parsing
                 {
                     while (!(CurrentToken().TokenType == TokenType.Punctuation && CurrentToken().Value == "}"))
                     {
+                        if (CurrentToken().TokenType == TokenType.EOF)
+                            break;
+
                         StatementNode? statement = ParseStatement();
                         if (statement == null)
                         {
                             // recover
-                            while (currentToken < tokens.Count && !(tokens[currentToken].TokenType == TokenType.Punctuation && (tokens[currentToken].Value == ";" || tokens[currentToken].Value == "}")))
+                            while (currentToken < tokens.Count)
+                            {
+                                Token t = tokens[currentToken];
+                                if ((t.TokenType == TokenType.Punctuation && (t.Value == "}" || t.Value == ";")) ||
+                                    (t.TokenType == TokenType.Keyword &&
+                                     (LanguageSpecs.ReturnTypes.Contains(t.Value) ||
+                                      t.Value == "if" || t.Value == "while" || t.Value == "for" || t.Value == "return")))
+                                {
+                                    if (t.Value == ";")
+                                        Advance();
+                                    break;
+                                }
                                 Advance();
-                            if (currentToken < tokens.Count && tokens[currentToken].TokenType == TokenType.Punctuation && tokens[currentToken].Value == ";")
-                                Advance();
+                            }
                             continue;
                         }
                         elseBody.Add(statement);
@@ -461,7 +535,6 @@ namespace Vext.Compiler.Parsing
             StatementNode? initialization = null;
             if (!(CurrentToken().TokenType == TokenType.Punctuation && CurrentToken().Value == ";"))
             {
-                //initialization = ParseStatement();
                 if (LanguageSpecs.ReturnTypes.Contains(CurrentToken().Value))
                 {
                     initialization = ParseVariableDeclaration();
@@ -475,7 +548,6 @@ namespace Vext.Compiler.Parsing
                         StartColumn = expr.StartColumn,
                         EndColumn = tokens[currentToken - 1].EndColumn
                     };
-
                 }
                 if (!(initialization is VariableDeclarationNode || initialization is ExpressionStatementNode))
                 {
@@ -487,9 +559,6 @@ namespace Vext.Compiler.Parsing
                     // attempt to recover to semicolon
                     while (currentToken < tokens.Count && !(tokens[currentToken].TokenType == TokenType.Punctuation && tokens[currentToken].Value == ";"))
                         Advance();
-
-                    if (tokens[currentToken].TokenType == TokenType.Punctuation && tokens[currentToken].Value == ";")
-                        Advance(); // skip the ;
                 }
             }
             Expect(TokenType.Punctuation, ";");
@@ -520,14 +589,27 @@ namespace Vext.Compiler.Parsing
             {
                 while (!(CurrentToken().TokenType == TokenType.Punctuation && CurrentToken().Value == "}"))
                 {
+                    if (CurrentToken().TokenType == TokenType.EOF)
+                        break;
+
                     StatementNode? stmt = ParseStatement();
                     if (stmt == null)
                     {
-                        // recover
-                        while (currentToken < tokens.Count && !(tokens[currentToken].TokenType == TokenType.Punctuation && (tokens[currentToken].Value == ";" || tokens[currentToken].Value == "}")))
+                        // recover - skip to closing brace or next statement
+                        while (currentToken < tokens.Count)
+                        {
+                            Token t = tokens[currentToken];
+                            if ((t.TokenType == TokenType.Punctuation && (t.Value == "}" || t.Value == ";")) ||
+                                (t.TokenType == TokenType.Keyword &&
+                                 (LanguageSpecs.ReturnTypes.Contains(t.Value) ||
+                                  t.Value == "if" || t.Value == "while" || t.Value == "for" || t.Value == "return")))
+                            {
+                                if (t.Value == ";")
+                                    Advance();
+                                break;
+                            }
                             Advance();
-                        if (currentToken < tokens.Count && tokens[currentToken].TokenType == TokenType.Punctuation && tokens[currentToken].Value == ";")
-                            Advance();
+                        }
                         continue;
                     }
                     body.Add(stmt);
@@ -573,14 +655,27 @@ namespace Vext.Compiler.Parsing
             {
                 while (!(CurrentToken().TokenType == TokenType.Punctuation && CurrentToken().Value == "}"))
                 {
+                    if (CurrentToken().TokenType == TokenType.EOF)
+                        break;
+
                     StatementNode? statement = ParseStatement();
                     if (statement == null)
                     {
-                        // recover
-                        while (currentToken < tokens.Count && !(tokens[currentToken].TokenType == TokenType.Punctuation && (tokens[currentToken].Value == ";" || tokens[currentToken].Value == "}")))
+                        // recover - skip to closing brace or next statement
+                        while (currentToken < tokens.Count)
+                        {
+                            Token t = tokens[currentToken];
+                            if ((t.TokenType == TokenType.Punctuation && (t.Value == "}" || t.Value == ";")) ||
+                                (t.TokenType == TokenType.Keyword &&
+                                 (LanguageSpecs.ReturnTypes.Contains(t.Value) ||
+                                  t.Value == "if" || t.Value == "while" || t.Value == "for" || t.Value == "return")))
+                            {
+                                if (t.Value == ";")
+                                    Advance();
+                                break;
+                            }
                             Advance();
-                        if (currentToken < tokens.Count && tokens[currentToken].TokenType == TokenType.Punctuation && tokens[currentToken].Value == ";")
-                            Advance();
+                        }
                         continue;
                     }
                     body.Add(statement);
@@ -588,7 +683,7 @@ namespace Vext.Compiler.Parsing
                 Expect(TokenType.Punctuation, "}");
             } else
             {
-                // single statement else
+                // single statement while
                 StatementNode? stmt = ParseStatement();
                 if (stmt == null)
                 {
@@ -715,10 +810,8 @@ namespace Vext.Compiler.Parsing
             } else
             {
                 ReportError($"Unexpected token '{token.Value}'", token.Line, token.StartColumn, CurrentToken().Line, CurrentToken().EndColumn);
-                // attempt to recover by advancing and returning a dummy literal
-                while (currentToken < tokens.Count && !(tokens[currentToken].TokenType == TokenType.Punctuation && tokens[currentToken].Value == ";"))
-                    Advance();
-                left = new LiteralNode { Value = 0, IsError = true, Line = token.Line, StartColumn = token.StartColumn, EndColumn = tokens[currentToken - 1].EndColumn };
+                // Return a dummy literal with error flag instead of skipping tokens
+                left = new LiteralNode { Value = 0, IsError = true, Line = token.Line, StartColumn = token.StartColumn, EndColumn = token.EndColumn };
             }
 
             // --- Member Access Suffix (.member or .method()) ---
@@ -781,12 +874,8 @@ namespace Vext.Compiler.Parsing
             {
                 Token tok = CurrentToken();
                 ReportError("Assignment is not allowed in this context", tok.Line, tok.StartColumn, tok.Line, tok.StartColumn);
-                Token badToken = CurrentToken();
-                // consume the problematic tokens to avoid infinite loop
-                while (currentToken < tokens.Count && !(tokens[currentToken].TokenType == TokenType.Punctuation && tokens[currentToken].Value == ";"))
-                    Advance();
-
-                return new LiteralNode { Value = 0, IsError = true, Line = badToken.Line, StartColumn = badToken.StartColumn, EndColumn = tokens[currentToken - 1].EndColumn };
+                Advance(); // Skip the assignment operator
+                return new LiteralNode { Value = 0, IsError = true, Line = tok.Line, StartColumn = tok.StartColumn, EndColumn = tok.EndColumn };
             }
 
             if (currentToken >= tokens.Count)
