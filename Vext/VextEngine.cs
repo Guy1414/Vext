@@ -137,7 +137,10 @@ namespace Vext.Compiler
         /// <returns></returns>
         public static (double Time, VextValue[] FinalState, string Stdout) Run(List<Instruction> instructions)
         {
+            RuntimeOutput.Flush();
+
             Stopwatch sw = Stopwatch.StartNew();
+
             Module mathModule = new MathFunctions { Name = "Math" }.Initialize();
             DefaultFunctions defaults = new DefaultFunctions();
             defaults.Initialize();

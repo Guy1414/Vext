@@ -214,17 +214,22 @@ namespace Vext.Compiler.VM
                             VextValue left = Pop(ref sp);
 
                             // 1. Handle String Concatenation (Only for ADD)
-                            if (instr.Op == VextVMBytecode.ADD && left.Type == VextType.String)
+                            if (instr.Op == VextVMBytecode.ADD &&
+                               (left.Type == VextType.String || right.Type == VextType.String))
                             {
-                                string lStr = left.AsString;
-                                string rStr = right.Type == VextType.String ? right.AsString : right.AsNumber.ToString();
-
-                                VextValue res = new VextValue
+                                string lStr = left.Type switch
                                 {
-                                    Type = VextType.String,
-                                    AsString = lStr + rStr
+                                    VextType.String => left.AsString,
+                                    _ => left.ToString()
                                 };
-                                Push(ref sp, res);
+
+                                string rStr = right.Type switch
+                                {
+                                    VextType.String => right.AsString,
+                                    _ => right.ToString()
+                                };
+
+                                Push(ref sp, VextValue.FromString(lStr + rStr));
                             }
                             // 2. Handle Numeric Operations
                             else if (left.Type == VextType.Number && right.Type == VextType.Number)
