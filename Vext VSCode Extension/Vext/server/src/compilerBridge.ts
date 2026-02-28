@@ -56,6 +56,8 @@ export class CompilerBridge {
       for (const p of this.pending.values()) p.reject(err);
       this.pending.clear();
     });
+
+    this.proc.stderr.on("data", (d) => console.error("STDERR:", d.toString()));
   }
 
   private onStdout(line: string) {
@@ -128,7 +130,7 @@ export class CompilerBridge {
     }
   }
 
-  request<T>(payload: Omit<any, "id">, timeoutMs = 5000): Promise<T> {
+  request<T>(payload: Omit<any, "id">, timeoutMs = 10000): Promise<T> {
     if (!this.proc || this.proc.exitCode !== null) {
       return Promise.reject(new Error("Compiler process has already exited"));
     }

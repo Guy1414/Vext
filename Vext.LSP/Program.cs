@@ -96,10 +96,10 @@ class Program
     static int Main()
     {
         int id = -1;
-        try
+        string? line;
+        while ((line = Console.ReadLine()) != null)
         {
-            string? line;
-            while ((line = Console.ReadLine()) != null)
+            try
             {
                 if (string.IsNullOrWhiteSpace(line))
                     continue;
@@ -118,26 +118,26 @@ class Program
                 // Serialize result to JSON
                 Console.WriteLine(JsonSerializer.Serialize(response, VextJsonContext.Default.Response));
                 Console.Out.Flush();
-            }
-        } catch (Exception ex)
-        {
-            if (id == -1)
-                id = 0;
+            } catch (Exception ex)
+            {
+                if (id == -1)
+                    id = 0;
 
-            Result errorResult = new Result
-            {
-                Success = false,
-                Errors =
-                [
-                    new() { Message = ex.Message, Line = 0, StartColumn = 0, EndColumn = 1, Severity = "error" }
-                ]
-            };
-            Response errorResponse = new Response { Id = id, Result = errorResult };
-            try
-            {
-                Console.WriteLine(JsonSerializer.Serialize(errorResponse, VextJsonContext.Default.Response));
-                Console.Out.Flush();
-            } catch { }
+                Result errorResult = new Result
+                {
+                    Success = false,
+                    Errors =
+                    [
+                        new() { Message = ex.Message, Line = 0, StartColumn = 0, EndColumn = 1, Severity = "error" }
+                    ]
+                };
+                Response errorResponse = new Response { Id = id, Result = errorResult };
+                try
+                {
+                    Console.WriteLine(JsonSerializer.Serialize(errorResponse, VextJsonContext.Default.Response));
+                    Console.Out.Flush();
+                } catch { }
+            }
         }
         return 0;
     }
