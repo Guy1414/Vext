@@ -135,6 +135,7 @@ namespace Vext.Compiler.Parsing
                         {
                             Token startToken = CurrentToken();
                             ReportError("Invalid variable declaration", startToken.Line, startToken.StartColumn, startToken.Line, startToken.EndColumn);
+                            Advance(); // Prevent infinite loop on incomplete syntax
                             RecoverToStatementBoundary();
                             return null;
                         }

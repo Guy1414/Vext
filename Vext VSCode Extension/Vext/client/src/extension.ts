@@ -7,6 +7,19 @@ import {
   ServerOptions,
   TransportKind,
 } from "vscode-languageclient/node";
+import { exec } from "child_process";
+import { promisify } from "util";
+
+const execAsync = promisify(exec);
+
+async function checkDotnetExists(): Promise<boolean> {
+  try {
+    await execAsync("dotnet --version");
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 interface RunOutput {
   time: number;
@@ -16,7 +29,20 @@ interface RunOutput {
 
 let client: LanguageClient;
 
-export function activate(context: ExtensionContext) {
+export async function activate(context: ExtensionContext) {
+  // Check for dotnet before doing anything else
+  const dotnetExists = await checkDotnetExists();
+  if (!dotnetExists) {
+    const choice = await vscode.window.showErrorMessage(
+      "The .NET SDK/Runtime is required to run the Vext Language Server but was not found.",
+      "Install .NET"
+    );
+    if (choice === "Install .NET") {
+      vscode.env.openExternal(vscode.Uri.parse("https://dotnet.microsoft.com/download"));
+    }
+    return;
+  }
+
   // The server is implemented in node
   const serverModule = context.asAbsolutePath(
     path.join("server", "out", "server.js")
@@ -51,7 +77,7 @@ export function activate(context: ExtensionContext) {
   );
 
   // Start the client. This will also launch the server
-  client.start();
+  await client.start();
 
   let outputChannel: vscode.OutputChannel | undefined;
 
@@ -81,12 +107,12 @@ export function activate(context: ExtensionContext) {
 
           // 2. Show the Modal
           vscode.window.showErrorMessage(
-            "Execution Blocked", 
-            { 
-              modal: true, 
-              detail: `You have ${errorCount} critical error(s) in this file. Please fix them before running.` 
+            "Execution Blocked",
+            {
+              modal: true,
+              detail: `You have ${errorCount} critical error(s) in this file. Please fix them before running.`
             },
-            "Show Problems" 
+            "Show Problems"
           ).then(selection => {
             if (selection === "Show Problems") {
               // 3. This built-in command opens the Problems view automatically
@@ -115,7 +141,7 @@ export function activate(context: ExtensionContext) {
     }
   });
 
-    context.subscriptions.push(runCommand);
+  context.subscriptions.push(runCommand);
 }
 
 export function deactivate(): Thenable<void> | undefined {

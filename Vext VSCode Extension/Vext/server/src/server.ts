@@ -107,9 +107,9 @@ function errorsToDiagnostics(errors: ErrorInfo[]): Diagnostic[] {
     .map((e) => ({
       severity:
         e.severity === "hint" ? DiagnosticSeverity.Hint :
-        e.severity === "warning" ? DiagnosticSeverity.Warning :
-        e.severity === "info" ? DiagnosticSeverity.Information :
-        DiagnosticSeverity.Error,
+          e.severity === "warning" ? DiagnosticSeverity.Warning :
+            e.severity === "info" ? DiagnosticSeverity.Information :
+              DiagnosticSeverity.Error,
       range: Range.create(
         Position.create(e.line, e.startColumn),
         Position.create(e.line, e.endColumn)
@@ -215,11 +215,14 @@ documents.onDidChangeContent((change) => {
 
       const diagnostics = errorsToDiagnostics(result.errors ?? []);
       connection.sendDiagnostics({ uri, diagnostics });
-    } catch (err) {
+    } catch (err: any) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes("Superseded")) return; // Silently ignore as it's expected when typing fast
+
       // clear diagnostics on compiler error
       connection.sendDiagnostics({ uri, diagnostics: [] });
       console.error("compile error", err);
-      connection.window.showErrorMessage("Compiler error: " + err);
+      connection.window.showErrorMessage("Compiler error: " + msg);
     }
   }, 200)); // 200ms debounce delay
 });
@@ -311,8 +314,11 @@ connection.languages.semanticTokens.on(async (params) => {
     }
 
     return builder.build();
-  } catch (err) {
-    console.error("Error building semantic tokens:", err);
+  } catch (err: any) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (!msg.includes("Superseded")) {
+      console.error("Error building semantic tokens:", err);
+    }
     return { data: [] };
   }
 });
@@ -411,11 +417,11 @@ function extractIdentifierFromDocument(doc: TextDocument, fullText: string, toke
 }
 
 connection.onShutdown(() => {
-  try { compiler.dispose(); } catch {}
+  try { compiler.dispose(); } catch { }
 });
 
 connection.onExit(() => {
-  try { compiler.dispose(); } catch {}
+  try { compiler.dispose(); } catch { }
 });
 
 // --- Listen ---
