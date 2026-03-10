@@ -27,6 +27,18 @@ class Program
         string concat = text + " " + inferredString + " " + sum + " " + result;
         bool complexBool = (i > 10 && f < 10.0) || !flag;
 
+        // --- Intrinsic Members ---
+        println("Type of i: " + i.type);            // "int"
+        println("String of f: " + f.ToString());    // "3.14159"
+        println("Length: " + text.length);        // 13
+
+        // --- 3. Functions & Overloading ---
+        int square(int n) { return n * n; }
+        string greet(string name = "Guy") { return "Hello, " + name + "!"; }
+
+        println(greet("Vext")); // "Hello, Vext!"
+        println(greet());        // "Hello, User!"
+
         // --- 3. Unary & Compound Operators ---
         i++;
         sum += 5;
@@ -63,27 +75,13 @@ class Program
         }
 
         // --- 8. Functions & Nested Calls ---
-        int square(int n)
-        {
-            return n * n;
-        }
-
-        float multiply(float a, float b)
-        {
-            return a * b;
-        }
-
-        string greet(string name = "Guy")
-        {
-            return "Hello, " + name + "!";
-        }
+        float multiply(float a, float b) { return a * b; }
         int addThree(auto a, auto b, auto c) { return a + b + c; } // auto allows int/float mix
 
         int sq = square(3);
         int val = addThree(1, 2, sq);
         float calc = multiply(2.5, square(4));
         string message = greet("Vext");
-        string message1 = greet();
 
         // --- 9. Nested Expressions & Constant Folding ---
         float complexCalc = ((2 + 3) * (5 - 1) / 2) + Math.pow(2, 3) - 4;
@@ -97,6 +95,10 @@ class Program
         int b = 3;
         int mod = a % b;
         float exp = Math.pow(a, b); // 10^3
+
+        for (int j = 0; j < 3; j++) {
+            println("Loop: " + j);
+        }
 
         // --- 14. Math & Trigonometry ---
         float angle = 0.5;
@@ -140,7 +142,7 @@ class Program
         println("empty: '" + empty + "', zero: " + zero + ", negative: " + negative + ", negativeFloat: " + negativeFloat);
         println("falseVal: " + falseVal + ", trueVal: " + trueVal + ", specialChars: " + specialChars);
         println("Big While Loop: " + x);
-
+        println("Hypotenuse: " + hypot);
         int x1 = 10;
         println("Type of x: " + x1.type);
         println("String of x: " + x1.ToString());
@@ -332,7 +334,8 @@ class Program
             string name = varMap[i];
             string displayValue = val.Type switch
             {
-                VextType.Number => val.AsNumber.ToString(),
+                VextType.Int => val.AsInt.ToString(),
+                VextType.Float => val.AsFloat.ToString(),
                 VextType.Bool => val.AsBool ? "true" : "false",
                 VextType.String => val.AsString ?? "",
                 VextType.Null => "null",

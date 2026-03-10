@@ -49,7 +49,7 @@ Vext is a programming language designed for performance, simplicity, and express
 
 ### Core Language
 - **Variables:** Declaration, use, type checking, `auto` type inference  
-- **Types:** `int`, `float` (stored as double), `bool`, `string`, `auto`  
+- **Types:** `int`, `float`, `bool`, `string`, `auto`  
 - **Expressions:** Nested arithmetic, boolean logic, comparisons, unary operators, function calls, mixed-type math  
 - **Operators:**  
   - Arithmetic: `+ - * / % **`  
@@ -64,13 +64,14 @@ Vext is a programming language designed for performance, simplicity, and express
 - `if / else if / else`  
 - `while` loops  
 - `for` loops  
-- Nested loops supported  
+- Nested loops and optimized loops for constant increments  
 
 ### Functions
-- Function declaration with typed parameters and return type  
-- `auto` parameters supported  
-- Nested function calls and expression evaluation  
-- Return statements  
+- **Typed Parameters:** Explicit types or `auto` for flexible inputs  
+- **Return Types:** Typed return values or `void`  
+- **Overloading:** Support for multiple functions with the same name but different parameter counts  
+- **Default Values:** Parameters can have optional default initializers  
+- **Nested Calls:** Functions can be passed as arguments to other functions  
 
 ### Constant Folding & Compile-Time Optimization
 - Nested expressions evaluated at compile time  
@@ -78,47 +79,70 @@ Vext is a programming language designed for performance, simplicity, and express
 - Boolean short-circuiting handled  
 - Strings and numeric types automatically folded  
 
-### Standard Library
-- `print()` for console output
-- `len()` for getting the length of a string (non-string arguments raise an error)
+### Standard Library & Intrinsics
 
-- Math functions: `Math.pow(float num, float power)`, `Math.sqrt(float num)`, `Math.sin(float num)`, `Math.cos(float num)`, `Math.tan(float num)`, `Math.log(float num)`, `Math.exp(float num)`, `Math.random()`, `Math.random(float min, float max)`, `Math.abs(float num)`, `Math.round(float num)`, `Math.floor(float num)`, `Math.ceil(float num)`, `Math.min(float a, float b)`, `Math.max(float a, float b)`
+#### Console I/O
+- `print(value)`: Prints a value to the console without a newline.
+- `println(value)`: Prints a value to the console with a newline.
+
+#### Intrinsic Members
+Works on any variable using the `.` operator:
+- `.type`: Returns the type name as a string (e.g., `"int"`, `"string"`).
+- `.ToString()`: Returns the string representation of the value.
+- `.length()`: (Strings only) Returns the length of the string.
+
+#### Math Module (`Math.`)
+- `Math.pow(num, power)`
+- `Math.sqrt(num)`
+- `Math.sin(num)`
+- `Math.cos(num)`
+- `Math.tan(num)`
+- `Math.log(num)`
+- `Math.exp(num)`
+- `Math.random()` / `Math.random(min, max)`
+- `Math.abs(num)`
+- `Math.round(num)`
+- `Math.floor(num)`
+- `Math.ceil(num)`
+- `Math.min(a, b)`
+- `Math.max(a, b)`
+
+### Editor Support (LSP)
+The Vext project includes a VSCode extension and a Language Server Protocol (LSP) implementation:
+- **Syntax Highlighting:** Full TextMate grammar for `.vext` and `.vxt` files.
+- **Semantic Highlighting:** Advanced highlighting for functions, variables, and keywords based on compiler analysis.
+- **Diagnostics:** Real-time error reporting and semantic validation.
+- **Commands:** Integrated "Run Vext Code" command via the editor UI.
 
 ### Compiler Architecture
 Vext features a full compilation pipeline:
 1. **Lexer:** Tokenizes source code  
 2. **Parser:** Builds an abstract syntax tree (AST)  
-3. **Semantic Pass:** Type checking, variable resolution, constant folding  
+3. **Semantic Pass:** Type checking, variable resolution, constant folding, and semantic token generation  
 4. **Bytecode Generator:** Converts AST into Vext bytecode  
-5. **VextVM:** Executes bytecode  
+5. **VextVM:** High-performance stack-based virtual machine  
 
 ---
 
 ## Abstract Syntax Tree (AST) Node Types
 
 **Expressions:**
-- `ExpressionNode` - base type for all expressions  
-- `BinaryExpressionNode` - binary ops: `+ - * / **`  
-- `UnaryExpressionNode` - unary ops: `++ -- - !`  
-- `LiteralNode` - numbers, strings, booleans  
-- `VariableNode` - identifiers  
-- `FunctionCallNode` - function calls  
-- `ModuleAccessNode` - module functions  
+- `BinaryExpressionNode` (`+`, `-`, `*`, `/`, `**`, `%`, etc.)  
+- `UnaryExpressionNode` (`++`, `--`, `-`, `!`)  
+- `LiteralNode` (numbers, strings, booleans, null)  
+- `VariableNode`  
+- `FunctionCallNode`  
+- `MemberAccessNode` (Covers `Module.Func`, `.type`, `.ToString()`, `.length()`)  
 
 **Statements:**
-- `StatementNode` - base type  
-- `ExpressionStatementNode` - e.g., `x + 1;`  
 - `VariableDeclarationNode`  
 - `IfStatementNode`  
 - `WhileStatementNode`  
 - `ForStatementNode`  
 - `ReturnStatementNode`  
-- `AssignmentStatementNode`  
+- `AssignmentStatementNode` (`=`, `+=`, `-=`, `*=`)
 - `IncrementStatementNode`  
 - `FunctionDefinitionNode`  
-
-**Function Parameters:**
-- `FunctionParameterNode` - typed parameters with optional initializers  
 
 ---
 
@@ -140,6 +164,18 @@ float result = f * 2 - 1.5;
 string concat = text + " " + inferredString + " " + sum + " " + result;
 bool complexBool = (i > 10 && f < 10.0) || !flag;
 
+// --- Intrinsic Members ---
+println("Type of i: " + i.type);            // "int"
+println("String of f: " + f.ToString());    // "3.14159"
+println("Length: " + text.length);        // 13
+
+// --- 3. Functions & Overloading ---
+int square(int n) { return n * n; }
+string greet(string name = "Guy") { return "Hello, " + name + "!"; }
+
+println(greet("Vext")); // "Hello, Vext!"
+println(greet());        // "Hello, User!"
+
 // --- 3. Unary & Compound Operators ---
 i++;
 sum += 5;
@@ -149,36 +185,34 @@ bool testNegation = !complexBool;
 
 // --- 4. Strings & Escapes ---
 string escaped = "Line1\\nLine2\\tTabbed\\\"Quote\\'Single";
-print(escaped);
+println(escaped);
 
 // --- 5. Comments ---
-print("Comments ignored");
+println("Comments ignored");
 
 // --- 6. Conditionals ---
 if (i > 40) {
-    print("i > 40");
+    println("i > 40");
 } else if (i == 42) {
-    print("i == 42");
+    println("i == 42");
 } else {
-    print("i < 40");
+    println("i < 40");
 }
 
 // --- 7. Loops ---
 int total = 0;
 for (int j = 0; j < 5; j++) {
     total += j;
-    if (j % 2 == 0) print("Even: " + j);
+    if (j % 2 == 0) println("Even: " + j);
 }
 int k = 0;
 while (k < 3) {
-    print("While: " + k);
+    println("While: " + k);
     k++;
 }
 
 // --- 8. Functions & Nested Calls ---
-int square(int n) { return n * n; }
 float multiply(float a, float b) { return a * b; }
-string greet(string name) { return "Hello, " + name + "!"; }
 int addThree(auto a, auto b, auto c) { return a + b + c; } // auto allows int/float mix
 
 int sq = square(3);
@@ -199,6 +233,10 @@ int b = 3;
 int mod = a % b;
 float exp = Math.pow(a, b); // 10^3
 
+for (int j = 0; j < 3; j++) {
+    println("Loop: " + j);
+}
+
 // --- 14. Math & Trigonometry ---
 float angle = 0.5;
 float trigTest = Math.sin(angle) * Math.cos(angle) + Math.pow(Math.tan(angle), 2);
@@ -209,7 +247,7 @@ int s1 = square(1);
 float m = multiply(2.0, 3.0);
 int val1 = addThree(s1, m, 4);
 int deepChain = square(val1);
-print("Deep chain: " + deepChain);
+println("Deep chain: " + deepChain);
 
 // --- 16. Full Expression Mix ---
 float finalCalc = ((3 + 5) * (2 - 7) / 2 + Math.pow(2, 3) - 4) / 2 + Math.sqrt(16) - 1;
@@ -231,39 +269,55 @@ while (x < 100000) {
 }
 
 // --- 19. printing everything ---
-print("sum: " + sum + ", result: " + result + ", concat: " + concat);
-print("complexBool: " + complexBool + ", testNegation: " + testNegation);
-print("val: " + val + ", calc: " + calc + ", message: " + message);
-print("complexCalc: " + complexCalc + ", nestedFold: " + nestedFold);
-print("logicTest: " + logicTest + ", mod: " + mod + ", exp: " + exp);
-print("angle: " + angle + ", trigTest: " + trigTest + ", hypot: " + hypot);
-print("finalCalc: " + finalCalc + ", mixed: " + mixed);
-print("empty: '" + empty + "', zero: " + zero + ", negative: " + negative + ", negativeFloat: " + negativeFloat);
-print("falseVal: " + falseVal + ", trueVal: " + trueVal + ", specialChars: " + specialChars);
-print("Big While Loop: " + x);
+println("sum: " + sum + ", result: " + result + ", concat: " + concat);
+println("complexBool: " + complexBool + ", testNegation: " + testNegation);
+println("val: " + val + ", calc: " + calc + ", message: " + message);
+println("complexCalc: " + complexCalc + ", nestedFold: " + nestedFold);
+println("logicTest: " + logicTest + ", mod: " + mod + ", exp: " + exp);
+println("angle: " + angle + ", trigTest: " + trigTest + ", hypot: " + hypot);
+println("finalCalc: " + finalCalc + ", mixed: " + mixed);
+println("empty: '" + empty + "', zero: " + zero + ", negative: " + negative + ", negativeFloat: " + negativeFloat);
+println("falseVal: " + falseVal + ", trueVal: " + trueVal + ", specialChars: " + specialChars);
+println("Big While Loop: " + x);
+println("Hypotenuse: " + hypot);
+int x1 = 10;
+println("Type of x: " + x1.type);
+println("String of x: " + x1.ToString());
+float f1 = 3.14;
+println("Type of f: " + f1.type);
+println("String of f: " + f1.ToString());
+// Chaining
+println("Chained type: " + x1.ToString().type);
+// Module access
+println("Sqrt of 16: " + Math.sqrt(16));
 ```
 
 **This program ran in:**
 ```
 --- COMPILATION PHASE ---
- Lexing          | 799   tokens   |   2.0943 ms
+ Lexing          | 959   tokens   |   2.4182 ms
 ──────────────────────────────────────────────────
- Parsing         | 69    nodes    |   6.3349 ms
+ Parsing         | 84    nodes    |   6.0389 ms
 ──────────────────────────────────────────────────
- Semantics       | 0     errors   |   9.8594 ms
+ Semantics       | 0     errors   |  10.3545 ms
 ──────────────────────────────────────────────────
- Bytecode Gen    | 366   ops      |   2.8756 ms
+ Bytecode Gen    | 435   ops      |   2.8466 ms
 ──────────────────────────────────────────────────
 
-[√] Compilation finished in 24.3348 ms
+[√] Compilation finished in 24.2487 ms
 ```
 **Execution:**
 ```
 --- EXECUTION PHASE ---
-[√] Execution finished in 14.7557 ms
+[√] Execution finished in 15.3455 ms
 ```
 **What the code actually printed**
 ```
+Type of i: int
+String of f: 3.14159
+Length: 13
+Hello, Vext!
+Hello, Guy!
 Line1\nLine2\tTabbed\"Quote\'Single
 Comments ignored
 i > 40
@@ -273,49 +327,60 @@ Even: 4
 While: 0
 While: 1
 While: 2
+Loop: 0
+Loop: 1
+Loop: 2
 Deep chain: 121
 sum: 57, result: 9.56636, concat: Hello, World! auto text 52 4.78318!
-complexBool: 5E-324, testNegation: 0
+complexBool: True, testNegation: False
 val: 12, calc: 40, message: Hello, Vext!
 complexCalc: 14, nestedFold: 40
-logicTest: 5E-324, mod: 1, exp: 1000
+logicTest: True, mod: 1, exp: 1000
 angle: 0.5, trigTest: 0.719181902813473, hypot: 5
-finalCalc: -5, mixed: Result: -5, Bool: 5E-324, Msg: Hello, Tester!
+finalCalc: -5, mixed: Result: -5, Bool: True, Msg: Hello, Tester!
 empty: '', zero: 0, negative: -42, negativeFloat: -3.14
-falseVal: 0, trueVal: 5E-324, specialChars: !@#$%^&*()_+-=[]{}|;:'\",.<>/?
+falseVal: False, trueVal: True, specialChars: !@#$%^&*()_+-=[]{}|;:'\",.<>/?
 Big While Loop: 100000
+Hypotenuse: 5
+Type of x: int
+String of x: 10
+Type of f: float
+String of f: 3.14
+Chained type: string
+Sqrt of 16: 4
 ```
 **The total runtime was:**
 ```
 =================================================================
 
-Total Run Time: 39.0905 ms
+Total Run Time: 39.5942 ms
 
 =================================================================
 ```
 **The final values of all variables:**
 ```
+--- FINAL VM STATE ---
  Variable             │ Type       │ Value
 ─────────────────────────────────────────────────────────────────
-i                    │ Number     │ 43
+i                    │ Int        │ 43
 ─────────────────────────────────────────────────────────────────
-f                    │ Number     │ 3.14159
+f                    │ Float      │ 3.14159
 ─────────────────────────────────────────────────────────────────
 flag                 │ Bool       │ true
 ─────────────────────────────────────────────────────────────────
 text                 │ String     │ Hello, World!
 ─────────────────────────────────────────────────────────────────
-inferredInt          │ Number     │ 100
+inferredInt          │ Int        │ 100
 ─────────────────────────────────────────────────────────────────
-inferredFloat        │ Number     │ 0.25
+inferredFloat        │ Float      │ 0.25
 ─────────────────────────────────────────────────────────────────
 inferredBool         │ Bool       │ false
 ─────────────────────────────────────────────────────────────────
 inferredString       │ String     │ auto text
 ─────────────────────────────────────────────────────────────────
-sum                  │ Number     │ 57
+sum                  │ Int        │ 57
 ─────────────────────────────────────────────────────────────────
-result               │ Number     │ 9.56636
+result               │ Float      │ 9.56636
 ─────────────────────────────────────────────────────────────────
 concat               │ String     │ Hello, World! auto text 52 4.78318!
 ─────────────────────────────────────────────────────────────────
@@ -325,59 +390,61 @@ testNegation         │ Bool       │ false
 ─────────────────────────────────────────────────────────────────
 escaped              │ String     │ Line1\nLine2\tTabbed\"Quote\'Single
 ─────────────────────────────────────────────────────────────────
-total                │ Number     │ 10
+total                │ Int        │ 10
 ─────────────────────────────────────────────────────────────────
-j                    │ Number     │ 5
+j                    │ Int        │ 5
 ─────────────────────────────────────────────────────────────────
-k                    │ Number     │ 3
+k                    │ Int        │ 3
 ─────────────────────────────────────────────────────────────────
-sq                   │ Number     │ 9
+sq                   │ Int        │ 9
 ─────────────────────────────────────────────────────────────────
-val                  │ Number     │ 12
+val                  │ Int        │ 12
 ─────────────────────────────────────────────────────────────────
-calc                 │ Number     │ 40
+calc                 │ Float      │ 40
 ─────────────────────────────────────────────────────────────────
 message              │ String     │ Hello, Vext!
 ─────────────────────────────────────────────────────────────────
-complexCalc          │ Number     │ 14
+complexCalc          │ Float      │ 14
 ─────────────────────────────────────────────────────────────────
-nestedFold           │ Number     │ 40
+nestedFold           │ Int        │ 40
 ─────────────────────────────────────────────────────────────────
 logicTest            │ Bool       │ true
 ─────────────────────────────────────────────────────────────────
-a                    │ Number     │ 10
+a                    │ Int        │ 10
 ─────────────────────────────────────────────────────────────────
-b                    │ Number     │ 3
+b                    │ Int        │ 3
 ─────────────────────────────────────────────────────────────────
-mod                  │ Number     │ 1
+mod                  │ Int        │ 1
 ─────────────────────────────────────────────────────────────────
-exp                  │ Number     │ 1000
+exp                  │ Float      │ 1000
 ─────────────────────────────────────────────────────────────────
-angle                │ Number     │ 0.5
+j                    │ Int        │ 3
 ─────────────────────────────────────────────────────────────────
-trigTest             │ Number     │ 0.719181902813473
+angle                │ Float      │ 0.5
 ─────────────────────────────────────────────────────────────────
-hypot                │ Number     │ 5
+trigTest             │ Float      │ 0.719181902813473
 ─────────────────────────────────────────────────────────────────
-s1                   │ Number     │ 1
+hypot                │ Float      │ 5
 ─────────────────────────────────────────────────────────────────
-m                    │ Number     │ 6
+s1                   │ Int        │ 1
 ─────────────────────────────────────────────────────────────────
-val1                 │ Number     │ 11
+m                    │ Float      │ 6
 ─────────────────────────────────────────────────────────────────
-deepChain            │ Number     │ 121
+val1                 │ Float      │ 11
 ─────────────────────────────────────────────────────────────────
-finalCalc            │ Number     │ -5
+deepChain            │ Float      │ 121
 ─────────────────────────────────────────────────────────────────
-mixed                │ String     │ Result: -5, Bool: 5E-324, Msg: Hello, Tester!
+finalCalc            │ Float      │ -5
+─────────────────────────────────────────────────────────────────
+mixed                │ String     │ Result: -5, Bool: True, Msg: Hello, Tester!
 ─────────────────────────────────────────────────────────────────
 empty                │ String     │
 ─────────────────────────────────────────────────────────────────
-zero                 │ Number     │ 0
+zero                 │ Float      │ 0
 ─────────────────────────────────────────────────────────────────
-negative             │ Number     │ -42
+negative             │ Int        │ -42
 ─────────────────────────────────────────────────────────────────
-negativeFloat        │ Number     │ -3.14
+negativeFloat        │ Float      │ -3.14
 ─────────────────────────────────────────────────────────────────
 falseVal             │ Bool       │ false
 ─────────────────────────────────────────────────────────────────
@@ -385,21 +452,25 @@ trueVal              │ Bool       │ true
 ─────────────────────────────────────────────────────────────────
 specialChars         │ String     │ !@#$%^&*()_+-=[]{}|;:'\",.<>/?
 ─────────────────────────────────────────────────────────────────
-x                    │ Number     │ 100000
+x                    │ Int        │ 100000
 ─────────────────────────────────────────────────────────────────
-n                    │ Number     │ 0
+x1                   │ Int        │ 10
 ─────────────────────────────────────────────────────────────────
-a                    │ Number     │ 0
+f1                   │ Float      │ 3.14
 ─────────────────────────────────────────────────────────────────
-b                    │ Number     │ 0
+n                    │ Int        │ 0
 ─────────────────────────────────────────────────────────────────
-name                 │ Number     │ 0
+name                 │ Int        │ 0
 ─────────────────────────────────────────────────────────────────
-a                    │ Number     │ 0
+a                    │ Int        │ 0
 ─────────────────────────────────────────────────────────────────
-b                    │ Number     │ 0
+b                    │ Int        │ 0
 ─────────────────────────────────────────────────────────────────
-c                    │ Number     │ 0
+a                    │ Int        │ 0
+─────────────────────────────────────────────────────────────────
+b                    │ Int        │ 0
+─────────────────────────────────────────────────────────────────
+c                    │ Int        │ 0
 ─────────────────────────────────────────────────────────────────
 =================================================================
 ```
@@ -518,6 +589,52 @@ JMP                  │
 LOAD_CONST           │ True
 ─────────────────────────────────────────────────────
 STORE_VAR            │
+─────────────────────────────────────────────────────
+LOAD_CONST           │ Type of i:
+─────────────────────────────────────────────────────
+LOAD_VAR             │
+─────────────────────────────────────────────────────
+CALL                 │
+─────────────────────────────────────────────────────
+ADD                  │
+─────────────────────────────────────────────────────
+CALL_VOID            │
+─────────────────────────────────────────────────────
+LOAD_CONST           │ String of f:
+─────────────────────────────────────────────────────
+LOAD_VAR             │
+─────────────────────────────────────────────────────
+CALL                 │
+─────────────────────────────────────────────────────
+ADD                  │
+─────────────────────────────────────────────────────
+CALL_VOID            │
+─────────────────────────────────────────────────────
+LOAD_CONST           │ Length:
+─────────────────────────────────────────────────────
+LOAD_VAR             │
+─────────────────────────────────────────────────────
+CALL                 │
+─────────────────────────────────────────────────────
+ADD                  │
+─────────────────────────────────────────────────────
+CALL_VOID            │
+─────────────────────────────────────────────────────
+DEF_FUNC             │
+─────────────────────────────────────────────────────
+DEF_FUNC             │
+─────────────────────────────────────────────────────
+LOAD_CONST           │ Vext
+─────────────────────────────────────────────────────
+CALL                 │
+─────────────────────────────────────────────────────
+CALL_VOID            │
+─────────────────────────────────────────────────────
+LOAD_CONST           │ Guy
+─────────────────────────────────────────────────────
+CALL                 │
+─────────────────────────────────────────────────────
+CALL_VOID            │
 ─────────────────────────────────────────────────────
 INC_VAR              │
 ─────────────────────────────────────────────────────
@@ -659,10 +776,6 @@ DEF_FUNC             │
 ─────────────────────────────────────────────────────
 DEF_FUNC             │
 ─────────────────────────────────────────────────────
-DEF_FUNC             │
-─────────────────────────────────────────────────────
-DEF_FUNC             │
-─────────────────────────────────────────────────────
 LOAD_CONST           │ 3
 ─────────────────────────────────────────────────────
 CALL                 │
@@ -756,6 +869,24 @@ LOAD_VAR             │
 CALL                 │
 ─────────────────────────────────────────────────────
 STORE_VAR            │
+─────────────────────────────────────────────────────
+LOAD_CONST           │ 0
+─────────────────────────────────────────────────────
+STORE_VAR            │
+─────────────────────────────────────────────────────
+JMP_IF_VAR_OP_CONST  │
+─────────────────────────────────────────────────────
+LOAD_CONST           │ Loop:
+─────────────────────────────────────────────────────
+LOAD_VAR             │
+─────────────────────────────────────────────────────
+ADD                  │
+─────────────────────────────────────────────────────
+CALL_VOID            │
+─────────────────────────────────────────────────────
+INC_VAR              │
+─────────────────────────────────────────────────────
+JMP                  │
 ─────────────────────────────────────────────────────
 LOAD_CONST           │ 0.5
 ─────────────────────────────────────────────────────
@@ -1136,6 +1267,84 @@ CALL_VOID            │
 LOAD_CONST           │ Big While Loop:
 ─────────────────────────────────────────────────────
 LOAD_VAR             │
+─────────────────────────────────────────────────────
+ADD                  │
+─────────────────────────────────────────────────────
+CALL_VOID            │
+─────────────────────────────────────────────────────
+LOAD_CONST           │ Hypotenuse:
+─────────────────────────────────────────────────────
+LOAD_VAR             │
+─────────────────────────────────────────────────────
+ADD                  │
+─────────────────────────────────────────────────────
+CALL_VOID            │
+─────────────────────────────────────────────────────
+LOAD_CONST           │ 10
+─────────────────────────────────────────────────────
+STORE_VAR            │
+─────────────────────────────────────────────────────
+LOAD_CONST           │ Type of x:
+─────────────────────────────────────────────────────
+LOAD_VAR             │
+─────────────────────────────────────────────────────
+CALL                 │
+─────────────────────────────────────────────────────
+ADD                  │
+─────────────────────────────────────────────────────
+CALL_VOID            │
+─────────────────────────────────────────────────────
+LOAD_CONST           │ String of x:
+─────────────────────────────────────────────────────
+LOAD_VAR             │
+─────────────────────────────────────────────────────
+CALL                 │
+─────────────────────────────────────────────────────
+ADD                  │
+─────────────────────────────────────────────────────
+CALL_VOID            │
+─────────────────────────────────────────────────────
+LOAD_CONST           │ 3.14
+─────────────────────────────────────────────────────
+STORE_VAR            │
+─────────────────────────────────────────────────────
+LOAD_CONST           │ Type of f:
+─────────────────────────────────────────────────────
+LOAD_VAR             │
+─────────────────────────────────────────────────────
+CALL                 │
+─────────────────────────────────────────────────────
+ADD                  │
+─────────────────────────────────────────────────────
+CALL_VOID            │
+─────────────────────────────────────────────────────
+LOAD_CONST           │ String of f:
+─────────────────────────────────────────────────────
+LOAD_VAR             │
+─────────────────────────────────────────────────────
+CALL                 │
+─────────────────────────────────────────────────────
+ADD                  │
+─────────────────────────────────────────────────────
+CALL_VOID            │
+─────────────────────────────────────────────────────
+LOAD_CONST           │ Chained type:
+─────────────────────────────────────────────────────
+LOAD_VAR             │
+─────────────────────────────────────────────────────
+CALL                 │
+─────────────────────────────────────────────────────
+CALL                 │
+─────────────────────────────────────────────────────
+ADD                  │
+─────────────────────────────────────────────────────
+CALL_VOID            │
+─────────────────────────────────────────────────────
+LOAD_CONST           │ Sqrt of 16:
+─────────────────────────────────────────────────────
+LOAD_CONST           │ 16
+─────────────────────────────────────────────────────
+CALL                 │
 ─────────────────────────────────────────────────────
 ADD                  │
 ─────────────────────────────────────────────────────

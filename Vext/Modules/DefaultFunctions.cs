@@ -24,6 +24,8 @@ namespace Vext.Compiler.Modules
                 {
                     bool b => b.ToString().ToLower(),
                     string s => s,
+                    long l => l.ToString(),
+                    double d => d.ToString(),
                     _ => args[0]?.ToString()?.ToLower() ?? "null"
                 };
 
@@ -51,6 +53,8 @@ namespace Vext.Compiler.Modules
                 {
                     bool b => b.ToString().ToLower(),
                     string s => s,
+                    long l => l.ToString(),
+                    double d => d.ToString(),
                     _ => args[0]?.ToString()?.ToLower() ?? "null"
                 };
 
@@ -78,7 +82,7 @@ namespace Vext.Compiler.Modules
             {
                 return args[0] switch
                 {
-                    int => "int",
+                    int or long => "int",
                     double or float => "float",
                     bool => "bool",
                     string => "string",

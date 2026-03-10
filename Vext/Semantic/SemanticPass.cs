@@ -874,6 +874,14 @@ namespace Vext.Compiler.Semantic
 
                     if (match)
                     {
+                        for (int i = f.Arguments.Count; i < ps.Count; i++)
+                        {
+                            if (ps[i].Initializer != null)
+                            {
+                                f.Arguments.Add(ps[i].Initializer);
+                            }
+                        }
+
                         f.ReturnType = fn.ReturnType;
                         AddToken(f.Line, f.FunctionNameStartColumn, f.FunctionNameEndColumn, "function", "call");
                         return fn.ReturnType;
@@ -941,6 +949,13 @@ namespace Vext.Compiler.Semantic
                     AddToken(m.Line, m.MemberNameStartColumn, m.MemberNameEndColumn, "function", "call");
                     m.ReturnType = "string";
                     return "string";
+                }
+
+                if (m.MemberName == "length" && m.Arguments == null)
+                {
+                    AddToken(m.Line, m.MemberNameStartColumn, m.MemberNameEndColumn, "property", "readonly");
+                    m.ReturnType = "int";
+                    return "int";
                 }
 
                 ReportError($"Type '{receiverType}' does not have a member '{m.MemberName}'", m.Line, m.MemberNameStartColumn, m.MemberNameEndColumn);

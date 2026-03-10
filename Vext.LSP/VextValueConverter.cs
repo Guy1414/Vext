@@ -26,9 +26,12 @@ namespace Vext.LSP
 
             return parsedType switch
             {
-                VextType.Number => valueElement.ValueKind == JsonValueKind.Number
-                    ? VextValue.FromNumber(valueElement.GetDouble())
-                    : throw new JsonException("VextValue number type requires numeric 'value'."),
+                VextType.Int => valueElement.ValueKind == JsonValueKind.Number
+                    ? VextValue.FromInt(valueElement.GetInt64())
+                    : throw new JsonException("VextValue int type requires numeric 'value'."),
+                VextType.Float => valueElement.ValueKind == JsonValueKind.Number
+                    ? VextValue.FromFloat(valueElement.GetDouble())
+                    : throw new JsonException("VextValue float type requires numeric 'value'."),
                 VextType.Bool => valueElement.ValueKind is JsonValueKind.True or JsonValueKind.False
                     ? VextValue.FromBool(valueElement.GetBoolean())
                     : throw new JsonException("VextValue bool type requires boolean 'value'."),
@@ -47,8 +50,11 @@ namespace Vext.LSP
 
             switch (value.Type)
             {
-                case VextType.Number:
-                    writer.WriteNumber("value", value.AsNumber);
+                case VextType.Int:
+                    writer.WriteNumber("value", value.AsInt);
+                    break;
+                case VextType.Float:
+                    writer.WriteNumber("value", value.AsFloat);
                     break;
                 case VextType.Bool:
                     writer.WriteBoolean("value", value.AsBool);

@@ -11,9 +11,13 @@ namespace Vext.Compiler.VM
     public enum VextType : byte
     {
         /// <summary>
-        /// Represents a numeric type.
+        /// Represents an integer type.
         /// </summary>
-        Number,
+        Int,
+        /// <summary>
+        /// Represents a floating-point type.
+        /// </summary>
+        Float,
         /// <summary>
         /// Represents a boolean type.
         /// </summary>
@@ -34,56 +38,41 @@ namespace Vext.Compiler.VM
     [StructLayout(LayoutKind.Explicit)]
     public struct VextValue
     {
-        /// <summary>
-        /// Represents the type of the value.
-        /// </summary>
+        /// <summary>Represents the type of the value.</summary>
         [FieldOffset(0)] public VextType Type;
-        /// <summary>
-        /// Represents the boolean value.
-        /// </summary>
-        [FieldOffset(8)] public double AsNumber;
-        /// <summary>
-        /// Represents the numeric value.
-        /// </summary>
+        /// <summary>Represents the integer value.</summary>
+        [FieldOffset(8)] public long AsInt;
+        /// <summary>Represents the floating-point value.</summary>
+        [FieldOffset(8)] public double AsFloat;
+        /// <summary>Represents the boolean value.</summary>
         [FieldOffset(8)] public bool AsBool;
-        /// <summary>
-        /// Represents the string value.
-        /// </summary>
+        /// <summary>Represents the string value.</summary>
         [FieldOffset(16)] public string AsString;
 
-        /// <summary>
-        /// Takes a number and returns a VextValue of type Number.
-        /// </summary>
-        /// <param name="n"></param>
-        /// <returns></returns>
-        public static VextValue FromNumber(double n) => new VextValue { Type = VextType.Number, AsNumber = n };
-        /// <summary>
-        /// Takes a boolean and returns a VextValue of type Bool.
-        /// </summary>
-        /// <param name="b"></param>
-        /// <returns></returns>
+        /// <summary>Creates a VextValue of type Int.</summary>
+        public static VextValue FromInt(long n) => new VextValue { Type = VextType.Int, AsInt = n };
+        /// <summary>Creates a VextValue of type Float.</summary>
+        public static VextValue FromFloat(double n) => new VextValue { Type = VextType.Float, AsFloat = n };
+        /// <summary>Creates a VextValue of type Bool.</summary>
         public static VextValue FromBool(bool b) => new VextValue { Type = VextType.Bool, AsBool = b };
-        /// <summary>
-        /// Takes a string and returns a VextValue of type String.
-        /// </summary>
-        /// <param name="s"></param>
-        /// <returns></returns>
+        /// <summary>Creates a VextValue of type String.</summary>
         public static VextValue FromString(string s) => new VextValue { Type = VextType.String, AsString = s };
-        /// <summary>
-        /// Takes no arguments and returns a VextValue of type Null.
-        /// </summary>
-        /// <returns></returns>
+        /// <summary>Creates a VextValue of type Null.</summary>
         public static VextValue Null() => new VextValue { Type = VextType.Null };
 
-        /// <summary>
-        /// Returns a string representation of the VextValue.
-        /// </summary>
-        /// <returns></returns>
+        /// <summary>Returns true if this value is a numeric type (Int or Float).</summary>
+        public readonly bool IsNumeric => Type == VextType.Int || Type == VextType.Float;
+
+        /// <summary>Returns the numeric value as a double, regardless of whether it is Int or Float.</summary>
+        public readonly double ToDouble() => Type == VextType.Int ? (double)AsInt : AsFloat;
+
+        /// <summary>Returns a string representation of the VextValue.</summary>
         public override readonly string ToString()
         {
             return Type switch
             {
-                VextType.Number => AsNumber.ToString(),
+                VextType.Int => AsInt.ToString(),
+                VextType.Float => AsFloat.ToString(),
                 VextType.Bool => AsBool.ToString(),
                 VextType.String => AsString ?? "null",
                 VextType.Null => "null",
@@ -215,51 +204,67 @@ namespace Vext.Compiler.VM
                             if (instr.Op == VextVMBytecode.ADD &&
                                (left.Type == VextType.String || right.Type == VextType.String))
                             {
-                                string lStr = left.Type switch
-                                {
-                                    VextType.String => left.AsString,
-                                    _ => left.ToString()
-                                };
-
-                                string rStr = right.Type switch
-                                {
-                                    VextType.String => right.AsString,
-                                    _ => right.ToString()
-                                };
-
+                                string lStr = left.Type == VextType.String ? left.AsString : left.ToString();
+                                string rStr = right.Type == VextType.String ? right.AsString : right.ToString();
                                 Push(ref sp, VextValue.FromString(lStr + rStr));
                             }
-                            // 2. Handle Numeric Operations
-                            else if (left.Type == VextType.Number && right.Type == VextType.Number)
+                            // 2. Handle Numeric Operations (Int and/or Float)
+                            else if (left.IsNumeric && right.IsNumeric)
                             {
-                                double lNum = left.AsNumber;
-                                double rNum = right.AsNumber;
-                                VextValue res = instr.Op switch
-                                {
-                                    VextVMBytecode.ADD => new VextValue { Type = VextType.Number, AsNumber = lNum + rNum },
-                                    VextVMBytecode.SUB => new VextValue { Type = VextType.Number, AsNumber = lNum - rNum },
-                                    VextVMBytecode.MUL => new VextValue { Type = VextType.Number, AsNumber = lNum * rNum },
-                                    VextVMBytecode.DIV => new VextValue { Type = VextType.Number, AsNumber = lNum / rNum },
-                                    VextVMBytecode.MOD => new VextValue { Type = VextType.Number, AsNumber = lNum % rNum },
-                                    VextVMBytecode.POW => new VextValue { Type = VextType.Number, AsNumber = Math.Pow(lNum, rNum) },
-                                    VextVMBytecode.EQ => new VextValue { Type = VextType.Bool, AsBool = lNum == rNum },
-                                    VextVMBytecode.NEQ => new VextValue { Type = VextType.Bool, AsBool = lNum != rNum },
-                                    VextVMBytecode.LT => new VextValue { Type = VextType.Bool, AsBool = lNum < rNum },
-                                    VextVMBytecode.LTE => new VextValue { Type = VextType.Bool, AsBool = lNum <= rNum },
-                                    VextVMBytecode.GT => new VextValue { Type = VextType.Bool, AsBool = lNum > rNum },
-                                    VextVMBytecode.GTE => new VextValue { Type = VextType.Bool, AsBool = lNum >= rNum },
-                                    _ => throw new Exception($"Unhandled numeric op {instr.Op}"),
-                                };
-                                Push(ref sp, res);
+                                bool bothInt = left.Type == VextType.Int && right.Type == VextType.Int;
 
+                                if (bothInt)
+                                {
+                                    long lInt = left.AsInt;
+                                    long rInt = right.AsInt;
+                                    VextValue res = instr.Op switch
+                                    {
+                                        VextVMBytecode.ADD => VextValue.FromInt(lInt + rInt),
+                                        VextVMBytecode.SUB => VextValue.FromInt(lInt - rInt),
+                                        VextVMBytecode.MUL => VextValue.FromInt(lInt * rInt),
+                                        VextVMBytecode.DIV => VextValue.FromInt(lInt / rInt),
+                                        VextVMBytecode.MOD => VextValue.FromInt(lInt % rInt),
+                                        VextVMBytecode.POW => VextValue.FromFloat(Math.Pow(lInt, rInt)),
+                                        VextVMBytecode.EQ => VextValue.FromBool(lInt == rInt),
+                                        VextVMBytecode.NEQ => VextValue.FromBool(lInt != rInt),
+                                        VextVMBytecode.LT => VextValue.FromBool(lInt < rInt),
+                                        VextVMBytecode.LTE => VextValue.FromBool(lInt <= rInt),
+                                        VextVMBytecode.GT => VextValue.FromBool(lInt > rInt),
+                                        VextVMBytecode.GTE => VextValue.FromBool(lInt >= rInt),
+                                        _ => throw new Exception($"Unhandled numeric op {instr.Op}"),
+                                    };
+                                    Push(ref sp, res);
+                                }
+                                else
+                                {
+                                    double lNum = left.ToDouble();
+                                    double rNum = right.ToDouble();
+                                    VextValue res = instr.Op switch
+                                    {
+                                        VextVMBytecode.ADD => VextValue.FromFloat(lNum + rNum),
+                                        VextVMBytecode.SUB => VextValue.FromFloat(lNum - rNum),
+                                        VextVMBytecode.MUL => VextValue.FromFloat(lNum * rNum),
+                                        VextVMBytecode.DIV => VextValue.FromFloat(lNum / rNum),
+                                        VextVMBytecode.MOD => VextValue.FromFloat(lNum % rNum),
+                                        VextVMBytecode.POW => VextValue.FromFloat(Math.Pow(lNum, rNum)),
+                                        VextVMBytecode.EQ => VextValue.FromBool(lNum == rNum),
+                                        VextVMBytecode.NEQ => VextValue.FromBool(lNum != rNum),
+                                        VextVMBytecode.LT => VextValue.FromBool(lNum < rNum),
+                                        VextVMBytecode.LTE => VextValue.FromBool(lNum <= rNum),
+                                        VextVMBytecode.GT => VextValue.FromBool(lNum > rNum),
+                                        VextVMBytecode.GTE => VextValue.FromBool(lNum >= rNum),
+                                        _ => throw new Exception($"Unhandled numeric op {instr.Op}"),
+                                    };
+                                    Push(ref sp, res);
+                                }
                             }
                             // 3. Handle Boolean Equality
                             else if (left.Type == VextType.Bool && right.Type == VextType.Bool)
                             {
                                 VextValue res = instr.Op switch
                                 {
-                                    VextVMBytecode.EQ => new VextValue { Type = VextType.Bool, AsBool = left.AsBool == right.AsBool },
-                                    VextVMBytecode.NEQ => new VextValue { Type = VextType.Bool, AsBool = left.AsBool != right.AsBool },
+                                    VextVMBytecode.EQ => VextValue.FromBool(left.AsBool == right.AsBool),
+                                    VextVMBytecode.NEQ => VextValue.FromBool(left.AsBool != right.AsBool),
                                     _ => throw new Exception($"Operator {instr.Op} not supported for Booleans.")
                                 };
                                 Push(ref sp, res);
@@ -306,10 +311,10 @@ namespace Vext.Compiler.VM
 
                     case VextVMBytecode.JMP_IF_VAR_OP_CONST:
                         (int slot, string op, double limit, int targetJMPIF) = ((int, string, double, int))instr.Arg!;
-                        if (variables[slot].Type != VextType.Number)
+                        if (!variables[slot].IsNumeric)
                             throw new Exception($"JMP_IF_VAR_OP_CONST used on non-numeric variable at slot {slot}");
 
-                        double value = variables[slot].AsNumber;
+                        double value = variables[slot].ToDouble();
                         bool jump = op switch
                         {
                             "<" => value >= limit,
@@ -367,8 +372,10 @@ namespace Vext.Compiler.VM
                     case VextVMBytecode.INC_VAR:
                         if (instr.ArgInt < 0 || instr.ArgInt >= variables.Length)
                             throw new Exception($"INC_VAR index out of bounds: {instr.ArgInt}");
-                        if (variables[instr.ArgInt].Type == VextType.Number)
-                            variables[instr.ArgInt].AsNumber++;
+                        if (variables[instr.ArgInt].Type == VextType.Int)
+                            variables[instr.ArgInt].AsInt++;
+                        else if (variables[instr.ArgInt].Type == VextType.Float)
+                            variables[instr.ArgInt].AsFloat++;
                         else
                             throw new Exception($"INC_VAR applied to non-numeric variable at index {instr.ArgInt}");
                         break;
@@ -376,8 +383,10 @@ namespace Vext.Compiler.VM
                     case VextVMBytecode.DEC_VAR:
                         if (instr.ArgInt < 0 || instr.ArgInt >= variables.Length)
                             throw new Exception($"DEC_VAR index out of bounds: {instr.ArgInt}");
-                        if (variables[instr.ArgInt].Type == VextType.Number)
-                            variables[instr.ArgInt].AsNumber--;
+                        if (variables[instr.ArgInt].Type == VextType.Int)
+                            variables[instr.ArgInt].AsInt--;
+                        else if (variables[instr.ArgInt].Type == VextType.Float)
+                            variables[instr.ArgInt].AsFloat--;
                         else
                             throw new Exception($"DEC_VAR applied to non-numeric variable at index {instr.ArgInt}");
                         break;
@@ -419,7 +428,8 @@ namespace Vext.Compiler.VM
                         VextValue v = Pop(ref sp);
                         args[i] = v.Type switch
                         {
-                            VextType.Number => v.AsNumber,
+                            VextType.Int => (object)v.AsInt,
+                            VextType.Float => v.AsFloat,
                             VextType.Bool => v.AsBool,
                             VextType.String => v.AsString,
                             _ => null!
@@ -445,7 +455,8 @@ namespace Vext.Compiler.VM
                         VextValue v = Pop(ref sp);
                         args[i] = v.Type switch
                         {
-                            VextType.Number => v.AsNumber,
+                            VextType.Int => (object)v.AsInt,
+                            VextType.Float => v.AsFloat,
                             VextType.Bool => v.AsBool,
                             VextType.String => v.AsString,
                             _ => null!
@@ -464,7 +475,8 @@ namespace Vext.Compiler.VM
                         VextValue v = Pop(ref sp);
                         args[i] = v.Type switch
                         {
-                            VextType.Number => v.AsNumber,
+                            VextType.Int => (object)v.AsInt,
+                            VextType.Float => v.AsFloat,
                             VextType.Bool => v.AsBool,
                             VextType.String => v.AsString,
                             _ => null!
@@ -497,12 +509,13 @@ namespace Vext.Compiler.VM
 
         private static VextValue MapToVextValue(object? value) => value switch
         {
-            double d => new VextValue { Type = VextType.Number, AsNumber = d },
-            float f => new VextValue { Type = VextType.Number, AsNumber = f },
-            int i => new VextValue { Type = VextType.Number, AsNumber = i },
-            bool b => new VextValue { Type = VextType.Bool, AsBool = b },
-            string s => new VextValue { Type = VextType.String, AsString = s },
-            _ => new VextValue { Type = VextType.Null }
+            long l => VextValue.FromInt(l),
+            int i => VextValue.FromInt(i),
+            double d => VextValue.FromFloat(d),
+            float f => VextValue.FromFloat(f),
+            bool b => VextValue.FromBool(b),
+            string s => VextValue.FromString(s),
+            _ => VextValue.Null()
         };
 
         private void EnsureCapacity(int index)

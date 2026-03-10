@@ -12,8 +12,8 @@ namespace Vext.Compiler.Bytecode_Generator
             {
                 VextValue vl = l.Value switch
                 {
-                    int i => VextValue.FromNumber(i),
-                    double d => VextValue.FromNumber(d),
+                    int i => VextValue.FromInt(i),
+                    double d => VextValue.FromFloat(d),
                     bool b => VextValue.FromBool(b),
                     string s => VextValue.FromString(s),
                     null => VextValue.Null(),
@@ -140,7 +140,7 @@ namespace Vext.Compiler.Bytecode_Generator
                         targetName = "__v_gettype";
                     else if (m.MemberName == "ToString" && m.Arguments != null && m.Arguments.Count == 0)
                         targetName = "__v_tostring";
-                    else if (m.MemberName == "length" && m.Arguments != null && m.Arguments.Count == 0)
+                    else if (m.MemberName == "length" && m.Arguments == null)
                         targetName = "__v_len";
                     else
                         throw new Exception($"Unsupported member access: {m.MemberName}");
@@ -178,7 +178,7 @@ namespace Vext.Compiler.Bytecode_Generator
 
                 if (u.Operator == "-")
                 {
-                    instructions.Add(new Instruction { Op = VextVMBytecode.LOAD_CONST, ArgVal = new VextValue { Type = VextType.Number, AsNumber = -1 }, LineNumber = u.Line, ColumnNumber = u.StartColumn });
+                    instructions.Add(new Instruction { Op = VextVMBytecode.LOAD_CONST, ArgVal = VextValue.FromInt(-1), LineNumber = u.Line, ColumnNumber = u.StartColumn });
                     instructions.Add(new Instruction { Op = VextVMBytecode.MUL, LineNumber = u.Line, ColumnNumber = u.StartColumn });
                 } else if (u.Operator == "!")
                 {
@@ -408,8 +408,7 @@ namespace Vext.Compiler.Bytecode_Generator
                 {
                     FunctionParameterNode arg = func.Arguments[i];
 
-                    if (arg.Initializer != null)
-                        EmitExpression(arg.Initializer, funcInstructions); // push default if needed
+
 
                     funcInstructions.Add(new Instruction
                     {
