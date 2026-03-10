@@ -876,9 +876,10 @@ namespace Vext.Compiler.Semantic
                     {
                         for (int i = f.Arguments.Count; i < ps.Count; i++)
                         {
-                            if (ps[i].Initializer != null)
+                            ExpressionNode? initializer = ps[i].Initializer;
+                            if (initializer != null)
                             {
-                                f.Arguments.Add(ps[i].Initializer);
+                                f.Arguments.Add(initializer);
                             }
                         }
 
@@ -905,7 +906,7 @@ namespace Vext.Compiler.Semantic
                         m.IsModuleCall = true;
                         // Add tokens for Module.Func
                         AddToken(vRec.Line, vRec.StartColumn, vRec.EndColumn, "variable", "readonly", "static");
-                        AddToken(m.Line, m.MemberNameStartColumn, m.MemberNameEndColumn, "function", "call");
+                        AddToken(m.Line, m.MemberNameStartColumn, m.MemberNameStartColumn + (m.MemberNameEndColumn - m.MemberNameStartColumn), "function", "call");
 
                         foreach (FunctionDefinitionNode fn in builtIns)
                         {
