@@ -125,17 +125,18 @@ jobs:
       shell: pwsh
       run: |
         $dt = Get-Date -Format "yyyy-MM-dd - HH.mm.ss"
-        $snapshotRoot = "./TreeSnapshots"
+        $snapshotRoot = "$PWD/TreeSnapshots"
         if (!(Test-Path $snapshotRoot)) { New-Item -ItemType Directory -Force $snapshotRoot }
     
         git fetch origin main --depth=1
         git checkout main
     
         $snapshotFile = "$snapshotRoot/Vext Project Tree ($dt).txt"
+    
         npx gh-tree Guy1414/Vext --icons --branch master > $snapshotFile
     
         echo "LATEST_SNAPSHOT=$snapshotFile" >> $env:GITHUB_ENV
-
+    
     - name: Create Release Archives
       shell: pwsh
       run: |
