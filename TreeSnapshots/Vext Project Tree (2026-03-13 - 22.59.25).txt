@@ -1,0 +1,76 @@
+
+🌳 Fetching Guy1414/Vext...
+
+├── 📁 .github
+│   └── 📁 workflows
+│       └── 📄 Release-Action.yml
+├── 📁 TreeSnapshots
+│   └── 📄 ToBeRemoved
+├── 📁 Vext
+│   ├── 📁 Bytecode Generator
+│   │   └── 📄 BytecodeGenerator.cs
+│   ├── 📁 Diagnostics
+│   │   └── 📄 Diagnostic.cs
+│   ├── 📁 Lexing
+│   │   ├── 📄 Lexer.cs
+│   │   └── 📄 Token.cs
+│   ├── 📁 Modules
+│   │   ├── 📄 DefaultFunctions.cs
+│   │   ├── 📄 Function.cs
+│   │   ├── 📄 MathFunctions.cs
+│   │   └── 📄 Module.cs
+│   ├── 📁 Parsing
+│   │   └── 📄 Parser.cs
+│   ├── 📁 Semantic
+│   │   ├── 📄 SemanticPass.cs
+│   │   └── 📄 SemanticToken.cs
+│   ├── 📁 Shared
+│   │   ├── 📄 BytecodeRules.cs
+│   │   └── 📄 LanguageSpecs.cs
+│   ├── 📁 VM
+│   │   └── 📄 VextVM.cs
+│   ├── 📄 RuntimeOutput.cs
+│   ├── 📄 Vext.Compiler.csproj
+│   └── 📄 VextEngine.cs
+├── 📁 Vext VSCode Extension
+│   └── 📁 Vext
+│       ├── 📁 .vscode
+│       │   ├── 📄 launch.json
+│       │   └── 📄 tasks.json
+│       ├── 📁 client
+│       │   ├── 📁 src
+│       │   │   └── 📄 extension.ts
+│       │   ├── 📄 package-lock.json
+│       │   ├── 📄 package.json
+│       │   └── 📄 tsconfig.json
+│       ├── 📁 server
+│       │   ├── 📁 src
+│       │   │   ├── 📄 compilerBridge.ts
+│       │   │   └── 📄 server.ts
+│       │   ├── 📄 package-lock.json
+│       │   ├── 📄 package.json
+│       │   └── 📄 tsconfig.json
+│       ├── 📁 syntaxes
+│       │   └── 📄 vext.tmLanguage.json
+│       ├── 📄 .gitignore
+│       ├── 📄 .vscodeignore
+│       ├── 📄 language-configuration.json
+│       ├── 📄 LICENSE
+│       ├── 📄 package-lock.json
+│       ├── 📄 package.json
+│       ├── 📄 README.md
+│       └── 📄 tsconfig.json
+├── 📁 Vext.LSP
+│   ├── 📄 Program.cs
+│   ├── 📄 Vext.LSP.csproj
+│   └── 📄 VextValueConverter.cs
+├── 📁 Vext.TestRunner
+│   ├── 📄 Program.cs
+│   └── 📄 Vext.TestRunner.csproj
+├── 📄 .gitattributes
+├── 📄 .gitignore
+├── 📄 README.md
+└── 📄 Vext.sln
+
+
+✨ Tree copied to clipboard!
