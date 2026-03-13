@@ -124,20 +124,16 @@ jobs:
     - name: Generate GitHub Tree Snapshot
       shell: pwsh
       run: |
-        if (!(Test-Path "./Vext/Vext/Docs/Repo Snapshots/TreeSnapshots")) {
-            New-Item -ItemType Directory -Force "./Vext/Vext/Docs/Repo Snapshots/TreeSnapshots"
-        }
         $dt = Get-Date -Format "yyyy-MM-dd - HH.mm.ss"
-        $snapshotDir = "./publish/TreeSnapshots"
-        if (!(Test-Path $snapshotDir)) { New-Item -ItemType Directory -Force $snapshotDir }
-
+        $snapshotRoot = "./TreeSnapshots"
+        if (!(Test-Path $snapshotRoot)) { New-Item -ItemType Directory -Force $snapshotRoot }
+    
         git fetch origin main --depth=1
         git checkout main
-
-        Set-Location "Vext/Vext/Docs/Repo Snapshots"
-        $snapshotFile = "$snapshotDir/Vext Project Tree ($dt).txt"
-        npx gh-tree Guy1414/Vext --icons --branch main > $snapshotFile
-
+    
+        $snapshotFile = "$snapshotRoot/Vext Project Tree ($dt).txt"
+        npx gh-tree Guy1414/Vext --icons --branch master > $snapshotFile
+    
         echo "LATEST_SNAPSHOT=$snapshotFile" >> $env:GITHUB_ENV
 
     - name: Create Release Archives
