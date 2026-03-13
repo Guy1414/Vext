@@ -125,18 +125,25 @@ jobs:
       shell: pwsh
       run: |
         $dt = Get-Date -Format "yyyy-MM-dd - HH.mm.ss"
-        $snapshotRoot = "$PWD/TreeSnapshots"
+        $snapshotRoot = "TreeSnapshots"
         if (!(Test-Path $snapshotRoot)) { New-Item -ItemType Directory -Force $snapshotRoot }
-    
-        git fetch origin main --depth=1
-        git checkout main
     
         $snapshotFile = "$snapshotRoot/Vext Project Tree ($dt).txt"
     
         npx gh-tree Guy1414/Vext --icons --branch master > $snapshotFile
     
         echo "LATEST_SNAPSHOT=$snapshotFile" >> $env:GITHUB_ENV
-    
+
+    - name: Commit and Push Tree Snapshot
+      shell: pwsh
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        
+        git add TreeSnapshots/
+        git diff --quiet && git diff --staged --quiet || git commit -m "docs: add project tree snapshot [skip ci]"
+        git push origin HEAD:master
+
     - name: Create Release Archives
       shell: pwsh
       run: |
