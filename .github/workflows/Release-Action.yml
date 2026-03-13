@@ -121,6 +121,25 @@ jobs:
             $hash | Out-File "$($_.FullName).sha256" -Encoding ascii
         }
 
+    - name: Generate GitHub Tree Snapshot
+      shell: pwsh
+      run: |
+        if (!(Test-Path "./Vext/Vext/Docs/Repo Snapshots/TreeSnapshots")) {
+            New-Item -ItemType Directory -Force "./Vext/Vext/Docs/Repo Snapshots/TreeSnapshots"
+        }
+        $dt = Get-Date -Format "yyyy-MM-dd - HH.mm.ss"
+        $snapshotDir = "./publish/TreeSnapshots"
+        if (!(Test-Path $snapshotDir)) { New-Item -ItemType Directory -Force $snapshotDir }
+
+        git fetch origin main --depth=1
+        git checkout main
+
+        Set-Location "Vext/Vext/Docs/Repo Snapshots"
+        $snapshotFile = "$snapshotDir/Vext Project Tree ($dt).txt"
+        npx gh-tree Guy1414/Vext --icons --branch main > $snapshotFile
+
+        echo "LATEST_SNAPSHOT=$snapshotFile" >> $env:GITHUB_ENV
+
     - name: Create Release Archives
       shell: pwsh
       run: |
@@ -143,5 +162,6 @@ jobs:
           ./publish/*.sha256
           ./publish/Vext-Artifacts-*.zip
           ./publish/Vext-Full-Source-*.zip
+          ${{ env.LATEST_SNAPSHOT }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
