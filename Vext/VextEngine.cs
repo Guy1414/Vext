@@ -7,7 +7,6 @@ using Vext.Compiler.Semantic;
 using Vext.Shared.AST;
 using Vext.Shared.Modules;
 using Vext.Shared.Rules;
-using Vext.Shared.Runtime;
 
 using static Vext.Compiler.Diagnostics.Diagnostic;
 
@@ -124,8 +123,7 @@ namespace Vext.Compiler
             foreach (List<Function> func in math.Functions.Values)
                 pass.RegisterBuiltInFunctions(func, math.Name);
 
-            RuntimeOutput dummyOutput = new RuntimeOutput();
-            DefaultFunctions defaults = new DefaultFunctions(dummyOutput);
+            DefaultFunctions defaults = new DefaultFunctions();
             defaults.Initialize();
 
             foreach (List<Function> func in defaults.Functions.Values)

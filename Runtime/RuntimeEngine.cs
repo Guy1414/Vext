@@ -21,10 +21,11 @@ namespace Vext.Runtime
         {
             Stopwatch sw = Stopwatch.StartNew();
 
-            RuntimeOutput output = new RuntimeOutput();
+            // TODO: check if IO is needed, output
+            // RuntimeOutput output = new RuntimeOutput();
 
             Module mathModule = new MathModule { Name = "Math" }.Initialize();
-            DefaultFunctions defaults = new DefaultFunctions(output);
+            DefaultFunctions defaults = new DefaultFunctions();
             defaults.Initialize();
 
             VextVM vm = new VextVM(
@@ -35,7 +36,8 @@ namespace Vext.Runtime
             int sp = 0;
             vm.Run(instructions, ref sp);
 
-            string stdout = output.Flush();
+            // string stdout = output.Flush();
+            string stdout = "";
 
             sw.Stop();
             return (sw.Elapsed.TotalMilliseconds, vm.GetVariables(), stdout);

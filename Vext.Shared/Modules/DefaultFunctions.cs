@@ -1,9 +1,8 @@
 ﻿using Vext.Shared.AST;
-using Vext.Shared.Runtime;
 
 namespace Vext.Shared.Modules
 {
-    public class DefaultFunctions(RuntimeOutput output)
+    public class DefaultFunctions()
     {
         public Dictionary<string, List<Function>> Functions { get; } = [];
 
@@ -19,63 +18,7 @@ namespace Vext.Shared.Modules
 
         public void Initialize()
         {
-            Add("print", new Function("print", 1, args =>
-            {
-                string text = args[0] switch
-                {
-                    bool b => b.ToString().ToLower(),
-                    string s => s,
-                    long l => l.ToString(),
-                    double d => d.ToString(),
-                    _ => args[0]?.ToString()?.ToLower() ?? "null"
-                };
 
-                output.Write(text);
-                return null!;
-            })
-            {
-                Parameters = [new FunctionParameterNode { Name = "value", Type = "auto" }],
-                ReturnType = "void"
-            });
-
-            Add("print", new Function("print", 0, args =>
-            {
-                output.Write("");
-                return null!;
-            })
-            {
-                Parameters = [],
-                ReturnType = "void"
-            });
-
-            Add("println", new Function("println", 1, args =>
-            {
-                string text = args[0] switch
-                {
-                    bool b => b.ToString().ToLower(),
-                    string s => s,
-                    long l => l.ToString(),
-                    double d => d.ToString(),
-                    _ => args[0]?.ToString()?.ToLower() ?? "null"
-                };
-
-                output.WriteLine(text);
-                return null!;
-            })
-            {
-                Parameters = [new FunctionParameterNode { Name = "value", Type = "auto" }],
-                ReturnType = "void"
-            });
-
-            Add("println", new Function("println", 0, args =>
-            {
-                output.WriteLine("");
-                return null!;
-            })
-            {
-                Parameters = [],
-                ReturnType = "void"
-            });
 
             // --- Functions for Member Access ---
 
