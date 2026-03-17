@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text;
 
 namespace Vext.Shared.Runtime
@@ -11,8 +12,10 @@ namespace Vext.Shared.Runtime
         private readonly TextWriter _writer = writer ?? TextWriter.Null;
         private readonly TextReader _reader = reader ?? TextReader.Null;
         private Func<string>? _inputReader;
+        private Stopwatch? _stopwatch;
 
         public void SetInputReader(Func<string> inputReader) => _inputReader = inputReader;
+        public void SetStopwatch(Stopwatch sw) => _stopwatch = sw;
 
         /// <summary>
         /// Writes text to the runtime output buffer and the writer.
@@ -39,10 +42,18 @@ namespace Vext.Shared.Runtime
         /// </summary>
         public string ReadLine()
         {
+            _stopwatch?.Stop();
+            string result;
             if (_inputReader != null)
-                return _inputReader();
-
-            return _reader.ReadLine() ?? "";
+            {
+                result = _inputReader();
+            }
+            else
+            {
+                result = _reader.ReadLine() ?? "";
+            }
+            _stopwatch?.Start();
+            return result;
         }
 
         /// <summary>

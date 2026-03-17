@@ -26,6 +26,7 @@ namespace Vext.Runtime
             Stopwatch sw = Stopwatch.StartNew();
 
             output ??= new RuntimeOutput(writer, reader);
+            output.SetStopwatch(sw);
 
             List<Module> activeModules = [];
             if (usedModules.Contains("Math"))

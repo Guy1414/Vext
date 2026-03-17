@@ -19,6 +19,8 @@ export class CompilerBridge {
   private proc: ChildProcessWithoutNullStreams;
   private nextId = 1;
   private pending = new Map<number, PendingRequest>();
+  private currentTimer?: NodeJS.Timeout;
+  private currentTimeoutMs: number = 10000;
 
   private queue: QueueItem[] = [];
   private busy = false;
@@ -103,6 +105,11 @@ export class CompilerBridge {
     const pending = this.pending.get(msg.id);
     if (!pending) {
       if (msg.method && this.onNotification) {
+        if (msg.method === "vext/needInput" && this.currentTimer) {
+          clearTimeout(this.currentTimer);
+          // Just disable timeout while waiting for input, it will be reset by the next request
+          this.currentTimer = undefined;
+        }
         this.onNotification(msg.method, msg.params);
       }
       return;
@@ -132,7 +139,8 @@ export class CompilerBridge {
       console.log(`[compiler] Sending request ${id} (${item.payload.type})`);
     }
 
-    const timer = setTimeout(() => {
+    this.currentTimeoutMs = item.timeoutMs;
+    this.currentTimer = setTimeout(() => {
       if (this.pending.has(id)) {
         this.pending.delete(id);
         item.reject(new Error("Compiler request timed out"));
@@ -143,11 +151,13 @@ export class CompilerBridge {
 
     this.pending.set(id, {
       resolve: (v) => {
-        clearTimeout(timer);
+        if (this.currentTimer) clearTimeout(this.currentTimer);
+        this.currentTimer = undefined;
         item.resolve(v);
       },
       reject: (r) => {
-        clearTimeout(timer);
+        if (this.currentTimer) clearTimeout(this.currentTimer);
+        this.currentTimer = undefined;
         item.reject(r);
       },
     });
@@ -156,7 +166,8 @@ export class CompilerBridge {
       this.proc.stdin.write(msg, (err) => {
         if (err) {
           this.pending.delete(id);
-          clearTimeout(timer);
+          if (this.currentTimer) clearTimeout(this.currentTimer);
+          this.currentTimer = undefined;
           item.reject(err instanceof Error ? err : new Error(String(err)));
           this.busy = false;
           this.processNext();
@@ -164,7 +175,8 @@ export class CompilerBridge {
       });
     } catch (err) {
       this.pending.delete(id);
-      clearTimeout(timer);
+      if (this.currentTimer) clearTimeout(this.currentTimer);
+      this.currentTimer = undefined;
       item.reject(err instanceof Error ? err : new Error(String(err)));
       this.busy = false;
       this.processNext();

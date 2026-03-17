@@ -281,13 +281,11 @@ class Program
                         return _inputQueue.Take();
                     });
 
-                    Stopwatch sw = Stopwatch.StartNew();
-                    (double _, VextValue[] finalState, string stdout) = RuntimeEngine.Run(compileResult.Instructions, compileResult.UsedModules, null, null, output);
-                    sw.Stop();
-
+                    (double executionTime, VextValue[] finalState, string stdout) = RuntimeEngine.Run(compileResult.Instructions, compileResult.UsedModules, null, null, output);
+                    
                     result.Output = new RunOutput
                     {
-                        Time = sw.Elapsed.TotalMilliseconds,
+                        Time = executionTime,
                         FinalState = finalState,
                         Stdout = stdout
                     };
