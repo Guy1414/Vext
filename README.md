@@ -84,19 +84,23 @@ Vext is a programming language designed for performance, simplicity, and express
 - Nested expressions evaluated at compile time  
 - Binary and unary operations folded  
 - Boolean short-circuiting handled  
-- Strings and numeric types automatically folded  
+- Strings and numeric types are automatically folded  
 
 ### Standard Library & Intrinsics
 
-#### Console I/O
-- `print(value)`: Prints a value to the console without a newline.
-- `println(value)`: Prints a value to the console with a newline.
+#### IO Module (`IO.`)
+The IO module is loaded only when used, keeping the runtime more lightweight.
 
-#### Intrinsic Members
-Works on any variable using the `.` operator:
-- `.type`: Returns the type name as a string (e.g., `"int"`, `"string"`).
-- `.ToString()`: Returns the string representation of the value.
-- `.length()`: (Strings only) Returns the length of the string.
+##### Input
+- `IO.readLine()` - string
+- `IO.readInt()` - int
+- `IO.readFloat()` - float
+
+##### Output
+- `IO.print(value)` - prints without newline
+- `IO.print()` - prints empty string
+- `IO.println(value)` - prints with newline
+- `IO.println()` - prints newline
 
 #### Math Module (`Math.`)
 - `Math.pow(num, power)`
@@ -113,6 +117,12 @@ Works on any variable using the `.` operator:
 - `Math.ceil(num)`
 - `Math.min(a, b)`
 - `Math.max(a, b)`
+
+#### Intrinsic Members
+Works on any variable using the `.` operator:
+- `.type`: Returns the type name as a string (e.g., `"int"`, `"string"`).
+- `.ToString()`: Returns the string representation of the value.
+- `.length()`: (Strings only) Returns the length of the string.
 
 ### Editor Support (LSP)
 The Vext project includes a VSCode extension and a Language Server Protocol (LSP) implementation:
@@ -172,16 +182,16 @@ string concat = text + " " + inferredString + " " + sum + " " + result;
 bool complexBool = (i > 10 && f < 10.0) || !flag;
 
 // --- Intrinsic Members ---
-println("Type of i: " + i.type);            // "int"
-println("String of f: " + f.ToString());    // "3.14159"
-println("Length: " + text.length);        // 13
+IO.println("Type of i: " + i.type);            // "int"
+IO.println("String of f: " + f.ToString());    // "3.14159"
+IO.println("Length: " + text.length);        // 13
 
 // --- 3. Functions & Overloading ---
 int square(int n) { return n * n; }
 string greet(string name = "Guy") { return "Hello, " + name + "!"; }
 
-println(greet("Vext")); // "Hello, Vext!"
-println(greet());        // "Hello, User!"
+IO.println(greet("Vext")); // "Hello, Vext!"
+IO.println(greet());        // "Hello, User!"
 
 // --- 3. Unary & Compound Operators ---
 i++;
@@ -192,29 +202,29 @@ bool testNegation = !complexBool;
 
 // --- 4. Strings & Escapes ---
 string escaped = "Line1\\nLine2\\tTabbed\\\"Quote\\'Single";
-println(escaped);
+IO.println(escaped);
 
 // --- 5. Comments ---
-println("Comments ignored");
+IO.println("Comments ignored");
 
 // --- 6. Conditionals ---
 if (i > 40) {
-    println("i > 40");
+    IO.println("i > 40");
 } else if (i == 42) {
-    println("i == 42");
+    IO.println("i == 42");
 } else {
-    println("i < 40");
+    IO.println("i < 40");
 }
 
 // --- 7. Loops ---
 int total = 0;
 for (int j = 0; j < 5; j++) {
     total += j;
-    if (j % 2 == 0) println("Even: " + j);
+    if (j % 2 == 0) IO.println("Even: " + j);
 }
 int k = 0;
 while (k < 3) {
-    println("While: " + k);
+    IO.println("While: " + k);
     k++;
 }
 
@@ -241,7 +251,7 @@ int mod = a % b;
 float exp = Math.pow(a, b); // 10^3
 
 for (int j = 0; j < 3; j++) {
-    println("Loop: " + j);
+    IO.println("Loop: " + j);
 }
 
 // --- 14. Math & Trigonometry ---
@@ -254,7 +264,7 @@ int s1 = square(1);
 float m = multiply(2.0, 3.0);
 int val1 = addThree(s1, m, 4);
 int deepChain = square(val1);
-println("Deep chain: " + deepChain);
+IO.println("Deep chain: " + deepChain);
 
 // --- 16. Full Expression Mix ---
 float finalCalc = ((3 + 5) * (2 - 7) / 2 + Math.pow(2, 3) - 4) / 2 + Math.sqrt(16) - 1;
@@ -276,47 +286,47 @@ while (x < 100000) {
 }
 
 // --- 19. printing everything ---
-println("sum: " + sum + ", result: " + result + ", concat: " + concat);
-println("complexBool: " + complexBool + ", testNegation: " + testNegation);
-println("val: " + val + ", calc: " + calc + ", message: " + message);
-println("complexCalc: " + complexCalc + ", nestedFold: " + nestedFold);
-println("logicTest: " + logicTest + ", mod: " + mod + ", exp: " + exp);
-println("angle: " + angle + ", trigTest: " + trigTest + ", hypot: " + hypot);
-println("finalCalc: " + finalCalc + ", mixed: " + mixed);
-println("empty: '" + empty + "', zero: " + zero + ", negative: " + negative + ", negativeFloat: " + negativeFloat);
-println("falseVal: " + falseVal + ", trueVal: " + trueVal + ", specialChars: " + specialChars);
-println("Big While Loop: " + x);
-println("Hypotenuse: " + hypot);
+IO.println("sum: " + sum + ", result: " + result + ", concat: " + concat);
+IO.println("complexBool: " + complexBool + ", testNegation: " + testNegation);
+IO.println("val: " + val + ", calc: " + calc + ", message: " + message);
+IO.println("complexCalc: " + complexCalc + ", nestedFold: " + nestedFold);
+IO.println("logicTest: " + logicTest + ", mod: " + mod + ", exp: " + exp);
+IO.println("angle: " + angle + ", trigTest: " + trigTest + ", hypot: " + hypot);
+IO.println("finalCalc: " + finalCalc + ", mixed: " + mixed);
+IO.println("empty: '" + empty + "', zero: " + zero + ", negative: " + negative + ", negativeFloat: " + negativeFloat);
+IO.println("falseVal: " + falseVal + ", trueVal: " + trueVal + ", specialChars: " + specialChars);
+IO.println("Big While Loop: " + x);
+IO.println("Hypotenuse: " + hypot);
 int x1 = 10;
-println("Type of x: " + x1.type);
-println("String of x: " + x1.ToString());
+IO.println("Type of x: " + x1.type);
+IO.println("String of x: " + x1.ToString());
 float f1 = 3.14;
-println("Type of f: " + f1.type);
-println("String of f: " + f1.ToString());
+IO.println("Type of f: " + f1.type);
+IO.println("String of f: " + f1.ToString());
 // Chaining
-println("Chained type: " + x1.ToString().type);
+IO.println("Chained type: " + x1.ToString().type);
 // Module access
-println("Sqrt of 16: " + Math.sqrt(16));
+IO.println("Sqrt of 16: " + Math.sqrt(16));
 ```
 
 **This program ran in:**
 ```
 --- COMPILATION PHASE ---
- Lexing          | 959   tokens   |   2.4182 ms
+ Lexing          | 1021  tokens   |   2.4788 ms
 ──────────────────────────────────────────────────
- Parsing         | 84    nodes    |   6.0389 ms
+ Parsing         | 84    nodes    |   6.8019 ms
 ──────────────────────────────────────────────────
- Semantics       | 0     errors   |  10.3545 ms
+ Semantics       | 0     errors   |  11.7655 ms
 ──────────────────────────────────────────────────
- Bytecode Gen    | 435   ops      |   2.8466 ms
+ Bytecode Gen    | 435   ops      |   3.1315 ms
 ──────────────────────────────────────────────────
 
-[√] Compilation finished in 24.2487 ms
+[√] Compilation finished in 27.4950 ms
 ```
 **Execution:**
 ```
 --- EXECUTION PHASE ---
-[√] Execution finished in 15.3455 ms
+[√] Execution finished in 15.1856 ms
 ```
 **What the code actually printed**
 ```
@@ -360,7 +370,7 @@ Sqrt of 16: 4
 ```
 =================================================================
 
-Total Run Time: 39.5942 ms
+Total Run Time: 42.6806 ms
 
 =================================================================
 ```
