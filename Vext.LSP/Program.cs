@@ -1,8 +1,7 @@
+using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Collections.Concurrent;
-using System.Threading.Tasks;
-using System.Diagnostics;
 
 using Vext.Compiler;
 using Vext.Compiler.Lexing;
@@ -25,6 +24,7 @@ using static Vext.Compiler.Diagnostics.Diagnostic;
 [JsonSerializable(typeof(VextValue))]
 [JsonSerializable(typeof(VextValue[]))]
 [JsonSerializable(typeof(Response))]
+[JsonSerializable(typeof(NotificationParams))]
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase, Converters = [typeof(VextValueConverter)])]
 internal partial class VextJsonContext : JsonSerializerContext
 {
@@ -59,12 +59,17 @@ class Program
         public string Stdout { get; set; } = "";
     }
 
+    public class NotificationParams
+    {
+        public string? Input { get; set; }
+    }
+
     public class Response
     {
         public int Id { get; set; }
         public Result? Result { get; set; } = null;
         public string? Method { get; set; } = null;
-        public object? Params { get; set; } = null;
+        public NotificationParams? Params { get; set; } = null;
     }
 
     public class KeywordInfo
@@ -99,12 +104,12 @@ class Program
         public KeywordInfo[] Keywords { get; set; } = KeywordInfo.AllKeywords;
     }
 
-    private static readonly BlockingCollection<string> _inputQueue = new();
+    private static readonly BlockingCollection<string> _inputQueue = [];
 
     static async Task<int> Main()
     {
         string? line;
-        List<Task> pendingTasks = new();
+        List<Task> pendingTasks = [];
         while ((line = await Console.In.ReadLineAsync()) != null)
         {
             int id = -1;
@@ -115,7 +120,7 @@ class Program
 
                 using JsonDocument doc = JsonDocument.Parse(line);
                 JsonElement root = doc.RootElement;
-                
+
                 if (root.TryGetProperty("id", out var idProp))
                     id = idProp.GetInt32();
 
@@ -138,8 +143,7 @@ class Program
                         Result result = CompileAndRun(code, run);
                         Response response = new Response { Id = id, Result = result };
                         SendResponse(response);
-                    }
-                    catch (Exception ex)
+                    } catch (Exception ex)
                     {
                         SendError(id, ex.Message);
                     }
@@ -178,7 +182,7 @@ class Program
         SendResponse(errorResponse);
     }
 
-    private static void SendNotification(string method, object @params)
+    private static void SendNotification(string method, NotificationParams @params)
     {
         Response notification = new Response { Id = 0, Method = method, Params = @params };
         SendResponse(notification);
@@ -273,7 +277,7 @@ class Program
                     RuntimeOutput output = new RuntimeOutput();
                     output.SetInputReader(() =>
                     {
-                        SendNotification("vext/needInput", new { });
+                        SendNotification("vext/needInput", new NotificationParams());
                         return _inputQueue.Take();
                     });
 

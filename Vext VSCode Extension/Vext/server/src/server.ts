@@ -15,9 +15,6 @@ import {
 } from "vscode-languageserver/node";
 import { InsertTextFormat, RequestType } from 'vscode-languageserver';
 import { TextDocument } from "vscode-languageserver-textdocument";
-import { spawn } from "child_process";
-import * as path from "path";
-import * as fs from 'fs';
 import { CompilerBridge } from "./compilerBridge";
 
 // --- Setup connection & documents ---
