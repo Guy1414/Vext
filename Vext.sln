@@ -9,6 +9,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Vext.TestRunner", "Vext.Tes
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Vext.LSP", "Vext.LSP\Vext.LSP.csproj", "{1C0BFCD6-989B-41B3-B393-82A93AF4E51D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Vext.Runtime", "Runtime\Vext.Runtime.csproj", "{6CA6F432-4FB1-4D43-A349-45377D14990F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Vext.Shared", "Vext.Shared\Vext.Shared.csproj", "{700E193F-BC06-4A63-85A0-93780C469950}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +31,14 @@ Global
 		{1C0BFCD6-989B-41B3-B393-82A93AF4E51D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1C0BFCD6-989B-41B3-B393-82A93AF4E51D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1C0BFCD6-989B-41B3-B393-82A93AF4E51D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6CA6F432-4FB1-4D43-A349-45377D14990F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6CA6F432-4FB1-4D43-A349-45377D14990F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6CA6F432-4FB1-4D43-A349-45377D14990F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6CA6F432-4FB1-4D43-A349-45377D14990F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{700E193F-BC06-4A63-85A0-93780C469950}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{700E193F-BC06-4A63-85A0-93780C469950}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{700E193F-BC06-4A63-85A0-93780C469950}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{700E193F-BC06-4A63-85A0-93780C469950}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

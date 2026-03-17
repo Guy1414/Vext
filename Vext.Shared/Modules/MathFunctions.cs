@@ -1,8 +1,8 @@
-﻿using Vext.Compiler.Parsing;
+﻿using Vext.Shared.AST;
 
-namespace Vext.Compiler.Modules
+namespace Vext.Shared.Modules
 {
-    internal class MathFunctions : Module
+    public class MathFunctions : Module
     {
         private static readonly Random rng = new();
 

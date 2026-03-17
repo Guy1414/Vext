@@ -1,6 +1,6 @@
-﻿using Vext.Compiler.Parsing;
+﻿using Vext.Shared.AST;
 
-namespace Vext.Compiler.Modules
+namespace Vext.Shared.Modules
 {
     /// <summary>
     /// Represents a function within a module or as a defaultFunction.

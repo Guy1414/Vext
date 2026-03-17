@@ -1,8 +1,8 @@
 ﻿using System.Diagnostics;
 
 using Vext.Compiler;
-using Vext.Compiler.Shared;
-using Vext.Compiler.VM;
+using Vext.Runtime;
+using Vext.Shared;
 
 using static Vext.Compiler.Diagnostics.Diagnostic;
 
@@ -201,6 +201,7 @@ class Program
             PrintStat("Lexing", result.TokenCount, "tokens", result.LexTime);
             PrintStat("Parsing", result.NodeCount, "nodes", result.ParseTime);
             PrintStat("Semantics", result.Errors.Count, "errors", result.SemanticTime);
+            PrintStat("Semantics", result.Errors.Count, "errors", result.SemanticTime);
 
             if (result.Errors.Count > 0)
             {
@@ -255,7 +256,7 @@ class Program
             phase = "Execution";
             PrintHeader("EXECUTION PHASE");
 
-            (double execTime, VextValue[] state, string stdout) = VextEngine.Run(result.Instructions);
+            (double execTime, VextValue[] state, string stdout) = RuntimeEngine.Run(result.Instructions);
             finalState = state;
             execSw.Stop();
             executionTime = execSw.Elapsed.TotalMilliseconds;

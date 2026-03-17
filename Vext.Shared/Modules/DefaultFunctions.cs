@@ -1,8 +1,8 @@
-﻿using Vext.Compiler.Parsing;
+﻿using Vext.Shared.AST;
 
-namespace Vext.Compiler.Modules
+namespace Vext.Shared.Modules
 {
-    internal class DefaultFunctions(RuntimeOutput output)
+    public class DefaultFunctions(RuntimeOutput output)
     {
         public Dictionary<string, List<Function>> Functions { get; } = [];
 

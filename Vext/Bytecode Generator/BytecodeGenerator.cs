@@ -1,6 +1,6 @@
-﻿using Vext.Compiler.Parsing;
-using Vext.Compiler.Shared;
-using Vext.Compiler.VM;
+﻿using Vext.Shared;
+using Vext.Shared.AST;
+using Vext.Shared.Modules;
 
 namespace Vext.Compiler.Bytecode_Generator
 {
@@ -505,13 +505,4 @@ namespace Vext.Compiler.Bytecode_Generator
             };
         }
     }
-}
-
-internal class UserFunction
-{
-    public required string Name;
-    public List<FunctionParameterNode>? Arguments = [];
-    public List<Instruction> Body = [];
-    public required int LocalCount;
-    public List<int> ArgumentSlots { get; set; } = [];
 }

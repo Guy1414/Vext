@@ -1,6 +1,6 @@
-﻿namespace Vext.Compiler.Modules
+﻿namespace Vext.Shared.Modules
 {
-    internal class Module
+    public class Module
     {
         public required string Name { get; set; }
         public Dictionary<string, List<Function>> Functions { get; } = [];

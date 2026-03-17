@@ -1,9 +1,9 @@
 ﻿using System.Collections;
 
 using Vext.Compiler.Diagnostics;
-using Vext.Compiler.Modules;
-using Vext.Compiler.Parsing;
-using Vext.Compiler.Shared;
+using Vext.Shared;
+using Vext.Shared.AST;
+using Vext.Shared.Modules;
 
 namespace Vext.Compiler.Semantic
 {

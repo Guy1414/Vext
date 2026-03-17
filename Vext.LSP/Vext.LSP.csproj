@@ -14,6 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Runtime\Vext.Runtime.csproj" />
     <ProjectReference Include="..\Vext\Vext.Compiler.csproj" />
   </ItemGroup>
 

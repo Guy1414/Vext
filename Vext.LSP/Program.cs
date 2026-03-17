@@ -4,8 +4,10 @@ using System.Text.Json.Serialization;
 using Vext.Compiler;
 using Vext.Compiler.Lexing;
 using Vext.Compiler.Semantic;
-using Vext.Compiler.VM;
 using Vext.LSP;
+using Vext.Runtime;
+using Vext.Runtime.VM;
+using Vext.Shared;
 
 using static Program;
 using static Vext.Compiler.Diagnostics.Diagnostic;
@@ -228,7 +230,7 @@ class Program
 
                 if (run)
                 {
-                    (double time, VextValue[] finalState, string stdout) = VextEngine.Run(compileResult.Instructions);
+                    (double time, VextValue[] finalState, string stdout) = RuntimeEngine.Run(compileResult.Instructions);
 
                     result.Output = new RunOutput
                     {

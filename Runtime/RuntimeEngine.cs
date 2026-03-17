@@ -1,0 +1,43 @@
+﻿using System.Diagnostics;
+
+using Vext.Runtime.VM;
+using Vext.Shared;
+using Vext.Shared.Modules;
+
+namespace Vext.Runtime
+{
+    /// <summary>
+    /// Represents the Vext Runtime Engine, responsible for running Vext code.
+    /// </summary>
+    public class RuntimeEngine
+    {
+        /// <summary>
+        /// Runs the provided bytecode instructions in the Vext VM.
+        /// </summary>
+        /// <param name="instructions"></param>
+        /// <returns></returns>
+        public static (double Time, VextValue[] FinalState, string Stdout) Run(List<Instruction> instructions)
+        {
+            Stopwatch sw = Stopwatch.StartNew();
+
+            RuntimeOutput output = new RuntimeOutput();
+
+            Module mathModule = new MathFunctions { Name = "Math" }.Initialize();
+            DefaultFunctions defaults = new DefaultFunctions(output);
+            defaults.Initialize();
+
+            VextVM vm = new VextVM(
+                modulesList: [mathModule],
+                defaults: defaults
+            );
+
+            int sp = 0;
+            vm.Run(instructions, ref sp);
+
+            string stdout = output.Flush();
+
+            sw.Stop();
+            return (sw.Elapsed.TotalMilliseconds, vm.GetVariables(), stdout);
+        }
+    }
+}

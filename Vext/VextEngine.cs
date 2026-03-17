@@ -2,11 +2,11 @@
 
 using Vext.Compiler.Bytecode_Generator;
 using Vext.Compiler.Lexing;
-using Vext.Compiler.Modules;
 using Vext.Compiler.Parsing;
 using Vext.Compiler.Semantic;
-using Vext.Compiler.Shared;
-using Vext.Compiler.VM;
+using Vext.Shared;
+using Vext.Shared.AST;
+using Vext.Shared.Modules;
 
 using static Vext.Compiler.Diagnostics.Diagnostic;
 
@@ -41,7 +41,7 @@ namespace Vext.Compiler
     );
 
     /// <summary>
-    /// Represents the Vext Engine, responsible for compiling and running Vext code.
+    /// Represents the Vext Engine, responsible for compiling Vext code.
     /// </summary>
     public class VextEngine
     {
@@ -117,36 +117,6 @@ namespace Vext.Compiler
                 statements.Count
             );
         }
-
-        /// <summary>
-        /// Runs the provided bytecode instructions in the Vext VM.
-        /// </summary>
-        /// <param name="instructions"></param>
-        /// <returns></returns>
-        public static (double Time, VextValue[] FinalState, string Stdout) Run(List<Instruction> instructions)
-        {
-            Stopwatch sw = Stopwatch.StartNew();
-
-            RuntimeOutput output = new RuntimeOutput();
-
-            Module mathModule = new MathFunctions { Name = "Math" }.Initialize();
-            DefaultFunctions defaults = new DefaultFunctions(output);
-            defaults.Initialize();
-
-            VextVM vm = new VextVM(
-                modulesList: [mathModule],
-                defaults: defaults
-            );
-
-            int sp = 0;
-            vm.Run(instructions, ref sp);
-
-            string stdout = output.Flush();
-
-            sw.Stop();
-            return (sw.Elapsed.TotalMilliseconds, vm.GetVariables(), stdout);
-        }
-
         private static void RegisterBuiltIns(SemanticPass pass)
         {
             Module math = new MathFunctions { Name = "Math" }.Initialize();

@@ -1,6 +1,4 @@
-﻿using Vext.Compiler.VM;
-
-namespace Vext.Compiler.Shared
+﻿namespace Vext.Shared
 {
     /// <summary>
     /// Represents a single bytecode instruction for the Vext virtual machine.
@@ -21,9 +19,9 @@ namespace Vext.Compiler.Shared
         public int ArgInt => Arg is null ? 0 : (int)Arg;
 
         /// <summary>
-        /// Gets the argument value as a <see cref="VextValue"/> instance.
+        /// Gets the argument value as an object instance.
         /// </summary>
-        public VextValue ArgVal { get; set; } = VextValue.FromString("");
+        public object? ArgVal { get; set; }
         /// <summary>
         /// Represents the line number in the source code where this instruction was generated.
         /// </summary>
