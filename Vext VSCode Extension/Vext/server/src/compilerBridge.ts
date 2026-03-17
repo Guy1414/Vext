@@ -203,6 +203,14 @@ export class CompilerBridge {
     });
   }
 
+  notify(payload: any) {
+    if (!this.proc || this.proc.exitCode !== null) return;
+    const msg = JSON.stringify(payload) + "\n";
+    try {
+      this.proc.stdin.write(msg);
+    } catch { }
+  }
+
   dispose() {
     if (!this.proc.killed) this.proc.kill();
     try {

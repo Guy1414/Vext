@@ -254,7 +254,7 @@ connection.onRequest(RunCodeRequest.type, async (params) => {
 });
 
 connection.onRequest(SubmitInputRequest.type, async (params) => {
-  compiler.request({
+  compiler.notify({
     method: "vext/submitInput",
     params: { input: params.input }
   });
