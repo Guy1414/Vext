@@ -16,15 +16,15 @@ namespace Vext.Runtime
         /// Runs the provided bytecode instructions in the Vext VM.
         /// </summary>
         /// <param name="instructions">The list of bytecode instructions to execute.</param>
-        /// <param name="usedModules">A set of modules to load if they were detected as used.</param>
         /// <param name="writer">Optional TextWriter for streaming output.</param>
         /// <param name="reader">Optional TextReader for interactive input.</param>
+        /// <param name="output">Optional RuntimeOutput for custom input/output handling.</param>
         /// <returns></returns>
-        public static (double Time, VextValue[] FinalState, string Stdout) Run(List<Instruction> instructions, HashSet<string> usedModules, TextWriter? writer = null, TextReader? reader = null)
+        public static (double Time, VextValue[] FinalState, string Stdout) Run(List<Instruction> instructions, HashSet<string> usedModules, TextWriter? writer = null, TextReader? reader = null, RuntimeOutput? output = null)
         {
             Stopwatch sw = Stopwatch.StartNew();
 
-            RuntimeOutput output = new RuntimeOutput(writer, reader);
+            output ??= new RuntimeOutput(writer, reader);
 
             List<Module> activeModules = [];
             if (usedModules.Contains("Math"))

@@ -1,5 +1,8 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Collections.Concurrent;
+using System.Threading.Tasks;
+using System.Diagnostics;
 
 using Vext.Compiler;
 using Vext.Compiler.Lexing;
@@ -59,7 +62,9 @@ class Program
     public class Response
     {
         public int Id { get; set; }
-        public Result Result { get; set; } = null!;
+        public Result? Result { get; set; } = null;
+        public string? Method { get; set; } = null;
+        public object? Params { get; set; } = null;
     }
 
     public class KeywordInfo
@@ -94,12 +99,15 @@ class Program
         public KeywordInfo[] Keywords { get; set; } = KeywordInfo.AllKeywords;
     }
 
-    static int Main()
+    private static readonly BlockingCollection<string> _inputQueue = new();
+
+    static async Task<int> Main()
     {
-        int id = -1;
         string? line;
-        while ((line = Console.ReadLine()) != null)
+        List<Task> pendingTasks = new();
+        while ((line = await Console.In.ReadLineAsync()) != null)
         {
+            int id = -1;
             try
             {
                 if (string.IsNullOrWhiteSpace(line))
@@ -107,40 +115,73 @@ class Program
 
                 using JsonDocument doc = JsonDocument.Parse(line);
                 JsonElement root = doc.RootElement;
-                id = root.GetProperty("id").GetInt32();
-                string code = root.GetProperty("code").GetString() ?? "";
+                
+                if (root.TryGetProperty("id", out var idProp))
+                    id = idProp.GetInt32();
 
+                string method = root.TryGetProperty("method", out var methodProp) ? methodProp.GetString() ?? "" : "";
+
+                if (method == "vext/submitInput")
+                {
+                    string input = root.GetProperty("params").GetProperty("input").GetString() ?? "";
+                    _inputQueue.Add(input);
+                    continue;
+                }
+
+                string code = root.TryGetProperty("code", out var codeProp) ? codeProp.GetString() ?? "" : "";
                 bool run = root.TryGetProperty("run", out var runProp) && runProp.GetBoolean();
 
-                Result result = CompileAndRun(code, run);
+                Task t = Task.Run(() =>
+                {
+                    try
+                    {
+                        Result result = CompileAndRun(code, run);
+                        Response response = new Response { Id = id, Result = result };
+                        SendResponse(response);
+                    }
+                    catch (Exception ex)
+                    {
+                        SendError(id, ex.Message);
+                    }
+                });
+                pendingTasks.Add(t);
 
-                Response response = new Response { Id = id, Result = result };
-
-                // Serialize result to JSON
-                Console.WriteLine(JsonSerializer.Serialize(response, VextJsonContext.Default.Response));
-                Console.Out.Flush();
             } catch (Exception ex)
             {
-                if (id == -1)
-                    id = 0;
-
-                Result errorResult = new Result
-                {
-                    Success = false,
-                    Errors =
-                    [
-                        new() { Message = ex.Message, Line = 0, StartColumn = 0, EndColumn = 1, Severity = "error" }
-                    ]
-                };
-                Response errorResponse = new Response { Id = id, Result = errorResult };
-                try
-                {
-                    Console.WriteLine(JsonSerializer.Serialize(errorResponse, VextJsonContext.Default.Response));
-                    Console.Out.Flush();
-                } catch { }
+                SendError(id == -1 ? 0 : id, ex.Message);
             }
         }
+        await Task.WhenAll(pendingTasks);
         return 0;
+    }
+
+    private static void SendResponse(Response response)
+    {
+        lock (Console.Out)
+        {
+            Console.WriteLine(JsonSerializer.Serialize(response, VextJsonContext.Default.Response));
+            Console.Out.Flush();
+        }
+    }
+
+    private static void SendError(int id, string message)
+    {
+        Result errorResult = new Result
+        {
+            Success = false,
+            Errors =
+            [
+                new() { Message = message, Line = 0, StartColumn = 0, EndColumn = 1, Severity = "error" }
+            ]
+        };
+        Response errorResponse = new Response { Id = id, Result = errorResult };
+        SendResponse(errorResponse);
+    }
+
+    private static void SendNotification(string method, object @params)
+    {
+        Response notification = new Response { Id = 0, Method = method, Params = @params };
+        SendResponse(notification);
     }
 
     public static Result CompileAndRun(string code, bool run)
@@ -229,11 +270,20 @@ class Program
 
                 if (run)
                 {
-                    (double time, VextValue[] finalState, string stdout) = RuntimeEngine.Run(compileResult.Instructions, compileResult.UsedModules);
+                    RuntimeOutput output = new RuntimeOutput();
+                    output.SetInputReader(() =>
+                    {
+                        SendNotification("vext/needInput", new { });
+                        return _inputQueue.Take();
+                    });
+
+                    Stopwatch sw = Stopwatch.StartNew();
+                    (double _, VextValue[] finalState, string stdout) = RuntimeEngine.Run(compileResult.Instructions, compileResult.UsedModules, null, null, output);
+                    sw.Stop();
 
                     result.Output = new RunOutput
                     {
-                        Time = time,
+                        Time = sw.Elapsed.TotalMilliseconds,
                         FinalState = finalState,
                         Stdout = stdout
                     };

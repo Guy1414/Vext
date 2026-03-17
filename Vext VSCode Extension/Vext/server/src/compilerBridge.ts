@@ -22,6 +22,11 @@ export class CompilerBridge {
 
   private queue: QueueItem[] = [];
   private busy = false;
+  private onNotification?: (method: string, params: any) => void;
+
+  public setNotificationHandler(handler: (method: string, params: any) => void) {
+    this.onNotification = handler;
+  }
 
   constructor() {
     const compilerDir = path.resolve(__dirname, "..", "..", "compiler");
@@ -30,21 +35,18 @@ export class CompilerBridge {
     const devProjPath = path.resolve(__dirname, "..", "..", "..", "..", "Vext.LSP", "Vext.LSP.csproj");
 
     if (fs.existsSync(devProjPath)) {
-      // Dev mode: use dotnet run to avoid Application Control blocks in the extension folder
       console.log(`[compiler] Dev environment detected. Starting via: ${devProjPath}`);
       this.proc = spawn("dotnet", ["run", "--project", devProjPath, "--", "--lsp"], {
         windowsHide: true,
         shell: false,
       });
     } else if (fs.existsSync(dllPath)) {
-      // Packaged mode (DLL): use dotnet <dll>
       console.log(`[compiler] Starting via DLL: ${dllPath}`);
       this.proc = spawn("dotnet", [dllPath], {
         windowsHide: true,
         shell: false,
       });
     } else if (fs.existsSync(exePath)) {
-      // Packaged mode (EXE): use the signed executable
       console.log(`[compiler] Starting via EXE: ${exePath}`);
       this.proc = spawn(exePath, ["--lsp"], {
         windowsHide: true,
@@ -99,7 +101,12 @@ export class CompilerBridge {
     }
 
     const pending = this.pending.get(msg.id);
-    if (!pending) return;
+    if (!pending) {
+      if (msg.method && this.onNotification) {
+        this.onNotification(msg.method, msg.params);
+      }
+      return;
+    }
 
     this.pending.delete(msg.id);
     pending.resolve(msg.result);

@@ -10,6 +10,9 @@ namespace Vext.Shared.Runtime
         private readonly StringBuilder _buffer = new();
         private readonly TextWriter _writer = writer ?? TextWriter.Null;
         private readonly TextReader _reader = reader ?? TextReader.Null;
+        private Func<string>? _inputReader;
+
+        public void SetInputReader(Func<string> inputReader) => _inputReader = inputReader;
 
         /// <summary>
         /// Writes text to the runtime output buffer and the writer.
@@ -36,6 +39,9 @@ namespace Vext.Shared.Runtime
         /// </summary>
         public string ReadLine()
         {
+            if (_inputReader != null)
+                return _inputReader();
+
             return _reader.ReadLine() ?? "";
         }
 

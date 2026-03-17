@@ -83,6 +83,7 @@ namespace Vext.Compiler.Semantic
         /// <param name="builtIns">The collection of built-in functions to register. Each function in the collection must have a unique name
         /// within the set of built-ins.</param>
         /// <param name="prefix"></param>
+        /// <param name="moduleName"></param>
         public void RegisterBuiltInFunctions(IEnumerable<Function> builtIns, string? prefix = null, string? moduleName = null)
         {
             foreach (Function f in builtIns)
@@ -142,6 +143,10 @@ namespace Vext.Compiler.Semantic
                     functionLookup[stmt.FunctionName] = list = [];
 
                 list.Add(stmt);
+                
+                // Collision check: Function vs Global Variable
+                if (currentScope != null && currentScope.Variables.ContainsKey(stmt.FunctionName))
+                    ReportError($"Function '{stmt.FunctionName}' collides with a variable of the same name", stmt.Line, stmt.StartColumn, stmt.EndColumn);
 
                 // Token for Return Type
                 AddToken(stmt.Line, stmt.ReturnTypeStartColumn, stmt.ReturnTypeEndColumn, "type");
@@ -1004,6 +1009,16 @@ namespace Vext.Compiler.Semantic
             {
                 ReportError($"Variable '{v.Name}' already defined", v.Line, v.StartColumn, v.EndColumn);
                 return;
+            }
+
+            // Collision check: Global Variable vs Function
+            if (currentScope.Parent == null) // Global scope
+            {
+                if (functionLookup.ContainsKey(v.Name) || builtInFunctions.ContainsKey(v.Name))
+                {
+                    ReportError($"Variable '{v.Name}' collides with a function of the same name", v.Line, v.StartColumn, v.EndColumn);
+                    return;
+                }
             }
 
             v.SlotIndex = variableSlotIndex++;

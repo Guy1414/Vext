@@ -87,6 +87,10 @@ namespace RunCodeRequest {
   export const type = new RequestType<{ code: string }, RunOutput, void>('vext/runCode');
 }
 
+namespace SubmitInputRequest {
+  export const type = new RequestType<{ input: string }, void, void>('vext/submitInput');
+}
+
 // --- Compile helper ---
 function compileVextFromText(code: string, run = false): Promise<CompileResult> {
   return compiler.request<CompileResult>({
@@ -242,6 +246,19 @@ connection.onRequest(RunCodeRequest.type, async (params) => {
     return result.output ?? { time: 0, finalState: [] };
   } catch (err) {
     throw new Error(err as string);
+  }
+});
+
+connection.onRequest(SubmitInputRequest.type, async (params) => {
+  compiler.request({
+    method: "vext/submitInput",
+    params: { input: params.input }
+  });
+});
+
+compiler.setNotificationHandler((method, params) => {
+  if (method === "vext/needInput") {
+    connection.sendNotification("vext/needInput", params);
   }
 });
 

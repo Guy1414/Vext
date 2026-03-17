@@ -79,6 +79,14 @@ export async function activate(context: ExtensionContext) {
   // Start the client. This will also launch the server
   await client.start();
 
+  client.onNotification("vext/needInput", async () => {
+    const input = await vscode.window.showInputBox({
+      prompt: "Vext Input Required",
+      placeHolder: "Enter input for the program..."
+    });
+    client.sendRequest("vext/submitInput", { input: input ?? "" });
+  });
+
   let outputChannel: vscode.OutputChannel | undefined;
 
   const runCommand = vscode.commands.registerCommand('vext.runCode', async () => {
