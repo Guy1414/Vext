@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 
 using Vext.Compiler.Diagnostics;
 using Vext.Shared.AST;
@@ -23,7 +23,8 @@ namespace Vext.Compiler.Semantic
 
         private readonly Dictionary<ExpressionNode, string> expressionTypeCache = [];
 
-        private readonly HashSet<string> knownModules = ["Math"];
+        private readonly HashSet<string> knownModules = ["Math", "IO"];
+        public HashSet<string> UsedModules { get; } = [];
 
         public List<FunctionDefinitionNode> GetDiscoveredFunctions() => functions;
         public Dictionary<int, string> GetVariableMap() => slotToNameMap;
@@ -82,7 +83,7 @@ namespace Vext.Compiler.Semantic
         /// <param name="builtIns">The collection of built-in functions to register. Each function in the collection must have a unique name
         /// within the set of built-ins.</param>
         /// <param name="prefix"></param>
-        public void RegisterBuiltInFunctions(IEnumerable<Function> builtIns, string? prefix = null)
+        public void RegisterBuiltInFunctions(IEnumerable<Function> builtIns, string? prefix = null, string? moduleName = null)
         {
             foreach (Function f in builtIns)
             {
@@ -95,6 +96,7 @@ namespace Vext.Compiler.Semantic
                 int slot = 0;
                 list.Add(new FunctionDefinitionNode
                 {
+                    ModuleName = moduleName ?? prefix,
                     FunctionName = f.Name,
                     Arguments = f.Parameters?.Select(p => new FunctionParameterNode
                     {
@@ -883,6 +885,9 @@ namespace Vext.Compiler.Semantic
                             }
                         }
 
+                        if (fn.ModuleName != null)
+                            UsedModules.Add(fn.ModuleName);
+
                         f.ReturnType = fn.ReturnType;
                         AddToken(f.Line, f.FunctionNameStartColumn, f.FunctionNameEndColumn, "function", "call");
                         return fn.ReturnType;
@@ -904,6 +909,7 @@ namespace Vext.Compiler.Semantic
                     if (builtInFunctions.TryGetValue(fullName, out List<FunctionDefinitionNode>? builtIns))
                     {
                         m.IsModuleCall = true;
+                        UsedModules.Add(vRec.Name);
                         // Add tokens for Module.Func
                         AddToken(vRec.Line, vRec.StartColumn, vRec.EndColumn, "variable", "readonly", "static");
                         AddToken(m.Line, m.MemberNameStartColumn, m.MemberNameStartColumn + (m.MemberNameEndColumn - m.MemberNameStartColumn), "function", "call");

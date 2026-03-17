@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 
 using Vext.Compiler;
 using Vext.Runtime;
@@ -29,16 +29,16 @@ class Program
         bool complexBool = (i > 10 && f < 10.0) || !flag;
 
         // --- Intrinsic Members ---
-        println("Type of i: " + i.type);            // "int"
-        println("String of f: " + f.ToString());    // "3.14159"
-        println("Length: " + text.length);        // 13
+        IO.println("Type of i: " + i.type);            // "int"
+        IO.println("String of f: " + f.ToString());    // "3.14159"
+        IO.println("Length: " + text.length);        // 13
 
         // --- 3. Functions & Overloading ---
         int square(int n) { return n * n; }
         string greet(string name = "Guy") { return "Hello, " + name + "!"; }
 
-        println(greet("Vext")); // "Hello, Vext!"
-        println(greet());        // "Hello, User!"
+        IO.println(greet("Vext")); // "Hello, Vext!"
+        IO.println(greet());        // "Hello, User!"
 
         // --- 3. Unary & Compound Operators ---
         i++;
@@ -49,29 +49,29 @@ class Program
 
         // --- 4. Strings & Escapes ---
         string escaped = "Line1\\nLine2\\tTabbed\\\"Quote\\'Single";
-        println(escaped);
+        IO.println(escaped);
 
         // --- 5. Comments ---
-        println("Comments ignored");
+        IO.println("Comments ignored");
 
         // --- 6. Conditionals ---
         if (i > 40) {
-            println("i > 40");
+            IO.println("i > 40");
         } else if (i == 42) {
-            println("i == 42");
+            IO.println("i == 42");
         } else {
-            println("i < 40");
+            IO.println("i < 40");
         }
 
         // --- 7. Loops ---
         int total = 0;
         for (int j = 0; j < 5; j++) {
             total += j;
-            if (j % 2 == 0) println("Even: " + j);
+            if (j % 2 == 0) IO.println("Even: " + j);
         }
         int k = 0;
         while (k < 3) {
-            println("While: " + k);
+            IO.println("While: " + k);
             k++;
         }
 
@@ -98,7 +98,7 @@ class Program
         float exp = Math.pow(a, b); // 10^3
 
         for (int j = 0; j < 3; j++) {
-            println("Loop: " + j);
+            IO.println("Loop: " + j);
         }
 
         // --- 14. Math & Trigonometry ---
@@ -111,7 +111,7 @@ class Program
         float m = multiply(2.0, 3.0);
         int val1 = addThree(s1, m, 4);
         int deepChain = square(val1);
-        println("Deep chain: " + deepChain);
+        IO.println("Deep chain: " + deepChain);
 
         // --- 16. Full Expression Mix ---
         float finalCalc = ((3 + 5) * (2 - 7) / 2 + Math.pow(2, 3) - 4) / 2 + Math.sqrt(16) - 1;
@@ -133,27 +133,27 @@ class Program
         }
 
         // --- 19. printing everything ---
-        println("sum: " + sum + ", result: " + result + ", concat: " + concat);
-        println("complexBool: " + complexBool + ", testNegation: " + testNegation);
-        println("val: " + val + ", calc: " + calc + ", message: " + message);
-        println("complexCalc: " + complexCalc + ", nestedFold: " + nestedFold);
-        println("logicTest: " + logicTest + ", mod: " + mod + ", exp: " + exp);
-        println("angle: " + angle + ", trigTest: " + trigTest + ", hypot: " + hypot);
-        println("finalCalc: " + finalCalc + ", mixed: " + mixed);
-        println("empty: '" + empty + "', zero: " + zero + ", negative: " + negative + ", negativeFloat: " + negativeFloat);
-        println("falseVal: " + falseVal + ", trueVal: " + trueVal + ", specialChars: " + specialChars);
-        println("Big While Loop: " + x);
-        println("Hypotenuse: " + hypot);
+        IO.println("sum: " + sum + ", result: " + result + ", concat: " + concat);
+        IO.println("complexBool: " + complexBool + ", testNegation: " + testNegation);
+        IO.println("val: " + val + ", calc: " + calc + ", message: " + message);
+        IO.println("complexCalc: " + complexCalc + ", nestedFold: " + nestedFold);
+        IO.println("logicTest: " + logicTest + ", mod: " + mod + ", exp: " + exp);
+        IO.println("angle: " + angle + ", trigTest: " + trigTest + ", hypot: " + hypot);
+        IO.println("finalCalc: " + finalCalc + ", mixed: " + mixed);
+        IO.println("empty: '" + empty + "', zero: " + zero + ", negative: " + negative + ", negativeFloat: " + negativeFloat);
+        IO.println("falseVal: " + falseVal + ", trueVal: " + trueVal + ", specialChars: " + specialChars);
+        IO.println("Big While Loop: " + x);
+        IO.println("Hypotenuse: " + hypot);
         int x1 = 10;
-        println("Type of x: " + x1.type);
-        println("String of x: " + x1.ToString());
+        IO.println("Type of x: " + x1.type);
+        IO.println("String of x: " + x1.ToString());
         float f1 = 3.14;
-        println("Type of f: " + f1.type);
-        println("String of f: " + f1.ToString());
+        IO.println("Type of f: " + f1.type);
+        IO.println("String of f: " + f1.ToString());
         // Chaining
-        println("Chained type: " + x1.ToString().type);
+        IO.println("Chained type: " + x1.ToString().type);
         // Module access
-        println("Sqrt of 16: " + Math.sqrt(16));
+        IO.println("Sqrt of 16: " + Math.sqrt(16));
         """;
     }
 
@@ -257,7 +257,7 @@ class Program
             phase = "Execution";
             PrintHeader("EXECUTION PHASE");
 
-            (double execTime, VextValue[] state, string stdout) = RuntimeEngine.Run(result.Instructions);
+            (double execTime, VextValue[] state, string stdout) = RuntimeEngine.Run(result.Instructions, result.UsedModules, Console.Out, Console.In);
             finalState = state;
             execSw.Stop();
             executionTime = execSw.Elapsed.TotalMilliseconds;

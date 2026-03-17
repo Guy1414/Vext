@@ -1,4 +1,4 @@
-﻿using Vext.Shared.AST;
+using Vext.Shared.AST;
 using Vext.Shared.Runtime;
 
 namespace Vext.Shared.Modules
@@ -13,8 +13,7 @@ namespace Vext.Shared.Modules
 
             Add("readLine", new Function("readLine", 0, args =>
             {
-                string? input = Console.ReadLine();
-                return input ?? "";
+                return output.ReadLine();
             })
             {
                 Parameters = [],
@@ -23,8 +22,7 @@ namespace Vext.Shared.Modules
 
             Add("readInt", new Function("readInt", 0, args =>
             {
-                string? input = Console.ReadLine();
-                return long.TryParse(input, out var result) ? result : 0;
+                return output.ReadInt();
             })
             {
                 Parameters = [],
@@ -33,8 +31,7 @@ namespace Vext.Shared.Modules
 
             Add("readFloat", new Function("readFloat", 0, args =>
             {
-                string? input = Console.ReadLine();
-                return double.TryParse(input, out var result) ? result : 0.0;
+                return output.ReadFloat();
             })
             {
                 Parameters = [],

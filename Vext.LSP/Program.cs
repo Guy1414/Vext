@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 using Vext.Compiler;
@@ -229,7 +229,7 @@ class Program
 
                 if (run)
                 {
-                    (double time, VextValue[] finalState, string stdout) = RuntimeEngine.Run(compileResult.Instructions);
+                    (double time, VextValue[] finalState, string stdout) = RuntimeEngine.Run(compileResult.Instructions, compileResult.UsedModules);
 
                     result.Output = new RunOutput
                     {

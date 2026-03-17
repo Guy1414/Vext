@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 
 using Vext.Compiler.Bytecode_Generator;
 using Vext.Compiler.Lexing;
@@ -7,6 +7,7 @@ using Vext.Compiler.Semantic;
 using Vext.Shared.AST;
 using Vext.Shared.Modules;
 using Vext.Shared.Rules;
+using Vext.Shared.Runtime;
 
 using static Vext.Compiler.Diagnostics.Diagnostic;
 
@@ -22,6 +23,7 @@ namespace Vext.Compiler
     /// <param name="Tokens"></param>
     /// <param name="SemanticTokens"></param>
     /// <param name="VariableMap"></param>
+    /// <param name="UsedModules"></param>
     /// <param name="LexTime"></param>
     /// <param name="ParseTime"></param>
     /// <param name="SemanticTime"></param>
@@ -36,6 +38,7 @@ namespace Vext.Compiler
         List<Token> Tokens,
         List<SemanticToken> SemanticTokens,
         Dictionary<int, string> VariableMap,
+        HashSet<string> UsedModules,
         double LexTime, double ParseTime, double SemanticTime, double BytecodeTime,
         int TokenCount, int NodeCount
     );
@@ -87,6 +90,7 @@ namespace Vext.Compiler
                     tokens,
                     semanticPass.SemanticTokens,
                     varMap,
+                    semanticPass.UsedModules,
                     lexTime,
                     parseTime,
                     semTime,
@@ -109,6 +113,7 @@ namespace Vext.Compiler
                 tokens,
                 semanticPass.SemanticTokens,
                 varMap,
+                semanticPass.UsedModules,
                 lexTime,
                 parseTime,
                 semTime,
@@ -122,6 +127,10 @@ namespace Vext.Compiler
             Module math = new MathModule { Name = "Math" }.Initialize();
             foreach (List<Function> func in math.Functions.Values)
                 pass.RegisterBuiltInFunctions(func, math.Name);
+
+            Module io = new IOModule { Name = "IO" }.Initialize(new RuntimeOutput(TextWriter.Null, TextReader.Null));
+            foreach (List<Function> func in io.Functions.Values)
+                pass.RegisterBuiltInFunctions(func, io.Name);
 
             DefaultFunctions defaults = new DefaultFunctions();
             defaults.Initialize();

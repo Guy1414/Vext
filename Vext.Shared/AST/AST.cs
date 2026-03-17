@@ -1,4 +1,4 @@
-﻿namespace Vext.Shared.AST
+namespace Vext.Shared.AST
 {
     /// <summary>
     /// Represents a node in an expression tree, such as a value or an operation.
@@ -137,6 +137,7 @@
 
     public class FunctionDefinitionNode : StatementNode
     {
+        public string? ModuleName { get; set; }
         public required string ReturnType { get; set; }
         public int ReturnTypeStartColumn { get; set; }
         public int ReturnTypeEndColumn { get; set; }

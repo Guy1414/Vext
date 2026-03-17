@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 
 using Vext.Compiler.Diagnostics;
 using Vext.Compiler.Lexing;
@@ -227,8 +227,7 @@ namespace Vext.Compiler.Parsing
 
                 // Otherwise normal expression statement
                 ExpressionNode expr = ParseExpression();
-
-                if (expr is not FunctionCallNode)
+                if (!(expr is FunctionCallNode || (expr is MemberAccessNode m && m.Arguments != null)))
                 {
                     Token startToken = CurrentToken();
                     ReportError($"Unexpected identifier", startToken.Line, token.StartColumn, startToken.Line, startToken.EndColumn);

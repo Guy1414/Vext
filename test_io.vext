@@ -1,0 +1,8 @@
+int a = 10;
+int b = 20;
+int c = a + b;
+IO.println("Hello from IO module!");
+IO.println("a + b = " + c);
+float sq = Math.sqrt(16);
+IO.println("sqrt(16) = " + sq);
+IO.println("Done!");
