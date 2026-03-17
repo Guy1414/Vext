@@ -486,6 +486,7 @@ namespace Vext.Compiler.Semantic
                     BitArray beforeFo = new BitArray(assignedSlots.Peek());
 
                     AnalyzeStatementBlock(fo.Body, func, false);
+                    PopScope();
 
                     BitArray afterFo = new BitArray(assignedSlots.Peek());
 

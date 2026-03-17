@@ -243,9 +243,16 @@ documents.onDidClose((e) => {
 connection.onRequest(RunCodeRequest.type, async (params) => {
   try {
     const result = await compileVextFromText(params.code, true);
-    return result.output ?? { time: 0, finalState: [] };
-  } catch (err) {
-    throw new Error(err as string);
+    if (!result.success) {
+      const errorMsg = result.errors && result.errors.length > 0
+        ? result.errors.map(e => `[Line ${e.line + 1}] ${e.message}`).join('\n')
+        : "Compilation failed with unknown errors.";
+      throw new Error("Compilation Error:\n" + errorMsg);
+    }
+    return result.output ?? { time: 0, finalState: [], stdout: "" };
+  } catch (err: any) {
+    if (err instanceof Error) throw err;
+    throw new Error(String(err));
   }
 });
 
