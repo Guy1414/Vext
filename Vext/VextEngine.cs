@@ -120,7 +120,7 @@ namespace Vext.Compiler
         }
         private static void RegisterBuiltIns(SemanticPass pass)
         {
-            Module math = new MathFunctions { Name = "Math" }.Initialize();
+            Module math = new MathModule { Name = "Math" }.Initialize();
             foreach (List<Function> func in math.Functions.Values)
                 pass.RegisterBuiltInFunctions(func, math.Name);
 

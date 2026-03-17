@@ -2,20 +2,9 @@
 
 namespace Vext.Shared.Modules
 {
-    public class MathFunctions : Module
+    public class MathModule : Module
     {
         private static readonly Random rng = new();
-
-        private void Add(string name, Function fn)
-        {
-            if (!Functions.TryGetValue(name, out List<Function>? list))
-            {
-                list = [];
-                Functions[name] = list;
-            }
-            fn.Name = name;
-            list.Add(fn);
-        }
 
         public Module Initialize()
         {

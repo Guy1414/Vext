@@ -23,7 +23,7 @@ namespace Vext.Runtime
 
             RuntimeOutput output = new RuntimeOutput();
 
-            Module mathModule = new MathFunctions { Name = "Math" }.Initialize();
+            Module mathModule = new MathModule { Name = "Math" }.Initialize();
             DefaultFunctions defaults = new DefaultFunctions(output);
             defaults.Initialize();
 
