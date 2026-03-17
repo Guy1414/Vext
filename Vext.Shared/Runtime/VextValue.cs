@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
 
-namespace Vext.Shared
+namespace Vext.Shared.Runtime
 {
     /// <summary>
     /// Represents the type of a Vext value.

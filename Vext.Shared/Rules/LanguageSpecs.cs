@@ -1,4 +1,4 @@
-﻿namespace Vext.Shared
+﻿namespace Vext.Shared.Rules
 {
     /// <summary>
     /// Defines the language specifications for the Vext programming language, including

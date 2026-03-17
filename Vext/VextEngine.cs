@@ -4,9 +4,10 @@ using Vext.Compiler.Bytecode_Generator;
 using Vext.Compiler.Lexing;
 using Vext.Compiler.Parsing;
 using Vext.Compiler.Semantic;
-using Vext.Shared;
 using Vext.Shared.AST;
 using Vext.Shared.Modules;
+using Vext.Shared.Rules;
+using Vext.Shared.Runtime;
 
 using static Vext.Compiler.Diagnostics.Diagnostic;
 

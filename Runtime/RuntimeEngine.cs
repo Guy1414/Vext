@@ -1,8 +1,9 @@
 ﻿using System.Diagnostics;
 
 using Vext.Runtime.VM;
-using Vext.Shared;
 using Vext.Shared.Modules;
+using Vext.Shared.Rules;
+using Vext.Shared.Runtime;
 
 namespace Vext.Runtime
 {

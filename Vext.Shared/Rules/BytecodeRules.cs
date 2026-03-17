@@ -1,4 +1,4 @@
-﻿namespace Vext.Shared
+﻿namespace Vext.Shared.Rules
 {
     /// <summary>
     /// Represents a single bytecode instruction for the Vext virtual machine.

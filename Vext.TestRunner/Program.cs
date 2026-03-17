@@ -2,7 +2,8 @@
 
 using Vext.Compiler;
 using Vext.Runtime;
-using Vext.Shared;
+using Vext.Shared.Rules;
+using Vext.Shared.Runtime;
 
 using static Vext.Compiler.Diagnostics.Diagnostic;
 

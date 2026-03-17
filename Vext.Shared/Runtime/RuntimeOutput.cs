@@ -1,6 +1,6 @@
 ﻿using System.Text;
 
-namespace Vext.Shared
+namespace Vext.Shared.Runtime
 {
     /// <summary>
     /// RuntimeOutput is a utility class that provides a simple way to capture output generated during the execution of Vext code.

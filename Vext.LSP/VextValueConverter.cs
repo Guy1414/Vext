@@ -1,7 +1,7 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 
-using Vext.Shared;
+using Vext.Shared.Runtime;
 
 namespace Vext.LSP
 {

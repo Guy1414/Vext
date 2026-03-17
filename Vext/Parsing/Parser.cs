@@ -2,8 +2,8 @@
 
 using Vext.Compiler.Diagnostics;
 using Vext.Compiler.Lexing;
-using Vext.Shared;
 using Vext.Shared.AST;
+using Vext.Shared.Rules;
 
 namespace Vext.Compiler.Parsing
 {

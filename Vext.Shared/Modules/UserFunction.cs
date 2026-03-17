@@ -1,4 +1,5 @@
 ﻿using Vext.Shared.AST;
+using Vext.Shared.Rules;
 
 namespace Vext.Shared.Modules
 {

@@ -1,7 +1,7 @@
 ﻿using System.Text;
 
 using Vext.Compiler.Diagnostics;
-using Vext.Shared;
+using Vext.Shared.Rules;
 
 namespace Vext.Compiler.Lexing
 {
