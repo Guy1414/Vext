@@ -6,16 +6,23 @@ Created by [Guy Slutzker](https://github.com/Guy1414)
 
 ---
 
-## 🛑 License & Usage
-Currently, this project has **No License**.  
+## 📄 License
 
-**All rights reserved.** This means:  
-* **Viewing:** You are welcome to read the source code and learn from it.  
-* **Contributions:** Suggestions and Pull Requests are welcome. By submitting a PR, you agree to allow the project owner to use your contribution.  
-* **Copying/Stealing:** You do **not** have permission to copy, redistribute, or use this code in your own projects (commercial or non-commercial) without explicit written consent from Guy Slutzker.  
-* **Derivatives:** You may not build or distribute modified versions of the Vext language.
+Vext is open source and licensed under the **MIT License**.
 
-© 2025 Guy Slutzker
+Copyright (c) 2026 Guy Slutzker
+
+You are free to use, modify, and distribute this software under the terms of the license.
+
+See the [LICENSE](LICENSE) file for full details.
+
+---
+
+## 🤝 Contributing
+
+Contributions, suggestions, and improvements are welcome.
+
+Please read the [CONTRIBUTING.md](CONTRIBUTING.md) file before submitting issues or pull requests.
 
 ---
 
