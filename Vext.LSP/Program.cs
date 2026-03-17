@@ -6,7 +6,6 @@ using Vext.Compiler.Lexing;
 using Vext.Compiler.Semantic;
 using Vext.LSP;
 using Vext.Runtime;
-using Vext.Runtime.VM;
 using Vext.Shared;
 
 using static Program;
