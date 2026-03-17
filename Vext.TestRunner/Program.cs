@@ -202,7 +202,6 @@ class Program
             PrintStat("Lexing", result.TokenCount, "tokens", result.LexTime);
             PrintStat("Parsing", result.NodeCount, "nodes", result.ParseTime);
             PrintStat("Semantics", result.Errors.Count, "errors", result.SemanticTime);
-            PrintStat("Semantics", result.Errors.Count, "errors", result.SemanticTime);
 
             if (result.Errors.Count > 0)
             {
