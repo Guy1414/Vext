@@ -12,11 +12,11 @@ Vext has two dedicated documentation repositories:
 
 📘 Language Documentation
 Learn the syntax, features, and usage of Vext:
-https://github.com/Guy1414/Vext-Language-Documentation
+[GitHub Link](https://github.com/Guy1414/Vext-Language-Documentation)
 
 🛠 Codebase Documentation
 Explore the internal architecture, modules, and implementation details:
-https://github.com/Guy1414/Vext-Codebase-Documentation
+[GitHub Link](https://github.com/Guy1414/Vext-Codebase-Documentation)
 
 ---
 
@@ -36,9 +36,9 @@ See the [LICENSE](LICENSE) file for full details.
 
 Contributions, suggestions, and improvements are welcome.
 
-Please read the [CONTRIBUTING.md](CONTRIBUTING.md) file before submitting issues or pull requests.
+Please read the [CONTRIBUTING.md](CONTRIBUTING.md) file before submitting issues or pull requests.  
 Explore the internal architecture, modules, and implementation details:
-https://github.com/Guy1414/Vext-Codebase-Documentation
+[GitHub link](https://github.com/Guy1414/Vext-Codebase-Documentation)
 
 ---
 
