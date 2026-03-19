@@ -6,6 +6,20 @@ Created by [Guy Slutzker](https://github.com/Guy1414)
 
 ---
 
+📚 Documentation
+
+Vext has two dedicated documentation repositories:
+
+📘 Language Documentation
+Learn the syntax, features, and usage of Vext:
+https://github.com/Guy1414/Vext-Language-Documentation
+
+🛠 Codebase Documentation
+Explore the internal architecture, modules, and implementation details:
+https://github.com/Guy1414/Vext-Codebase-Documentation
+
+---
+
 ## 📄 License
 
 Vext is open source and licensed under the **MIT License**.
@@ -23,6 +37,8 @@ See the [LICENSE](LICENSE) file for full details.
 Contributions, suggestions, and improvements are welcome.
 
 Please read the [CONTRIBUTING.md](CONTRIBUTING.md) file before submitting issues or pull requests.
+Explore the internal architecture, modules, and implementation details:
+https://github.com/Guy1414/Vext-Codebase-Documentation
 
 ---
 
