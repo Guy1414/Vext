@@ -6,6 +6,12 @@ Vext started as a personal project and learning experience, and contributions fr
 
 ---
 
+# Before you start
+Please explore the internal architecture, modules, and implementation details:
+https://github.com/Guy1414/Vext-Codebase-Documentation
+
+---
+
 ## Ways to Contribute
 
 You can help improve Vext in several ways:
