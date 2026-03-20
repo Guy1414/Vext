@@ -183,7 +183,7 @@ export class CompilerBridge {
     }
   }
 
-  request<T>(payload: Omit<any, "id">, timeoutMs = 10000): Promise<T> {
+  request<T>(payload: Omit<any, "id">, timeoutMs = this.currentTimeoutMs): Promise<T> {
     if (!this.proc || this.proc.exitCode !== null) {
       return Promise.reject(new Error("Compiler process has already exited"));
     }

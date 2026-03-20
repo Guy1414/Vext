@@ -129,7 +129,7 @@ namespace Vext.Compiler.Parsing
 
                         {
                             VariableDeclarationNode? decl = ParseVariableDeclaration();
-                            Match(TokenType.Punctuation, ";"); // consume semicolon if present
+                            Expect(TokenType.Punctuation, ";"); // consume semicolon
                             if (decl != null)
                                 return decl;
                         } else
@@ -164,7 +164,7 @@ namespace Vext.Compiler.Parsing
                 } else if (token.Value == "return")
                 {
                     ReturnStatementNode? rtrn = ParseReturn();
-                    Match(TokenType.Punctuation, ";"); // consume semicolon if present
+                    Expect(TokenType.Punctuation, ";"); // consume semicolon
                     if (rtrn != null)
                         return rtrn;
 
@@ -181,7 +181,7 @@ namespace Vext.Compiler.Parsing
                 {
                     Token name = Expect(TokenType.Identifier);
                     Token op = Expect(TokenType.Operator);
-                    Match(TokenType.Punctuation, ";"); // consume semicolon if present
+                    Expect(TokenType.Punctuation, ";"); // consume semicolon
 
                     return new IncrementStatementNode
                     {
@@ -207,7 +207,7 @@ namespace Vext.Compiler.Parsing
                     Token name = Expect(TokenType.Identifier);
                     Token op = Expect(TokenType.Operator);
                     ExpressionNode value = ParseExpression();
-                    Match(TokenType.Punctuation, ";"); // consume semicolon if present
+                    Expect(TokenType.Punctuation, ";"); // consume semicolon
 
                     return new AssignmentStatementNode
                     {
@@ -231,10 +231,10 @@ namespace Vext.Compiler.Parsing
                 {
                     Token startToken = CurrentToken();
                     ReportError($"Unexpected identifier", startToken.Line, token.StartColumn, startToken.Line, startToken.EndColumn);
-                    Match(TokenType.Punctuation, ";"); // consume semicolon if present
+                    Expect(TokenType.Punctuation, ";"); // consume semicolon
                     return null;
                 }
-                Match(TokenType.Punctuation, ";"); // consume semicolon if present
+                Expect(TokenType.Punctuation, ";"); // consume semicolon
 
                 return new ExpressionStatementNode
                 {
