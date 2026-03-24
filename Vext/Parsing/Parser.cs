@@ -5,6 +5,8 @@ using Vext.Compiler.Lexing;
 using Vext.Shared.AST;
 using Vext.Shared.Rules;
 
+using static Vext.Shared.Rules.LanguageSpecs;
+
 namespace Vext.Compiler.Parsing
 {
     internal class Parser(List<Token> tokens)
@@ -779,15 +781,15 @@ namespace Vext.Compiler.Parsing
                 // support both integer and floating point (user writes float, we make it a double for accuracy)
                 if (token.Value.IndexOfAny(['.', 'e', 'E']) >= 0)
                 {
-                    left = new LiteralNode { Value = double.Parse(token.Value, CultureInfo.InvariantCulture), Line = token.Line, StartColumn = token.StartColumn, EndColumn = tokens[currentToken - 1].EndColumn };
+                    left = new LiteralNode { Value = double.Parse(token.Value, CultureInfo.InvariantCulture), Type = Types.Float, Line = token.Line, StartColumn = token.StartColumn, EndColumn = tokens[currentToken - 1].EndColumn };
                 } else
                 {
-                    left = new LiteralNode { Value = int.Parse(token.Value, CultureInfo.InvariantCulture), Line = token.Line, StartColumn = token.StartColumn, EndColumn = tokens[currentToken - 1].EndColumn };
+                    left = new LiteralNode { Value = int.Parse(token.Value, CultureInfo.InvariantCulture), Type = Types.Int, Line = token.Line, StartColumn = token.StartColumn, EndColumn = tokens[currentToken - 1].EndColumn };
                 }
             } else if (token.TokenType == TokenType.String)
             {
                 Advance();
-                left = new LiteralNode { Value = token.Value, Line = token.Line, StartColumn = token.StartColumn, EndColumn = tokens[currentToken - 1].EndColumn };
+                left = new LiteralNode { Value = token.Value, Type = Types.String, Line = token.Line, StartColumn = token.StartColumn, EndColumn = tokens[currentToken - 1].EndColumn };
             } else if (token.TokenType == TokenType.Identifier)
             {
                 Token next = Peek(1);
@@ -801,12 +803,12 @@ namespace Vext.Compiler.Parsing
                 {
                     // Otherwise, just a variable
                     Advance();
-                    left = new VariableNode { Name = token.Value, Line = token.Line, StartColumn = token.StartColumn, EndColumn = tokens[currentToken - 1].EndColumn };
+                    left = new VariableNode { Name = token.Value, Type = Types.String, Line = token.Line, StartColumn = token.StartColumn, EndColumn = tokens[currentToken - 1].EndColumn };
                 }
             } else if (token.TokenType == TokenType.Boolean)
             {
                 Advance();
-                left = new LiteralNode { Value = bool.Parse(token.Value), Line = token.Line, StartColumn = token.StartColumn, EndColumn = tokens[currentToken - 1].EndColumn };
+                left = new LiteralNode { Value = bool.Parse(token.Value), Type = Types.Bool, Line = token.Line, StartColumn = token.StartColumn, EndColumn = tokens[currentToken - 1].EndColumn };
             } else
             {
                 ReportError($"Unexpected token '{token.Value}'", token.Line, token.StartColumn, CurrentToken().Line, CurrentToken().EndColumn);

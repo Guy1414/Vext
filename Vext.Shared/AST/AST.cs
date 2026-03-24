@@ -1,3 +1,5 @@
+using Vext.Shared.Rules;
+
 namespace Vext.Shared.AST
 {
     /// <summary>
@@ -8,6 +10,10 @@ namespace Vext.Shared.AST
     /// types.</remarks>
     public class ExpressionNode // represents values or operations (like 1 + 2, x, "hello")
     {
+        /// <summary>
+        /// The type of this expression.
+        /// </summary>
+        public LanguageSpecs.Types Type { get; set; }
         /// <summary>
         /// The line number in the source code where this expression appears
         /// </summary>

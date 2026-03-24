@@ -1,4 +1,4 @@
-﻿using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
 
 using Vext.Shared.Modules;
 using Vext.Shared.Rules;
@@ -106,7 +106,41 @@ namespace Vext.Runtime.VM
                         variables[instr.ArgInt] = Pop(ref sp);
                         break;
 
-                    case VextVMBytecode.ADD:
+                    case VextVMBytecode.ADD_INT:
+                        {
+                            if (sp < 2)
+                                throw new Exception("Not enough operands for ADD_INT.");
+
+                            VextValue right = Pop(ref sp);
+                            VextValue left = Pop(ref sp);
+                            Push(ref sp, VextValue.FromInt(left.AsInt + right.AsInt));
+                            break;
+                        }
+
+                    case VextVMBytecode.ADD_FLOAT:
+                        {
+                            if (sp < 2)
+                                throw new Exception("Not enough operands for ADD_FLOAT.");
+
+                            VextValue right = Pop(ref sp);
+                            VextValue left = Pop(ref sp);
+                            Push(ref sp, VextValue.FromFloat(left.ToDouble() + right.ToDouble()));
+                            break;
+                        }
+
+                    case VextVMBytecode.CONCAT_STRING:
+                        {
+                            if (sp < 2)
+                                throw new Exception("Not enough operands for CONCAT_STRING.");
+
+                            VextValue right = Pop(ref sp);
+                            VextValue left = Pop(ref sp);
+                            string lStr = left.Type == VextType.String ? left.AsString : left.ToString();
+                            string rStr = right.Type == VextType.String ? right.AsString : right.ToString();
+                            Push(ref sp, VextValue.FromString(lStr + rStr));
+                            break;
+                        }
+
                     case VextVMBytecode.SUB:
                     case VextVMBytecode.MUL:
                     case VextVMBytecode.POW:
@@ -125,16 +159,8 @@ namespace Vext.Runtime.VM
                             VextValue right = Pop(ref sp);
                             VextValue left = Pop(ref sp);
 
-                            // 1. Handle String Concatenation (Only for ADD)
-                            if (instr.Op == VextVMBytecode.ADD &&
-                               (left.Type == VextType.String || right.Type == VextType.String))
-                            {
-                                string lStr = left.Type == VextType.String ? left.AsString : left.ToString();
-                                string rStr = right.Type == VextType.String ? right.AsString : right.ToString();
-                                Push(ref sp, VextValue.FromString(lStr + rStr));
-                            }
-                            // 2. Handle Numeric Operations (Int and/or Float)
-                            else if (left.IsNumeric && right.IsNumeric)
+                            // Handle Numeric Operations (Int and/or Float)
+                            if (left.IsNumeric && right.IsNumeric)
                             {
                                 bool bothInt = left.Type == VextType.Int && right.Type == VextType.Int;
 
@@ -144,7 +170,6 @@ namespace Vext.Runtime.VM
                                     long rInt = right.AsInt;
                                     VextValue res = instr.Op switch
                                     {
-                                        VextVMBytecode.ADD => VextValue.FromInt(lInt + rInt),
                                         VextVMBytecode.SUB => VextValue.FromInt(lInt - rInt),
                                         VextVMBytecode.MUL => VextValue.FromInt(lInt * rInt),
                                         VextVMBytecode.DIV => VextValue.FromInt(lInt / rInt),
@@ -165,7 +190,6 @@ namespace Vext.Runtime.VM
                                     double rNum = right.ToDouble();
                                     VextValue res = instr.Op switch
                                     {
-                                        VextVMBytecode.ADD => VextValue.FromFloat(lNum + rNum),
                                         VextVMBytecode.SUB => VextValue.FromFloat(lNum - rNum),
                                         VextVMBytecode.MUL => VextValue.FromFloat(lNum * rNum),
                                         VextVMBytecode.DIV => VextValue.FromFloat(lNum / rNum),
@@ -182,7 +206,7 @@ namespace Vext.Runtime.VM
                                     Push(ref sp, res);
                                 }
                             }
-                            // 3. Handle Boolean Equality
+                            // Handle Boolean Equality
                             else if (left.Type == VextType.Bool && right.Type == VextType.Bool)
                             {
                                 VextValue res = instr.Op switch

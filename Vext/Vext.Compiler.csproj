@@ -18,4 +18,17 @@
 	  <ProjectReference Include="..\Vext.Shared\Vext.Shared.csproj" />
 	</ItemGroup>
 
+	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
+		<PropertyGroup>
+			<ResolvedSignTool>$(WindowsSDK_ExecutablePath_x64)signtool.exe</ResolvedSignTool>
+
+			<ResolvedSignTool Condition="!Exists('$(ResolvedSignTool)')">C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x64\signtool.exe</ResolvedSignTool>
+
+			<ResolvedSignTool Condition="!Exists('$(ResolvedSignTool)')">signtool.exe</ResolvedSignTool>
+		</PropertyGroup>
+
+		<Exec Command="&quot;$(ResolvedSignTool)&quot; sign /fd SHA256 /n &quot;VextDeveloper&quot; &quot;$(TargetPath)&quot;"
+			  ContinueOnError="WarnAndContinue" />
+	</Target>
+
 </Project>

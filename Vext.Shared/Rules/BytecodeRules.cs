@@ -50,7 +50,10 @@
         STORE_VAR,
 
         /// <summary>Adds the top two stack values.</summary>
-        ADD,
+        //ADD,
+        ADD_INT,
+        ADD_FLOAT,
+        CONCAT_STRING,
 
         /// <summary>Subtracts the top stack value from the previous one.</summary>
         SUB,

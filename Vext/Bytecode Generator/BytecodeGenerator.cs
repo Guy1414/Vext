@@ -1,12 +1,15 @@
-﻿using Vext.Shared.AST;
+using Vext.Shared.AST;
 using Vext.Shared.Modules;
 using Vext.Shared.Rules;
 using Vext.Shared.Runtime;
+
+using static Vext.Shared.Rules.LanguageSpecs;
 
 namespace Vext.Compiler.Bytecode_Generator
 {
     internal class BytecodeGenerator
     {
+        private static readonly Dictionary<int, LanguageSpecs.Types> slotTypes = [];
         public static void EmitExpression(ExpressionNode expr, List<Instruction> instructions)
         {
             if (expr is LiteralNode l)
@@ -77,7 +80,7 @@ namespace Vext.Compiler.Bytecode_Generator
                     EmitExpression(b.Right, instructions);
                     VextVMBytecode op = b.Operator switch
                     {
-                        "+" => VextVMBytecode.ADD,
+                        "+" => ChooseAddInstruction(b.Left, b.Right),
                         "-" => VextVMBytecode.SUB,
                         "*" => VextVMBytecode.MUL,
                         "/" => VextVMBytecode.DIV,
@@ -189,6 +192,34 @@ namespace Vext.Compiler.Bytecode_Generator
                     throw new Exception($"Unknown unary operator {u.Operator}");
                 }
             }
+        }
+
+        private static VextVMBytecode ChooseAddInstruction(ExpressionNode left, ExpressionNode right)
+        {
+            // Helper to resolve Type from ExpressionNode
+            static Types GetType(ExpressionNode expr)
+            {
+                return expr.Type switch
+                {
+                    Types.Int => Types.Int,
+                    Types.Float => Types.Float,
+                    Types.Bool => Types.Bool,
+                    Types.String => Types.String,
+                    _ => throw new Exception($"Unsupported type {expr.Type}")
+                };
+            }
+
+            Types leftType = GetType(left);
+            Types rightType = GetType(right);
+
+            if (leftType == Types.String || rightType == Types.String)
+                return VextVMBytecode.CONCAT_STRING;
+            if (leftType == Types.Float || rightType == Types.Float)
+                return VextVMBytecode.ADD_FLOAT;
+            if (leftType == Types.Int && rightType == Types.Int)
+                return VextVMBytecode.ADD_INT;
+
+            throw new Exception($"Cannot apply + to types {leftType} and {rightType}");
         }
 
         public static void EmitStatement(StatementNode stmt, List<Instruction> instructions)
@@ -331,6 +362,9 @@ namespace Vext.Compiler.Bytecode_Generator
                     });
                 }
 
+                // Track the variable type for compound assignment
+                slotTypes[varDecl.SlotIndex] = LanguageSpecs.TypeFromString(varDecl.VariableType);
+
                 instructions.Add(new Instruction
                 {
                     Op = VextVMBytecode.STORE_VAR,
@@ -356,12 +390,26 @@ namespace Vext.Compiler.Bytecode_Generator
 
                     EmitExpression(assign.Value, instructions);
 
-                    instructions.Add(assign.Operator switch
+                    if (!slotTypes.TryGetValue(assign.SlotIndex, out var lhsType))
+                        throw new Exception($"Unknown type for variable {assign.VariableName}");
+
+                    // Create a dummy ExpressionNode just to pass the type to ChooseAddInstruction
+                    var lhsExpr = new ExpressionNode { Type = lhsType };
+
+                    // Determine the correct operation
+                    VextVMBytecode op = assign.Operator switch
                     {
-                        "+=" => new Instruction { Op = VextVMBytecode.ADD, LineNumber = assign.Line, ColumnNumber = assign.StartColumn },
-                        "-=" => new Instruction { Op = VextVMBytecode.SUB, LineNumber = assign.Line, ColumnNumber = assign.StartColumn },
-                        "*=" => new Instruction { Op = VextVMBytecode.MUL, LineNumber = assign.Line, ColumnNumber = assign.StartColumn },
+                        "+=" => ChooseAddInstruction(lhsExpr, assign.Value),
+                        "-=" => VextVMBytecode.SUB,
+                        "*=" => VextVMBytecode.MUL,
                         _ => throw new Exception($"Unsupported operator {assign.Operator}")
+                    };
+
+                    instructions.Add(new Instruction
+                    {
+                        Op = op,
+                        LineNumber = assign.Line,
+                        ColumnNumber = assign.StartColumn
                     });
                 }
 
@@ -409,7 +457,8 @@ namespace Vext.Compiler.Bytecode_Generator
                 {
                     FunctionParameterNode arg = func.Arguments[i];
 
-
+                    // Track function parameter types for compound assignment
+                    slotTypes[arg.SlotIndex] = LanguageSpecs.TypeFromString(arg.Type);
 
                     funcInstructions.Add(new Instruction
                     {

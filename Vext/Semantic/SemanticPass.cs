@@ -143,7 +143,7 @@ namespace Vext.Compiler.Semantic
                     functionLookup[stmt.FunctionName] = list = [];
 
                 list.Add(stmt);
-                
+
                 // Collision check: Function vs Global Variable
                 if (currentScope != null && currentScope.Variables.ContainsKey(stmt.FunctionName))
                     ReportError($"Function '{stmt.FunctionName}' collides with a variable of the same name", stmt.Line, stmt.StartColumn, stmt.EndColumn);
@@ -729,6 +729,12 @@ namespace Vext.Compiler.Semantic
                 return cached;
 
             string type = ComputeExpressionType(expr);
+
+            // Populate the enum Type on the AST node for the bytecode generator
+            if (type != "error")
+            {
+                expr.Type = LanguageSpecs.TypeFromString(type);
+            }
 
             return expressionTypeCache[expr] = type;
         }

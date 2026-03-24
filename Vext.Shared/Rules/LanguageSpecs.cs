@@ -1,4 +1,4 @@
-﻿namespace Vext.Shared.Rules
+namespace Vext.Shared.Rules
 {
     /// <summary>
     /// Defines the language specifications for the Vext programming language, including
@@ -24,7 +24,22 @@
         /// <summary>
         /// Gets the variable types supported by the Vext programming language.
         /// </summary>
-        public static readonly HashSet<string> VariableTypes = ["int", "float", "bool", "string", "auto"];
+        public enum Types
+        {
+            Int,
+            Float,
+            Bool,
+            String,
+        }
+
+        /// <summary>
+        /// Gets the variable types supported by the Vext programming language wtih auto.
+        /// </summary>
+        public static readonly HashSet<string> VariableTypes =
+        [
+            ..Enum.GetNames<Types>().Select(t => t.ToLowerInvariant()),
+            "auto"
+        ];
 
         /// <summary>
         /// Gets the allowed parameter types for functions in the Vext programming language.
@@ -75,5 +90,21 @@
         [
             "==", "!=", "<=", ">=", "+=", "-=", "*=", "&&", "||", "++", "--", "**"
         ];
+        /// <summary>
+        /// Converts a string representation of a type to its corresponding <see cref="Types"/> enum value.
+        /// </summary>
+        /// <param name="typeName">The name of the type to convert.</param>
+        /// <returns>The corresponding <see cref="Types"/> value, or the default value if the type is unknown.</returns>
+        public static Types TypeFromString(string typeName)
+        {
+            return typeName.ToLowerInvariant() switch
+            {
+                "int" => Types.Int,
+                "float" => Types.Float,
+                "bool" => Types.Bool,
+                "string" => Types.String,
+                _ => Types.Int // Default to Int
+            };
+        }
     }
 }
