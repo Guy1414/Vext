@@ -29,9 +29,9 @@ class Program
         bool complexBool = (i > 10 && f < 10.0) || !flag;
 
         // --- Intrinsic Members ---
-        IO.println("Type of i: " + i.type);            // "int"
+        IO.println("Type of i: " + i.Type);            // "int"
         IO.println("String of f: " + f.ToString());    // "3.14159"
-        IO.println("Length: " + text.length);        // 13
+        IO.println("Length: " + text.Length);        // 13
 
         // --- 3. Functions & Overloading ---
         int square(int n) { return n * n; }
@@ -145,13 +145,13 @@ class Program
         IO.println("Big While Loop: " + x);
         IO.println("Hypotenuse: " + hypot);
         int x1 = 10;
-        IO.println("Type of x: " + x1.type);
+        IO.println("Type of x: " + x1.Type);
         IO.println("String of x: " + x1.ToString());
         float f1 = 3.14;
-        IO.println("Type of f: " + f1.type);
+        IO.println("Type of f: " + f1.Type);
         IO.println("String of f: " + f1.ToString());
         // Chaining
-        IO.println("Chained type: " + x1.ToString().type);
+        IO.println("Chained type: " + x1.ToString().Type);
         // Module access
         IO.println("Sqrt of 16: " + Math.sqrt(16));
         """;

@@ -956,7 +956,7 @@ namespace Vext.Compiler.Semantic
                     return "error";
 
                 // Instance methods/properties (Intrinsic)
-                if (m.MemberName == "type" && m.Arguments == null)
+                if (m.MemberName == "Type" && m.Arguments == null)
                 {
                     AddToken(m.Line, m.MemberNameStartColumn, m.MemberNameEndColumn, "property", "readonly");
                     m.ReturnType = "string";
@@ -970,7 +970,7 @@ namespace Vext.Compiler.Semantic
                     return "string";
                 }
 
-                if (m.MemberName == "length" && m.Arguments == null)
+                if (m.MemberName == "Length" && m.Arguments == null)
                 {
                     AddToken(m.Line, m.MemberNameStartColumn, m.MemberNameEndColumn, "property", "readonly");
                     m.ReturnType = "int";
