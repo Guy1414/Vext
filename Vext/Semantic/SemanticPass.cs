@@ -852,7 +852,17 @@ namespace Vext.Compiler.Semantic
                 if (builtInFunctions.TryGetValue(f.FunctionName, out List<FunctionDefinitionNode>? builtIns))
                     candidates.AddRange(builtIns);
 
-                foreach (FunctionDefinitionNode fn in candidates)
+                int provided = f.Arguments.Count;
+                List<FunctionDefinitionNode> viable = [];
+                foreach (FunctionDefinitionNode cand in candidates)
+                {
+                    List<FunctionParameterNode> ps = cand.Arguments ?? [];
+                    int requiredCount = ps.Count(p => p.Initializer == null);
+                    if (provided >= requiredCount && provided <= ps.Count)
+                        viable.Add(cand);
+                }
+
+                foreach (FunctionDefinitionNode fn in viable)
                 {
                     List<FunctionParameterNode> ps = fn.Arguments ?? [];
 

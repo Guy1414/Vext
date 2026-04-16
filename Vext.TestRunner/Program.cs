@@ -84,8 +84,8 @@ class Program
         float calc = multiply(2.5, square(4));
         string message = greet("Vext");
 
-        // --- 9. Nested Expressions & Constant Folding ---
-        float complexCalc = ((2 + 3) * (5 - 1) / 2) + Math.pow(2, 3) - 4;
+        // --- 9. Nested Expressions & ConsTant Folding ---
+        float complexCalc = ((2 + 3) * (5 - 1) / 2) + Math.Pow(2, 3) - 4;
         int nestedFold = square(addThree(1, 2, 3)) + square(2);
 
         // --- 10. Booleans & Logic ---
@@ -95,7 +95,7 @@ class Program
         int a = 10;
         int b = 3;
         int mod = a % b;
-        float exp = Math.pow(a, b); // 10^3
+        float exp = Math.Pow(a, b); // 10^3
 
         for (int j = 0; j < 3; j++) {
             IO.Println("Loop: " + j);
@@ -103,8 +103,8 @@ class Program
 
         // --- 14. Math & Trigonometry ---
         float angle = 0.5;
-        float trigTest = Math.Sin(angle) * Math.Cos(angle) + Math.pow(Math.tan(angle), 2);
-        float hypot = Math.sqrt(Math.pow(3, 2) + Math.pow(4, 2));
+        float trigTest = Math.Sin(angle) * Math.Cos(angle) + Math.Pow(Math.Tan(angle), 2);
+        float hypot = Math.Sqrt(Math.Pow(3, 2) + Math.Pow(4, 2));
 
         // --- 15. Deep Function Chains ---
         int s1 = square(1);
@@ -114,7 +114,7 @@ class Program
         IO.Println("Deep chain: " + deepChain);
 
         // --- 16. Full Expression Mix ---
-        float finalCalc = ((3 + 5) * (2 - 7) / 2 + Math.pow(2, 3) - 4) / 2 + Math.sqrt(16) - 1;
+        float finalCalc = ((3 + 5) * (2 - 7) / 2 + Math.Pow(2, 3) - 4) / 2 + Math.Sqrt(16) - 1;
         string mixed = "Result: " + finalCalc + ", Bool: " + logicTest + ", Msg: " + greet("Tester");
 
         // --- 17. Edge Cases ---
@@ -153,7 +153,7 @@ class Program
         // Chaining
         IO.Println("Chained type: " + x1.ToString().Type);
         // Module access
-        IO.Println("Sqrt of 16: " + Math.sqrt(16));
+        IO.Println("Sqrt of 16: " + Math.Sqrt(16));
         """;
     }
 

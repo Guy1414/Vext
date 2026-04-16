@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 
+using Vext.Shared.AST;
 using Vext.Shared.Modules;
 using Vext.Shared.Rules;
 using Vext.Shared.Runtime;
@@ -366,10 +367,7 @@ namespace Vext.Runtime.VM
                     if (!module.Functions.TryGetValue(functionName, out List<Function>? candidates))
                         throw new Exception($"Function '{functionName}' not found in module '{moduleName}'.");
 
-                    Function matched = candidates.FirstOrDefault(fn => (fn.Parameters?.Count ?? 0) == argCount)
-                        ?? throw new Exception($"Module '{moduleName}' has no overload for '{functionName}' taking {argCount} args.");
-
-                    // Native functions consume arguments as objects
+                    // Pop runtime arguments first to can inspect their runtime types
                     object[] args = new object[argCount];
                     for (int i = argCount - 1; i >= 0; i--)
                     {
@@ -383,6 +381,34 @@ namespace Vext.Runtime.VM
                             _ => null!
                         };
                     }
+
+                    // Filter by arity first
+                    List<Function> viable = [.. candidates.Where(fn => (fn.Parameters?.Count ?? 0) == argCount)];
+                    if (viable.Count == 0)
+                        throw new Exception($"Module '{moduleName}' has no overload for '{functionName}' taking {argCount} args.");
+
+                    // Then filter by runtime argument types
+                    Function? matched = null;
+                    foreach (Function fn in viable)
+                    {
+                        List<FunctionParameterNode> ps = fn.Parameters ?? [];
+                        bool ok = true;
+                        for (int i = 0; i < ps.Count; i++)
+                        {
+                            string target = ps[i].Type;
+                            string source = GetRuntimeArgType(args[i]);
+                            if (!AreTypesCompatibleRuntime(target, source))
+                            {
+                                ok = false;
+                                break;
+                            }
+                        }
+                        if (ok)
+                        { matched = fn; break; }
+                    }
+
+                    if (matched == null)
+                        throw new Exception($"Module '{moduleName}' has no overload for '{functionName}' matching runtime argument types.");
 
                     return MapToVextValue(matched.Native([.. args]));
                 }
@@ -391,12 +417,10 @@ namespace Vext.Runtime.VM
                 if (!functions.TryGetValue(funcName, out object? funcObj))
                     throw new Exception($"Function '{funcName}' not defined.");
 
-                // If multiple overloads stored as List<Function>, resolve by arity
+                // If multiple overloads stored as List<Function>, resolve by arity then by runtime types
                 if (funcObj is List<Function> candidatesList)
                 {
-                    Function matched = candidatesList.FirstOrDefault(fn => (fn.Parameters?.Count ?? 0) == argCount)
-                        ?? throw new Exception($"Function '{funcName}' has no overload taking {argCount} args.");
-
+                    // Pop arguments first
                     object[] args = new object[argCount];
                     for (int i = argCount - 1; i >= 0; i--)
                     {
@@ -410,6 +434,29 @@ namespace Vext.Runtime.VM
                             _ => null!
                         };
                     }
+
+                    List<Function> viable = [.. candidatesList.Where(fn => (fn.Parameters?.Count ?? 0) == argCount)];
+                    if (viable.Count == 0)
+                        throw new Exception($"Function '{funcName}' has no overload taking {argCount} args.");
+
+                    Function? matched = null;
+                    foreach (Function fn in viable)
+                    {
+                        List<FunctionParameterNode> ps = fn.Parameters ?? [];
+                        bool ok = true;
+                        for (int i = 0; i < ps.Count; i++)
+                        {
+                            string target = ps[i].Type;
+                            string source = GetRuntimeArgType(args[i]);
+                            if (!AreTypesCompatibleRuntime(target, source))
+                            { ok = false; break; }
+                        }
+                        if (ok)
+                        { matched = fn; break; }
+                    }
+
+                    if (matched == null)
+                        throw new Exception($"Function '{funcName}' has no overload matching runtime argument types.");
 
                     return MapToVextValue(matched.Native([.. args]));
                 }
@@ -465,6 +512,36 @@ namespace Vext.Runtime.VM
             string s => VextValue.FromString(s),
             _ => VextValue.Null()
         };
+
+        private static string GetRuntimeArgType(object? obj)
+        {
+            if (obj is int || obj is long)
+                return "int";
+            if (obj is double || obj is float)
+                return "float";
+            if (obj is bool)
+                return "bool";
+            if (obj is string)
+                return "string";
+            return "auto";
+        }
+
+        private static bool AreTypesCompatibleRuntime(string target, string source)
+        {
+            if (target == "auto" || source == "auto")
+                return true;
+            if (target == "numeral")
+                return source == "int" || source == "float";
+            if (target == "error" || source == "error")
+                return true;
+            if (target == source)
+                return true;
+            if (target == "float" && source == "int")
+                return true;
+            if (target == "string")
+                return source == "string";
+            return false;
+        }
 
         private void EnsureCapacity(int index)
         {

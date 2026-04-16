@@ -76,7 +76,13 @@ namespace Vext.Shared.Modules
 
             Add("Abs", new Function("Abs", 1, args => Math.Abs(Convert.ToDouble(args[0])))
             {
-                Parameters = [new FunctionParameterNode { Name = "num", Type = "numeral" }],
+                Parameters = [new FunctionParameterNode { Name = "num", Type = "int" }],
+                ReturnType = "int"
+            });
+
+            Add("Abs", new Function("Abs", 1, args => Math.Abs(Convert.ToDouble(args[0])))
+            {
+                Parameters = [new FunctionParameterNode { Name = "num", Type = "float" }],
                 ReturnType = "float"
             });
 
@@ -102,8 +108,18 @@ namespace Vext.Shared.Modules
             {
                 Parameters =
                 [
-                    new FunctionParameterNode { Name = "a", Type = "numeral" },
-                    new FunctionParameterNode { Name = "b", Type = "numeral" }
+                    new FunctionParameterNode { Name = "a", Type = "int" },
+                    new FunctionParameterNode { Name = "b", Type = "int" }
+                ],
+                ReturnType = "int"
+            });
+
+            Add("Min", new Function("Min", 2, args => Math.Min(Convert.ToDouble(args[0]), Convert.ToDouble(args[1])))
+            {
+                Parameters =
+                [
+                    new FunctionParameterNode { Name = "a", Type = "float" },
+                    new FunctionParameterNode { Name = "b", Type = "float" }
                 ],
                 ReturnType = "float"
             });
@@ -112,8 +128,18 @@ namespace Vext.Shared.Modules
             {
                 Parameters =
                 [
-                    new FunctionParameterNode { Name = "a", Type = "numeral" },
-                    new FunctionParameterNode { Name = "b", Type = "numeral" }
+                    new FunctionParameterNode { Name = "a", Type = "int" },
+                    new FunctionParameterNode { Name = "b", Type = "int" }
+                ],
+                ReturnType = "int"
+            });
+
+            Add("Max", new Function("Max", 2, args => Math.Max(Convert.ToDouble(args[0]), Convert.ToDouble(args[1])))
+            {
+                Parameters =
+                [
+                    new FunctionParameterNode { Name = "a", Type = "float" },
+                    new FunctionParameterNode { Name = "b", Type = "float" }
                 ],
                 ReturnType = "float"
             });
