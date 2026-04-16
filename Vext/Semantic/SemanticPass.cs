@@ -268,7 +268,8 @@ namespace Vext.Compiler.Semantic
                         v.Initializer = Fold(v.Initializer);
                     }
 
-                    assignedSlots.Peek().Set(v.SlotIndex, true);
+                    if (v.Initializer != null)
+                        assignedSlots.Peek().Set(v.SlotIndex, true);
 
                     if (!IsValidType(v.VariableType))
                         ReportError($"Unknown type {v.VariableType}", v.Line, v.StartColumn, v.EndColumn);

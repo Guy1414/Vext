@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -282,7 +281,7 @@ class Program
                     });
 
                     (double executionTime, VextValue[] finalState, string stdout) = RuntimeEngine.Run(compileResult.Instructions, compileResult.UsedModules, null, null, output);
-                    
+
                     result.Output = new RunOutput
                     {
                         Time = executionTime,

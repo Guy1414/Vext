@@ -47,8 +47,7 @@ namespace Vext.Shared.Runtime
             if (_inputReader != null)
             {
                 result = _inputReader();
-            }
-            else
+            } else
             {
                 result = _reader.ReadLine() ?? "";
             }

@@ -11,7 +11,7 @@ namespace Vext.Shared.Modules
 
             // --- Input ---
 
-            Add("readLine", new Function("readLine", 0, args =>
+            Add("ReadLine", new Function("ReadLine", 0, args =>
             {
                 return output.ReadLine();
             })
@@ -20,7 +20,7 @@ namespace Vext.Shared.Modules
                 ReturnType = "string"
             });
 
-            Add("readInt", new Function("readInt", 0, args =>
+            Add("ReadInt", new Function("ReadInt", 0, args =>
             {
                 return output.ReadInt();
             })
@@ -29,7 +29,7 @@ namespace Vext.Shared.Modules
                 ReturnType = "int"
             });
 
-            Add("readFloat", new Function("readFloat", 0, args =>
+            Add("ReadFloat", new Function("ReadFloat", 0, args =>
             {
                 return output.ReadFloat();
             })
@@ -40,7 +40,7 @@ namespace Vext.Shared.Modules
 
             // --- Output ---
 
-            Add("print", new Function("print", 1, args =>
+            Add("Print", new Function("Print", 1, args =>
             {
                 output.Write(ToVextString(args[0]));
                 return null!;
@@ -50,7 +50,7 @@ namespace Vext.Shared.Modules
                 ReturnType = "void"
             });
 
-            Add("print", new Function("print", 0, args =>
+            Add("Print", new Function("Print", 0, args =>
             {
                 output.Write("");
                 return null!;
@@ -60,7 +60,7 @@ namespace Vext.Shared.Modules
                 ReturnType = "void"
             });
 
-            Add("println", new Function("println", 1, args =>
+            Add("Println", new Function("Println", 1, args =>
             {
                 output.WriteLine(ToVextString(args[0]));
                 return null!;
@@ -70,7 +70,7 @@ namespace Vext.Shared.Modules
                 ReturnType = "void"
             });
 
-            Add("println", new Function("println", 0, args =>
+            Add("Println", new Function("Println", 0, args =>
             {
                 output.WriteLine("");
                 return null!;
