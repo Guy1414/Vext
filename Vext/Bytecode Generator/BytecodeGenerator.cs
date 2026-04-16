@@ -142,7 +142,7 @@ namespace Vext.Compiler.Bytecode_Generator
                     string targetName;
                     if (m.MemberName == "type" && m.Arguments == null)
                         targetName = "__v_gettype";
-                    else if (m.MemberName == "ToString" && m.Arguments != null && m.Arguments.Count == 0)
+                    else if (m.MemberName == "toString" && m.Arguments != null && m.Arguments.Count == 0)
                         targetName = "__v_tostring";
                     else if (m.MemberName == "length" && m.Arguments == null)
                         targetName = "__v_len";
