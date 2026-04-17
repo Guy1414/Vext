@@ -94,10 +94,18 @@ jobs:
       run: |
         Push-Location "${{ env.EXTENSION_ROOT }}"
         
-        # Sync package.json version with the GitHub tag (removes 'v' prefix)
-        $cleanTag = "${{ steps.versioning.outputs.tag }}".Replace("v", "")
+        # Sync package.json version with the GitHub tag
+        $tag = "${{ steps.versioning.outputs.tag }}".Replace("v", "")
+        
+        # If the tag is a simple integer (like '61'), convert to SemVer (0.0.61)
+        if ($tag -match '^\d+$') {
+            $versionForPackage = "0.0.$tag"
+        } else {
+            $versionForPackage = $tag
+        }
+        
         $packageJson = Get-Content package.json | ConvertFrom-Json
-        $packageJson.version = $cleanTag
+        $packageJson.version = $versionForPackage
         $packageJson | ConvertTo-Json -Depth 20 | Set-Content package.json
         
         npm ci
