@@ -2,7 +2,7 @@
   "name": "vext",
   "displayName": "Vext Language Support",
   "description": "Language Server Protocol support for the Vext language",
-  "publisher": "Guy Slutzker",
+  "publisher": "guy1414",
   "license": "MIT",
   "version": "1.0.0",
   "engines": {
