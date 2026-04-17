@@ -21,50 +21,6 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: 10.0.x
-
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: 20
-        cache: 'npm'
-        cache-dependency-path: './Vext VSCode Extension/Vext/package-lock.json'
-
-    - name: Fail-Fast Project Check
-      shell: pwsh
-      run: |
-        if (!(Test-Path ${{ env.TESTRUNNER_PROJECT }})) { throw "TestRunner project not found!" }
-        if (!(Test-Path ${{ env.LSP_PROJECT }})) { throw "LSP project not found!" }
-
-    - name: Prepare directories
-      shell: pwsh
-      run: |
-        $null = New-Item -ItemType Directory -Force ./publish
-        $null = New-Item -ItemType Directory -Force "${{ env.EXTENSION_ROOT }}/compiler"
-
-    - name: Publish LSP
-      shell: pwsh
-      run: |
-        dotnet publish ${{ env.LSP_PROJECT }} -c Release -r win-x64 -p:PublishAot=true -p:PublishSingleFile=true -o "./publish/"
-    
-    - name: Package VS Code Extension
-      shell: pwsh
-      run: |
-        Push-Location "${{ env.EXTENSION_ROOT }}"
-        npm ci
-        npx @vscode/vsce package --out "$PWD/../../publish/vext-extension.vsix"
-        Pop-Location
-
-    - name: Publish TestRunner
-      run: |
-        dotnet publish ${{ env.TESTRUNNER_PROJECT }} `
-          -c Release -r win-x64 --self-contained true `
-          -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true `
-          -o ./publish
-
     - name: Calculate Semantic Version
       id: versioning
       shell: bash
@@ -103,6 +59,57 @@ jobs:
         echo "tag=$NEW_TAG" >> $GITHUB_OUTPUT
         echo "name=Vext Build $NEW_TAG" >> $GITHUB_OUTPUT
         echo "New tag will be: $NEW_TAG"
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 10.0.x
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+        cache: 'npm'
+        cache-dependency-path: './Vext VSCode Extension/Vext/package-lock.json'
+
+    - name: Fail-Fast Project Check
+      shell: pwsh
+      run: |
+        if (!(Test-Path ${{ env.TESTRUNNER_PROJECT }})) { throw "TestRunner project not found!" }
+        if (!(Test-Path ${{ env.LSP_PROJECT }})) { throw "LSP project not found!" }
+
+    - name: Prepare directories
+      shell: pwsh
+      run: |
+        $null = New-Item -ItemType Directory -Force ./publish
+        $null = New-Item -ItemType Directory -Force "${{ env.EXTENSION_ROOT }}/compiler"
+
+    - name: Publish LSP
+      shell: pwsh
+      run: |
+        dotnet publish ${{ env.LSP_PROJECT }} -c Release -r win-x64 -p:PublishAot=true -p:PublishSingleFile=true -o "./publish/"
+    
+    - name: Package VS Code Extension
+      shell: pwsh
+      run: |
+        Push-Location "${{ env.EXTENSION_ROOT }}"
+        
+        # Sync package.json version with the GitHub tag (removes 'v' prefix)
+        $cleanTag = "${{ steps.versioning.outputs.tag }}".Replace("v", "")
+        $packageJson = Get-Content package.json | ConvertFrom-Json
+        $packageJson.version = $cleanTag
+        $packageJson | ConvertTo-Json -Depth 20 | Set-Content package.json
+        
+        npm ci
+        npx @vscode/vsce package --out "$PWD/../../publish/vext-extension.vsix"
+        Pop-Location
+
+    - name: Publish TestRunner
+      run: |
+        dotnet publish ${{ env.TESTRUNNER_PROJECT }} `
+          -c Release -r win-x64 --self-contained true `
+          -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true `
+          -o ./publish
         
     - name: Rename and Checksum
       shell: pwsh
