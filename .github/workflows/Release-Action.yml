@@ -99,7 +99,7 @@ jobs:
         
         # If the tag is a simple integer (like '61'), convert to SemVer (0.0.61)
         if ($tag -match '^\d+$') {
-            $versionForPackage = "0.0.$tag"
+            $versionForPackage = "$tag.0.0"
         } else {
             $versionForPackage = $tag
         }
