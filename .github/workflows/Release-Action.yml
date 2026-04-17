@@ -119,7 +119,7 @@ jobs:
         if (Test-Path $exePath && Test-Path $vsixPath && Test-Path $lspPath) {
             Rename-Item "./publish/Vext.TestRunner.exe" -NewName "Vext-${{ steps.versioning.outputs.tag }}.exe"
             Rename-Item "./publish/vext-extension.vsix" -NewName "vext-extension-${{ steps.versioning.outputs.tag }}.vsix"
-            Rename-Item "./publish/Vext.TestRunner.exe" -NewName "Vext.LSP-${{ steps.versioning.outputs.tag }}.exe"
+            Rename-Item "./publish/Vext.LSP.exe" -NewName "Vext.LSP-${{ steps.versioning.outputs.tag }}.exe"
         } else {
             throw "File not found for renaming!"
         }
