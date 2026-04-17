@@ -109,18 +109,27 @@ namespace GetSymbolsRequest {
 }
 
 // --- Compile helper ---
-function compileVextFromText(code: string, run = false): Promise<CompileResult> {
-  if (compilerInitError) {
-    return Promise.reject(compilerInitError);
-  }
+async function compileVextFromText(code: string, run = false): Promise<CompileResult> {
   if (!compiler) {
-    return Promise.reject(new Error("Compiler not initialized"));
+    try {
+      compiler = new CompilerBridge();
+      compilerInitError = null;
+    } catch (err: any) {
+      compilerInitError = err;
+      throw err;
+    }
   }
-  return compiler.request<CompileResult>({
-    type: "compile",
-    run,
-    code
-  });
+  
+  try {
+    return await compiler.request<CompileResult>({
+      type: "compile",
+      run,
+      code
+    });
+  } catch (err: any) {
+    console.error(`[SERVER] Compile request failed: ${err.message}`);
+    throw err;
+  }
 }
 
 // --- Convert compiler errors to LSP diagnostics ---
