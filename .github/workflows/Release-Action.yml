@@ -48,21 +48,15 @@ jobs:
     - name: Publish LSP
       shell: pwsh
       run: |
-        dotnet publish ${{ env.LSP_PROJECT }} -c Release -r win-x64 -p:PublishAot=true -o "${{ env.EXTENSION_ROOT }}/compiler"
-        
-    - name: Copy and rename LSP
-      shell: pwsh
-      run: |
-        Copy-Item "${{ env.EXTENSION_ROOT }}/compiler/Vext.LSP.exe" `
-                  "./publish/Vext.LSP.exe"
+        dotnet publish ${{ env.LSP_PROJECT }} -c Release -r win-x64 -p:PublishAot=true -p:PublishSingleFile=true -o "./publish/"
     
     - name: Package VS Code Extension
       shell: pwsh
       run: |
-        cd "${{ env.EXTENSION_ROOT }}"
+        Push-Location "${{ env.EXTENSION_ROOT }}"
         npm ci
-        # Fail-fast: Ensure npx succeeds before moving on
-        npx @vscode/vsce package --out ../../publish/vext-extension.vsix || exit 1
+        npx @vscode/vsce package --out "$PWD/../../publish/vext-extension.vsix"
+        Pop-Location
 
     - name: Publish TestRunner
       run: |
