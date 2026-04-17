@@ -83,6 +83,7 @@ interface CompileResult {
 }
 
 const compileCounter = new Map<string, number>();
+const latestCompileResults = new Map<string, CompileResult>();
 
 let compiler: CompilerBridge | null = null;
 let compilerInitError: Error | null = null;
@@ -101,6 +102,10 @@ namespace RunCodeRequest {
 
 namespace SubmitInputRequest {
   export const type = new RequestType<{ input: string }, void, void>('vext/submitInput');
+}
+
+namespace GetSymbolsRequest {
+  export const type = new RequestType<{ uri: string }, TokenInfo[], void>('vext/getSymbols');
 }
 
 // --- Compile helper ---
@@ -196,6 +201,7 @@ connection.onInitialize((_params: InitializeParams) => {
         resolveProvider: false,
         triggerCharacters: ["."]
       },
+      hoverProvider: true,
       semanticTokensProvider: {
         legend: {
           tokenTypes: [
@@ -241,6 +247,7 @@ documents.onDidChangeContent((change) => {
       if (compileCounter.get(uri) !== counter) return;
 
       const diagnostics = errorsToDiagnostics(result.errors ?? []);
+      latestCompileResults.set(uri, result);
       connection.sendDiagnostics({ uri, diagnostics });
     } catch (err: any) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -297,6 +304,13 @@ if (compiler) {
     }
   });
 }
+
+connection.onRequest(GetSymbolsRequest.type, async (params) => {
+  const result = latestCompileResults.get(params.uri);
+  if (!result || !result.tokens) return [];
+  // Return only declarations for the sidebar
+  return result.tokens.filter(t => t.isDeclaration);
+});
 
 connection.languages.semanticTokens.on(async (params) => {
   try {
@@ -448,6 +462,52 @@ connection.onCompletion(async (params) => {
   } catch {
     return [];
   }
+});
+
+connection.onHover(async (params) => {
+  const uri = params.textDocument.uri;
+  const result = latestCompileResults.get(uri);
+  if (!result || !result.tokens) return null;
+
+  const doc = documents.get(uri);
+  if (!doc) return null;
+
+  const offset = doc.offsetAt(params.position);
+  const fullText = doc.getText();
+
+  // Find token at current position
+  for (const t of result.tokens) {
+    const start = doc.offsetAt(Position.create(t.line, t.startColumn));
+    const end = doc.offsetAt(Position.create(t.line, t.endColumn));
+    
+    if (offset >= start && offset <= end) {
+      const name = fullText.substring(start, end);
+      const parts: string[] = [];
+      
+      if (t.type === "function") parts.push(`(function) **${name}**`);
+      else if (t.type === "variable") parts.push(`(variable) **${name}**`);
+      else if (t.type === "type") parts.push(`(type) **${name}**`);
+      else if (t.type === "keyword") parts.push(`(keyword) **${name}**`);
+      else if (t.type === "boolean") parts.push(`(boolean) **${name}**`);
+      else if (t.type === "string") parts.push(`(string) **${name}**`);
+      else if (t.type === "number") parts.push(`(number) **${name}**`);
+      
+      if (parts.length === 0) return null;
+
+      return {
+        contents: {
+          kind: "markdown",
+          value: parts.join("\n\n---\n\n")
+        },
+        range: Range.create(
+          Position.create(t.line, t.startColumn),
+          Position.create(t.line, t.endColumn)
+        )
+      };
+    }
+  }
+
+  return null;
 });
 
 function getWordRangeAtPosition(doc: TextDocument, position: Position): Range {

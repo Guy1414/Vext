@@ -10,7 +10,7 @@ type GitHubRelease = {
 
 const OWNER = "guy1414";
 const REPO = "Vext";
-const CACHE_KEY = "vext.latestVersion";
+const CACHE_KEY = "vext.compilerVersion";
 const TIMESTAMP_KEY = "vext.lastCheckTime";
 const CHECK_INTERVAL = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 
@@ -27,7 +27,7 @@ export async function ensureCompiler(context: vscode.ExtensionContext): Promise<
     if (!tag || (now - lastCheck) > CHECK_INTERVAL) {
         try {
             const releaseRes = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/releases/latest`);
-            if (!releaseRes.ok) throw new Error("GitHub API unreachable");
+            if (!releaseRes.ok) throw new Error("Vext: GitHub API unreachable");
 
             const release = await releaseRes.json() as GitHubRelease;
             if (!release?.tag_name) {
@@ -41,7 +41,7 @@ export async function ensureCompiler(context: vscode.ExtensionContext): Promise<
         } catch (err) {
             console.error("Vext: Failed to check for updates, falling back to cache/local.", err);
             // If we have no tag even in cache, we can't proceed
-            if (!tag) throw new Error("Could not determine Vext version.");
+            if (!tag) throw new Error("Vext: Could not determine Vext version.");
         }
     }
 
@@ -78,11 +78,11 @@ export async function ensureCompiler(context: vscode.ExtensionContext): Promise<
     const asset = release.assets.find((a: any) => 
         a.name.includes("Vext.LSP") && a.name.endsWith(".exe")
     );
-    if (!asset) throw new Error(`LSP binary not found for version ${tag}. Available assets: ${release.assets.map((a: any) => a.name).join(", ")}`);
+    if (!asset) throw new Error(`Vext: LSP binary not found for version ${tag}.`);
 
     await vscode.window.withProgress({
         location: vscode.ProgressLocation.Notification,
-        title: `Installing Vext Language Server (${tag})...`,
+        title: `Vext: Installing Language Server (${tag})...`,
         cancellable: false
     }, async () => {
         const downloadRes = await fetch(asset.browser_download_url);

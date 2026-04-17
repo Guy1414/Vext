@@ -70,8 +70,75 @@
     "commands": [
       {
         "command": "vext.runCode",
-        "title": "Run Vext Code",
-        "icon": "$(debug-start)"
+        "title": "Run File",
+        "category": "Vext",
+        "icon": "$(play)"
+      },
+      {
+        "command": "vext.forceUpdateCheck",
+        "title": "Check for Updates...",
+        "category": "Vext",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "vext.openWalkthrough",
+        "title": "Open Welcome Guide",
+        "category": "Vext",
+        "icon": "$(book)"
+      },
+      {
+        "command": "vext.showControlPanel",
+        "title": "Show Control Panel",
+        "category": "Vext"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "vext-explorer",
+          "title": "Vext",
+          "icon": "$(zap)"
+        }
+      ]
+    },
+    "views": {
+      "vext-explorer": [
+        {
+          "id": "vext-info",
+          "name": "Project Info"
+        },
+        {
+          "id": "vext-symbols",
+          "name": "Outline"
+        }
+      ]
+    },
+    "walkthroughs": [
+      {
+        "id": "vext-welcome",
+        "title": "Getting Started with Vext",
+        "description": "Learn how to write and run Vext code in VS Code.",
+        "steps": [
+          {
+            "id": "install",
+            "title": "Compiler Check",
+            "description": "Vext automatically downloads the latest compiler for your system. If you see the lightning bolt icon in the status bar, you're ready to go!",
+            "media": {
+              "markdown": "walkthrough/install.md"
+            }
+          },
+          {
+            "id": "run",
+            "title": "Your First Run",
+            "description": "Open a `.vext` file and click the **Run** icon in the top right. You can also press `Ctrl+Shift+P` and type 'Vext: Run File'.",
+            "media": {
+              "markdown": "walkthrough/run.md"
+            },
+            "completionEvents": [
+              "onCommand:vext.runCode"
+            ]
+          }
+        ]
       }
     ],
     "menus": {
@@ -80,6 +147,18 @@
           "command": "vext.runCode",
           "when": "editorLangId == vext",
           "group": "navigation"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "vext.runCode",
+          "when": "editorLangId == vext"
+        },
+        {
+          "command": "vext.forceUpdateCheck"
+        },
+        {
+          "command": "vext.openWalkthrough"
         }
       ]
     }
