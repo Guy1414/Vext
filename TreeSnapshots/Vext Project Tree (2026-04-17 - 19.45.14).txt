@@ -1,0 +1,100 @@
+
+🌳 Fetching Guy1414/Vext...
+
+├── 📁 .github
+│   └── 📁 workflows
+│       └── 📄 Release-Action.yml
+├── 📁 Runtime
+│   ├── 📁 Properties
+│   │   └── 📄 AssemblyInfo.cs
+│   ├── 📁 VM
+│   │   └── 📄 VextVM.cs
+│   ├── 📄 RuntimeEngine.cs
+│   └── 📄 Vext.Runtime.csproj
+├── 📁 TreeSnapshots
+│   ├── 📄 Vext Project Tree (2026-03-13 - 22.59.25).txt
+│   └── 📄 Vext Project Tree (2026-03-17 - 20.11.21).txt
+├── 📁 Vext
+│   ├── 📁 Bytecode Generator
+│   │   └── 📄 BytecodeGenerator.cs
+│   ├── 📁 Diagnostics
+│   │   └── 📄 Diagnostic.cs
+│   ├── 📁 Lexing
+│   │   ├── 📄 Lexer.cs
+│   │   └── 📄 Token.cs
+│   ├── 📁 Parsing
+│   │   └── 📄 Parser.cs
+│   ├── 📁 Properties
+│   │   └── 📄 AssemblyInfo.cs
+│   ├── 📁 Semantic
+│   │   ├── 📄 SemanticPass.cs
+│   │   └── 📄 SemanticToken.cs
+│   ├── 📄 Vext.Compiler.csproj
+│   └── 📄 VextEngine.cs
+├── 📁 Vext VSCode Extension
+│   └── 📁 Vext
+│       ├── 📁 .vscode
+│       │   ├── 📄 launch.json
+│       │   └── 📄 tasks.json
+│       ├── 📁 client
+│       │   ├── 📁 src
+│       │   │   └── 📄 extension.ts
+│       │   ├── 📄 package-lock.json
+│       │   ├── 📄 package.json
+│       │   └── 📄 tsconfig.json
+│       ├── 📁 server
+│       │   ├── 📁 src
+│       │   │   ├── 📄 compilerBridge.ts
+│       │   │   └── 📄 server.ts
+│       │   ├── 📄 package-lock.json
+│       │   ├── 📄 package.json
+│       │   └── 📄 tsconfig.json
+│       ├── 📁 syntaxes
+│       │   └── 📄 vext.tmLanguage.json
+│       ├── 📄 .gitignore
+│       ├── 📄 .vscodeignore
+│       ├── 📄 language-configuration.json
+│       ├── 📄 LICENSE
+│       ├── 📄 package-lock.json
+│       ├── 📄 package.json
+│       ├── 📄 README.md
+│       └── 📄 tsconfig.json
+├── 📁 Vext.LSP
+│   ├── 📁 Properties
+│   │   └── 📄 AssemblyInfo.cs
+│   ├── 📄 Program.cs
+│   ├── 📄 Vext.LSP.csproj
+│   └── 📄 VextValueConverter.cs
+├── 📁 Vext.Shared
+│   ├── 📁 AST
+│   │   └── 📄 AST.cs
+│   ├── 📁 Modules
+│   │   ├── 📄 DefaultFunctions.cs
+│   │   ├── 📄 Function.cs
+│   │   ├── 📄 IOModule.cs
+│   │   ├── 📄 MathModule.cs
+│   │   ├── 📄 Module.cs
+│   │   └── 📄 UserFunction.cs
+│   ├── 📁 Properties
+│   │   └── 📄 AssemblyInfo.cs
+│   ├── 📁 Rules
+│   │   ├── 📄 BytecodeRules.cs
+│   │   └── 📄 LanguageSpecs.cs
+│   ├── 📁 Runtime
+│   │   ├── 📄 RuntimeOutput.cs
+│   │   └── 📄 VextValue.cs
+│   └── 📄 Vext.Shared.csproj
+├── 📁 Vext.TestRunner
+│   ├── 📁 Properties
+│   │   └── 📄 AssemblyInfo.cs
+│   ├── 📄 Program.cs
+│   └── 📄 Vext.TestRunner.csproj
+├── 📄 .gitattributes
+├── 📄 .gitignore
+├── 📄 CONTRIBUTING.md
+├── 📄 LICENSE
+├── 📄 README.md
+└── 📄 Vext.sln
+
+
+✨ Tree copied to clipboard!
