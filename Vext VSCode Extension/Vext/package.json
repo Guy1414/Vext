@@ -2,6 +2,7 @@
   "name": "vext",
   "displayName": "Vext Language Support",
   "description": "Language Server Protocol support for the Vext language",
+  "publisher": "Guy Slutzker",
   "license": "MIT",
   "version": "1.0.0",
   "engines": {
@@ -12,8 +13,14 @@
     "languages": [
       {
         "id": "vext",
-        "aliases": ["Vext", "vext"],
-        "extensions": [".vext", ".vxt"],
+        "aliases": [
+          "Vext",
+          "vext"
+        ],
+        "extensions": [
+          ".vext",
+          ".vxt"
+        ],
         "configuration": "./language-configuration.json"
       }
     ],
@@ -25,16 +32,40 @@
       }
     ],
     "semanticTokenTypes": [
-      { "id": "type", "description": "Mapping to int, float, string, etc." },
-      { "id": "function", "description": "Mapping to function names" },
-      { "id": "variable", "description": "Local variables and parameters" },
-      { "id": "keyword", "description": "Control flow keywords" },
-      { "id": "operator", "description": "Vext operators like ** or %" }
+      {
+        "id": "type",
+        "description": "Mapping to int, float, string, etc."
+      },
+      {
+        "id": "function",
+        "description": "Mapping to function names"
+      },
+      {
+        "id": "variable",
+        "description": "Local variables and parameters"
+      },
+      {
+        "id": "keyword",
+        "description": "Control flow keywords"
+      },
+      {
+        "id": "operator",
+        "description": "Vext operators like ** or %"
+      }
     ],
     "semanticTokenModifiers": [
-      { "id": "declaration", "description": "Used when defining a new symbol" },
-      { "id": "readonly", "description": "For constant values" },
-      { "id": "static", "description": "For static members" }
+      {
+        "id": "declaration",
+        "description": "Used when defining a new symbol"
+      },
+      {
+        "id": "readonly",
+        "description": "For constant values"
+      },
+      {
+        "id": "static",
+        "description": "For static members"
+      }
     ],
     "commands": [
       {
@@ -55,12 +86,16 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
-    "compile": "tsc -b",
-    "watch": "tsc -b -w",
+    "compile": "node build.js",
+    "watch": "node build.js --watch",
     "postinstall": "cd client && npm install && cd ../server && npm install && cd .."
   },
   "devDependencies": {
     "@types/node": "^20.5.7",
+    "esbuild": "^0.28.0",
     "typescript": "^5.2.2"
+  },
+  "dependencies": {
+    "node-fetch": "^3.3.2"
   }
 }

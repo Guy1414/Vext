@@ -1,15 +1,25 @@
 .vscode/**
+.git/**
+.gitignore
+.vscodeignore
+build.js
+tsconfig.json
 **/*.ts
 **/*.map
-.gitignore
-**/tsconfig.json
-**/tsconfig.base.json
+**/*.tsbuildinfo
+
+# Source code
+client/src/**
+server/src/**
+
+# Exclude all node_modules (bundled by esbuild)
+**/node_modules/**
+
+# Exclude local compiler binaries
+compiler/**
+
+# Other dev files
 contributing.md
 .travis.yml
-client/node_modules/**
-!client/node_modules/vscode-jsonrpc/**
-!client/node_modules/vscode-languageclient/**
-!client/node_modules/vscode-languageserver-protocol/**
-!client/node_modules/vscode-languageserver-types/**
-!client/node_modules/{minimatch,brace-expansion,concat-map,balanced-match}/**
-!client/node_modules/{semver,lru-cache,yallist}/**
+package-lock.json
+**/package-lock.json

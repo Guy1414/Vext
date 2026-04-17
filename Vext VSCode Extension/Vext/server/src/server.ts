@@ -21,6 +21,12 @@ import { CompilerBridge } from "./compilerBridge";
 const connection = createConnection(ProposedFeatures.all);
 const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
 
+// Log startup for debugging
+console.error("[SERVER] Vext LSP server starting...");
+if (process.env.VEXT_COMPILER_PATH) {
+  console.error("[SERVER] Compiler Path:", process.env.VEXT_COMPILER_PATH);
+}
+
 // --- Helper types for C# JSON result ---
 interface ErrorInfo {
   message: string;
@@ -78,7 +84,16 @@ interface CompileResult {
 
 const compileCounter = new Map<string, number>();
 
-const compiler = new CompilerBridge();
+let compiler: CompilerBridge | null = null;
+let compilerInitError: Error | null = null;
+
+try {
+  compiler = new CompilerBridge();
+} catch (err: any) {
+  const msg = err instanceof Error ? err.message : String(err);
+  console.error("[SERVER] Failed to initialize compiler:", msg);
+  compilerInitError = err;
+}
 
 namespace RunCodeRequest {
   export const type = new RequestType<{ code: string }, RunOutput, void>('vext/runCode');
@@ -90,6 +105,12 @@ namespace SubmitInputRequest {
 
 // --- Compile helper ---
 function compileVextFromText(code: string, run = false): Promise<CompileResult> {
+  if (compilerInitError) {
+    return Promise.reject(compilerInitError);
+  }
+  if (!compiler) {
+    return Promise.reject(new Error("Compiler not initialized"));
+  }
   return compiler.request<CompileResult>({
     type: "compile",
     run,
@@ -164,6 +185,10 @@ function assertNoOverlappingTokens(tokens: TokenInfo[], uri: string) {
 
 // --- LSP Handlers ---
 connection.onInitialize((_params: InitializeParams) => {
+  if (compilerInitError) {
+    console.error("[SERVER] Compiler initialization failed:", compilerInitError.message);
+    throw compilerInitError;
+  }
   return <InitializeResult>{
     capabilities: {
       textDocumentSync: TextDocumentSyncKind.Incremental,
@@ -193,6 +218,7 @@ connection.onInitialize((_params: InitializeParams) => {
 });
 
 const compileTimeouts = new Map<string, NodeJS.Timeout>();
+
 
 documents.onDidChangeContent((change) => {
   const uri = change.document.uri;
@@ -228,6 +254,7 @@ documents.onDidChangeContent((change) => {
   }, 200)); // 200ms debounce delay
 });
 
+
 documents.onDidClose((e) => {
   const uri = e.document.uri;
   compileCounter.delete(uri);
@@ -254,17 +281,22 @@ connection.onRequest(RunCodeRequest.type, async (params) => {
 });
 
 connection.onRequest(SubmitInputRequest.type, async (params) => {
+  if (!compiler) {
+    throw new Error("Compiler not initialized");
+  }
   compiler.notify({
     method: "vext/submitInput",
     params: { input: params.input }
   });
 });
 
-compiler.setNotificationHandler((method, params) => {
-  if (method === "vext/needInput") {
-    connection.sendNotification("vext/needInput", params);
-  }
-});
+if (compiler) {
+  compiler.setNotificationHandler((method, params) => {
+    if (method === "vext/needInput") {
+      connection.sendNotification("vext/needInput", params);
+    }
+  });
+}
 
 connection.languages.semanticTokens.on(async (params) => {
   try {
@@ -343,6 +375,7 @@ connection.languages.semanticTokens.on(async (params) => {
     return { data: [] };
   }
 });
+
 
 connection.onCompletion(async (params) => {
   const doc = documents.get(params.textDocument.uri);
@@ -438,11 +471,11 @@ function extractIdentifierFromDocument(doc: TextDocument, fullText: string, toke
 }
 
 connection.onShutdown(() => {
-  try { compiler.dispose(); } catch { }
+  try { compiler?.dispose(); } catch { }
 });
 
 connection.onExit(() => {
-  try { compiler.dispose(); } catch { }
+  try { compiler?.dispose(); } catch { }
 });
 
 // --- Listen ---

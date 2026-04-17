@@ -31,31 +31,43 @@ export class CompilerBridge {
   }
 
   constructor() {
+    console.error(`[compiler] Starting Vext compiler`);
+    
+    // Try to get compiler path from environment variable (set by extension)
+    const compilerPathEnv = process.env.VEXT_COMPILER_PATH;
+    
+    // Fallback paths for development
     const compilerDir = path.resolve(__dirname, "..", "..", "compiler");
     const dllPath = path.resolve(compilerDir, "Vext.LSP.dll");
     const exePath = path.resolve(compilerDir, "Vext.LSP.exe");
     const devProjPath = path.resolve(__dirname, "..", "..", "..", "..", "Vext.LSP", "Vext.LSP.csproj");
 
-    if (fs.existsSync(devProjPath)) {
-      console.log(`[compiler] Dev environment detected. Starting via: ${devProjPath}`);
+    if (compilerPathEnv && fs.existsSync(compilerPathEnv)) {
+      console.error(`[compiler] Starting via downloaded EXE: ${compilerPathEnv}`);
+      this.proc = spawn(compilerPathEnv, [], {
+        windowsHide: true,
+        shell: false,
+      });
+    } else if (fs.existsSync(devProjPath)) {
+      console.error(`[compiler] Dev environment detected. Starting via: ${devProjPath}`);
       this.proc = spawn("dotnet", ["run", "--project", devProjPath, "--", "--lsp"], {
         windowsHide: true,
         shell: false,
       });
     } else if (fs.existsSync(dllPath)) {
-      console.log(`[compiler] Starting via DLL: ${dllPath}`);
+      console.error(`[compiler] Starting via DLL: ${dllPath}`);
       this.proc = spawn("dotnet", [dllPath], {
         windowsHide: true,
         shell: false,
       });
     } else if (fs.existsSync(exePath)) {
-      console.log(`[compiler] Starting via EXE: ${exePath}`);
-      this.proc = spawn(exePath, ["--lsp"], {
+      console.error(`[compiler] Starting via EXE: ${exePath}`);
+      this.proc = spawn(exePath, [], {
         windowsHide: true,
         shell: false,
       });
     } else {
-      throw new Error(`Compiler missing in: ${compilerDir}. Please build Vext.LSP.`);
+      throw new Error(`Compiler not found. Set VEXT_COMPILER_PATH or place exe in: ${compilerDir}`);
     }
 
     // Use readline to safely parse JSON lines
@@ -134,9 +146,9 @@ export class CompilerBridge {
 
     if (item.payload.type === "compile") {
       const preview = item.payload.code.substring(0, 100).replace(/\n/g, "\\n");
-      console.log(`[compiler] Sending request ${id} (compile): ${preview}...`);
+      console.error(`[compiler] Sending request ${id} (compile): ${preview}...`);
     } else {
-      console.log(`[compiler] Sending request ${id} (${item.payload.type})`);
+      console.error(`[compiler] Sending request ${id} (${item.payload.type})`);
     }
 
     this.currentTimeoutMs = item.timeoutMs;

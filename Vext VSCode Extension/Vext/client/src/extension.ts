@@ -1,4 +1,3 @@
-import * as path from "path";
 import * as vscode from 'vscode';
 import { workspace, ExtensionContext } from "vscode";
 import {
@@ -7,19 +6,7 @@ import {
   ServerOptions,
   TransportKind,
 } from "vscode-languageclient/node";
-import { exec } from "child_process";
-import { promisify } from "util";
-
-const execAsync = promisify(exec);
-
-async function checkDotnetExists(): Promise<boolean> {
-  try {
-    await execAsync("dotnet --version");
-    return true;
-  } catch {
-    return false;
-  }
-}
+import { ensureCompiler } from "./compilerDownloader";
 
 interface RunOutput {
   time: number;
@@ -30,45 +17,50 @@ interface RunOutput {
 let client: LanguageClient;
 
 export async function activate(context: ExtensionContext) {
-  // Check for dotnet before doing anything else
-  const dotnetExists = await checkDotnetExists();
-  if (!dotnetExists) {
-    const choice = await vscode.window.showErrorMessage(
-      "The .NET SDK/Runtime is required to run the Vext Language Server but was not found.",
-      "Install .NET"
-    );
-    if (choice === "Install .NET") {
-      vscode.env.openExternal(vscode.Uri.parse("https://dotnet.microsoft.com/download"));
-    }
-    return;
+  // 1. Fetch/Update the compiler binary and get its path
+  let compilerPath: string;
+  try {
+      compilerPath = await ensureCompiler(context);
+  } catch (err: any) {
+      vscode.window.showErrorMessage(`Vext failed to start: ${err.message}`);
+      return;
   }
 
-  // The server is implemented in node
-  const serverModule = context.asAbsolutePath(
-    path.join("server", "out", "server.js")
-  );
+  // 2. Setup Server Options for the Node.js LSP server
+  const serverModule = context.asAbsolutePath('server/out/server.js');
 
-  // If the extension is launched in debug mode then the debug server options are used
-  // Otherwise the run options are used
+  const spawnOptions = {
+    env: { ...process.env, VEXT_COMPILER_PATH: compilerPath }
+  };
+
   const serverOptions: ServerOptions = {
-    run: { module: serverModule, transport: TransportKind.ipc },
-    debug: {
-      module: serverModule,
-      transport: TransportKind.ipc,
+    run: { 
+        command: 'node',
+        args: [serverModule],
+        transport: TransportKind.stdio,
+        options: spawnOptions
+    },
+    debug: { 
+        command: 'node',
+        args: [serverModule, '--debug'],
+        transport: TransportKind.stdio,
+        options: spawnOptions
     },
   };
 
-  // Options to control the language client
+  const outputChannel = vscode.window.createOutputChannel('Vext');
+
   const clientOptions: LanguageClientOptions = {
-    // Register the server for all documents by default
-    documentSelector: [{ scheme: "file", language: "vext" }, { scheme: "file", language: "vxt" }],
+    documentSelector: [
+        { scheme: "file", language: "vext" }, 
+        { scheme: "file", language: "vxt" }
+    ],
     synchronize: {
-      // Notify the server about file changes to '.clientrc files contained in the workspace
       fileEvents: workspace.createFileSystemWatcher("**/.clientrc"),
     },
+    outputChannel
   };
 
-  // Create the language client and start the client.
   client = new LanguageClient(
     "vextLanguageServer",
     "Vext Language Server",
@@ -76,8 +68,17 @@ export async function activate(context: ExtensionContext) {
     clientOptions
   );
 
-  // Start the client. This will also launch the server
-  await client.start();
+
+  try {
+    await client.start();
+  } catch (err: any) {
+    const msg = err instanceof Error ? err.message : String(err);
+    vscode.window.showErrorMessage(`Vext failed to start: ${msg}`);
+    console.error("Vext startup error:", err);
+    return;
+  }
+
+  // --- Notification Handlers ---
 
   client.onNotification("vext/needInput", async () => {
     const input = await vscode.window.showInputBox({
@@ -87,69 +88,56 @@ export async function activate(context: ExtensionContext) {
     client.sendRequest("vext/submitInput", { input: input ?? "" });
   });
 
-  let outputChannel: vscode.OutputChannel | undefined;
+  // --- Command Registrations ---
 
+  // Register Force Update
+  const forceUpdateCommand = vscode.commands.registerCommand('vext.forceUpdateCheck', async () => {
+      await context.globalState.update("vext.lastCheckTime", 0);
+      await ensureCompiler(context);
+      vscode.window.showInformationMessage("Vext update check complete. Restart VS Code to use the new version.");
+  });
+
+  // Register Run Code
   const runCommand = vscode.commands.registerCommand('vext.runCode', async () => {
     const editor = vscode.window.activeTextEditor;
     if (!editor) return;
 
-    const code = editor.document.getText();
-
-    if (!outputChannel) {
-      outputChannel = vscode.window.createOutputChannel('Vext');
-    }
-
     outputChannel.clear();
-    outputChannel.show(true); // true = preserve focus in the editor
+    outputChannel.show(true);
 
     try {
-      const activeEditor = vscode.window.activeTextEditor;
-      if (activeEditor) {
-        const diagnostics = vscode.languages.getDiagnostics(activeEditor.document.uri);
+      const diagnostics = vscode.languages.getDiagnostics(editor.document.uri);
+      const errors = diagnostics.filter(d => d.severity === vscode.DiagnosticSeverity.Error);
 
-        const hasErrors = diagnostics.some(d => d.severity === vscode.DiagnosticSeverity.Error);
+      if (errors.length > 0) {
+        const selection = await vscode.window.showErrorMessage(
+          "Execution Blocked",
+          {
+            modal: true,
+            detail: `You have ${errors.length} critical error(s) in this file. Please fix them before running.`
+          },
+          "Show Problems"
+        );
 
-        if (hasErrors) {
-          // 1. Filter to get ONLY the actual errors for the count
-          const errorCount = diagnostics.filter(d => d.severity === vscode.DiagnosticSeverity.Error).length;
-
-          // 2. Show the Modal
-          vscode.window.showErrorMessage(
-            "Execution Blocked",
-            {
-              modal: true,
-              detail: `You have ${errorCount} critical error(s) in this file. Please fix them before running.`
-            },
-            "Show Problems"
-          ).then(selection => {
-            if (selection === "Show Problems") {
-              // 3. This built-in command opens the Problems view automatically
-              vscode.commands.executeCommand("workbench.actions.view.problems");
-            }
-          });
-
-          return; // Stop execution
+        if (selection === "Show Problems") {
+          vscode.commands.executeCommand("workbench.actions.view.problems");
         }
+        return; 
       }
 
+      const code = editor.document.getText();
       const result = await client.sendRequest<RunOutput>('vext/runCode', { code });
 
       outputChannel.appendLine(`✅ Ran successfully in ${result.time}ms`);
+      outputChannel.appendLine(result.stdout?.trim() ? result.stdout : '(no output)');
 
-      const stdout = result.stdout ?? '';
-
-      if (stdout.trim().length > 0) {
-        outputChannel.appendLine(stdout);
-      } else {
-        outputChannel.appendLine('(no output)');
-      }
     } catch (err: any) {
       vscode.window.showErrorMessage('Failed to run Vext code: ' + (err.message || err));
       outputChannel.appendLine('❌ Run failed: ' + (err.message || err));
     }
   });
 
-  context.subscriptions.push(runCommand);
+  context.subscriptions.push(forceUpdateCommand, runCommand);
 }
 
 export function deactivate(): Thenable<void> | undefined {
