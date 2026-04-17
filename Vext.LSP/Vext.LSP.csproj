@@ -18,13 +18,5 @@
     <ProjectReference Include="..\Vext\Vext.Compiler.csproj" />
   </ItemGroup>
 
-	<Target Name="SignAllOutputs" AfterTargets="Publish">
-		<ItemGroup>
-			<Files Include="$(PublishDir)\**\*.dll" />
-			<Files Include="$(PublishDir)\**\*.exe" />
-		</ItemGroup>
-
-		<Exec Command="&quot;C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x64\signtool.exe&quot; sign /fd SHA256 /sha1 D2D5651DF3864B10DDCCD2D20DE3A589CD6443CB &quot;%(Files.Identity)&quot;" />
-	</Target>
-
 </Project>
+
