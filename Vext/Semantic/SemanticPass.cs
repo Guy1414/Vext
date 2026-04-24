@@ -683,7 +683,7 @@ namespace Vext.Compiler.Semantic
                                     break;
 
                                 case "**":
-                                    if ((leftValue is int || leftValue is double) && (rightValue is int || rightValue is double) && Convert.ToDouble(rightValue) != 0)
+                                    if ((leftValue is int || leftValue is double) && (rightValue is int || rightValue is double))
                                     {
                                         double pow = Math.Pow(Convert.ToDouble(leftValue), Convert.ToDouble(rightValue));
                                         return new LiteralNode { Value = pow, Line = b.Line, StartColumn = b.StartColumn, EndColumn = b.EndColumn };

@@ -1,5 +1,5 @@
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-
 using Vext.Shared.AST;
 using Vext.Shared.Modules;
 using Vext.Shared.Rules;
@@ -109,9 +109,6 @@ namespace Vext.Runtime.VM
 
                     case VextVMBytecode.ADD_INT:
                         {
-                            if (sp < 2)
-                                throw new Exception("Not enough operands for ADD_INT.");
-
                             VextValue right = Pop(ref sp);
                             VextValue left = Pop(ref sp);
                             Push(ref sp, VextValue.FromInt(left.AsInt + right.AsInt));
@@ -120,9 +117,6 @@ namespace Vext.Runtime.VM
 
                     case VextVMBytecode.ADD_FLOAT:
                         {
-                            if (sp < 2)
-                                throw new Exception("Not enough operands for ADD_FLOAT.");
-
                             VextValue right = Pop(ref sp);
                             VextValue left = Pop(ref sp);
                             Push(ref sp, VextValue.FromFloat(left.ToDouble() + right.ToDouble()));
@@ -131,9 +125,6 @@ namespace Vext.Runtime.VM
 
                     case VextVMBytecode.CONCAT_STRING:
                         {
-                            if (sp < 2)
-                                throw new Exception("Not enough operands for CONCAT_STRING.");
-
                             VextValue right = Pop(ref sp);
                             VextValue left = Pop(ref sp);
                             string lStr = left.Type == VextType.String ? left.AsString : left.ToString();
@@ -154,9 +145,6 @@ namespace Vext.Runtime.VM
                     case VextVMBytecode.GT:
                     case VextVMBytecode.GTE:
                         {
-                            if (sp < 2)
-                                throw new Exception($"Not enough operands for {instr.Op}.");
-
                             VextValue right = Pop(ref sp);
                             VextValue left = Pop(ref sp);
 
@@ -543,6 +531,7 @@ namespace Vext.Runtime.VM
             return false;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void EnsureCapacity(int index)
         {
             if (index >= variables.Length)
@@ -556,6 +545,7 @@ namespace Vext.Runtime.VM
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void Push(ref int sp, VextValue val)
         {
             if (sp >= stack.Length)
@@ -564,6 +554,7 @@ namespace Vext.Runtime.VM
             stack[sp++] = val;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private VextValue Pop(ref int sp)
         {
             if (sp == 0)
