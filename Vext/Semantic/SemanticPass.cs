@@ -337,6 +337,11 @@ namespace Vext.Compiler.Semantic
                     break;
 
                 case ReturnStatementNode r:
+                    if (func == null)
+                    {
+                        ReportError("'return' statement outside of a function", r.Line, r.StartColumn, r.EndColumn);
+                        break;
+                    }
                     AddToken(r.Line, r.KeywordColumnStart, r.KeywordColumnEnd, "keyword", "control"); // "return"
                     if (r.Expression != null)
                     {
@@ -673,7 +678,7 @@ namespace Vext.Compiler.Semantic
                                         ReportError("Division by zero is not allowed", b.Line, b.StartColumn, b.EndColumn);
                                         return b;
                                     } else if (leftValue is int li7 && rightValue is int ri8)
-                                        return new LiteralNode { Value = (double)li7 / ri8, Line = b.Line, StartColumn = b.StartColumn, EndColumn = b.EndColumn };
+                                        return new LiteralNode { Value = li7 / ri8, Line = b.Line, StartColumn = b.StartColumn, EndColumn = b.EndColumn };
                                     else if (leftValue is double ld7 && rightValue is double rd8)
                                         return new LiteralNode { Value = ld7 / rd8, Line = b.Line, StartColumn = b.StartColumn, EndColumn = b.EndColumn };
                                     else if (leftValue is int li8 && rightValue is double rd9)
@@ -818,7 +823,7 @@ namespace Vext.Compiler.Semantic
 
                 if (leftType == "error" || rightType == "error")
                     return "error";
-                if (op is "+" or "-" or "*" or "/" or "**")
+                if (op is "+" or "-" or "*" or "/" or "%" or "**")
                 {
                     return GetBinaryResultType(leftType, rightType, op, b.Line, b.StartColumn, b.EndColumn);
                 }

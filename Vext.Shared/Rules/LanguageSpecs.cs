@@ -30,6 +30,7 @@ namespace Vext.Shared.Rules
             Float,
             Bool,
             String,
+            Unknown
         }
 
         /// <summary>
@@ -103,7 +104,7 @@ namespace Vext.Shared.Rules
                 "float" => Types.Float,
                 "bool" => Types.Bool,
                 "string" => Types.String,
-                _ => Types.Int // Default to Int
+                _ => Types.Unknown // Default to Unknown
             };
         }
     }

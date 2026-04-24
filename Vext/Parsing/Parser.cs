@@ -803,7 +803,7 @@ namespace Vext.Compiler.Parsing
                 {
                     // Otherwise, just a variable
                     Advance();
-                    left = new VariableNode { Name = token.Value, Type = Types.String, Line = token.Line, StartColumn = token.StartColumn, EndColumn = tokens[currentToken - 1].EndColumn };
+                    left = new VariableNode { Name = token.Value, Type = Types.Unknown, Line = token.Line, StartColumn = token.StartColumn, EndColumn = tokens[currentToken - 1].EndColumn };
                 }
             } else if (token.TokenType == TokenType.Boolean)
             {

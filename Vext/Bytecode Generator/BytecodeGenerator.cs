@@ -9,7 +9,7 @@ namespace Vext.Compiler.Bytecode_Generator
 {
     internal class BytecodeGenerator
     {
-        private static readonly Dictionary<int, LanguageSpecs.Types> slotTypes = [];
+        private static readonly Dictionary<int, Types> slotTypes = [];
         public static void EmitExpression(ExpressionNode expr, List<Instruction> instructions)
         {
             if (expr is LiteralNode l)
@@ -205,6 +205,7 @@ namespace Vext.Compiler.Bytecode_Generator
                     Types.Float => Types.Float,
                     Types.Bool => Types.Bool,
                     Types.String => Types.String,
+                    Types.Unknown => throw new Exception("Unknown type encountered"),
                     _ => throw new Exception($"Unsupported type {expr.Type}")
                 };
             }
@@ -363,7 +364,7 @@ namespace Vext.Compiler.Bytecode_Generator
                 }
 
                 // Track the variable type for compound assignment
-                slotTypes[varDecl.SlotIndex] = LanguageSpecs.TypeFromString(varDecl.VariableType);
+                slotTypes[varDecl.SlotIndex] = TypeFromString(varDecl.VariableType);
 
                 instructions.Add(new Instruction
                 {

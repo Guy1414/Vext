@@ -120,10 +120,10 @@ class Program
                 using JsonDocument doc = JsonDocument.Parse(line);
                 JsonElement root = doc.RootElement;
 
-                if (root.TryGetProperty("id", out var idProp))
+                if (root.TryGetProperty("id", out JsonElement idProp))
                     id = idProp.GetInt32();
 
-                string method = root.TryGetProperty("method", out var methodProp) ? methodProp.GetString() ?? "" : "";
+                string method = root.TryGetProperty("method", out JsonElement methodProp) ? methodProp.GetString() ?? "" : "";
 
                 if (method == "vext/submitInput")
                 {
@@ -132,8 +132,8 @@ class Program
                     continue;
                 }
 
-                string code = root.TryGetProperty("code", out var codeProp) ? codeProp.GetString() ?? "" : "";
-                bool run = root.TryGetProperty("run", out var runProp) && runProp.GetBoolean();
+                string code = root.TryGetProperty("code", out JsonElement codeProp) ? codeProp.GetString() ?? "" : "";
+                bool run = root.TryGetProperty("run", out JsonElement runProp) && runProp.GetBoolean();
 
                 Task t = Task.Run(() =>
                 {

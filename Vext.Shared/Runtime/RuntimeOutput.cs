@@ -61,7 +61,7 @@ namespace Vext.Shared.Runtime
         public long ReadInt()
         {
             string input = ReadLine();
-            return long.TryParse(input, out var result) ? result : 0;
+            return long.TryParse(input, out long result) ? result : 0;
         }
 
         /// <summary>
@@ -70,7 +70,7 @@ namespace Vext.Shared.Runtime
         public double ReadFloat()
         {
             string input = ReadLine();
-            return double.TryParse(input, out var result) ? result : 0.0;
+            return double.TryParse(input, out double result) ? result : 0.0;
         }
 
         /// <summary>
