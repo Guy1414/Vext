@@ -407,11 +407,11 @@ namespace Vext.Compiler.Bytecode_Generator
 
                     EmitExpression(assign.Value, instructions);
 
-                    if (!slotTypes.TryGetValue(assign.SlotIndex, out var lhsType))
+                    if (!slotTypes.TryGetValue(assign.SlotIndex, out Types lhsType))
                         throw new Exception($"Unknown type for variable {assign.VariableName}");
 
                     // Create a dummy ExpressionNode just to pass the type to ChooseAddInstruction
-                    var lhsExpr = new ExpressionNode { Type = lhsType };
+                    ExpressionNode lhsExpr = new ExpressionNode { Type = lhsType };
 
                     // Determine the correct operation
                     VextVMBytecode op = assign.Operator switch

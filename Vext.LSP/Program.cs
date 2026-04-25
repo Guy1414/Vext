@@ -246,11 +246,28 @@ class Program
                 }
             }
 
-            result.Tokens = [.. processedTokens
-                .GroupBy(t => new { t.Line, t.StartColumn, t.EndColumn, t.Type })
-                .Select(g => g.First())
+            // Sort and filter out any overlapping tokens to prevent VS Code errors
+            List<TokenInfo> sortedTokens = [.. processedTokens
                 .OrderBy(t => t.Line)
-                .ThenBy(t => t.StartColumn)];
+                .ThenBy(t => t.StartColumn)
+                .ThenByDescending(t => t.EndColumn - t.StartColumn)];
+
+            List<TokenInfo> filteredTokens = [];
+            foreach (TokenInfo t in sortedTokens)
+            {
+                if (filteredTokens.Count > 0)
+                {
+                    TokenInfo last = filteredTokens[^1];
+                    if (last.Line == t.Line && t.StartColumn < last.EndColumn)
+                    {
+                        // Skip overlapping token to maintain VS Code stability
+                        continue;
+                    }
+                }
+                filteredTokens.Add(t);
+            }
+
+            result.Tokens = filteredTokens;
 
 
             if (compileResult.Errors.Count > 0)

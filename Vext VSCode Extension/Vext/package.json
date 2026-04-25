@@ -10,6 +10,15 @@
   },
   "main": "./client/out/extension",
   "contributes": {
+    "configuration": {
+      "title": "Vext Settings",
+      "properties": {
+        "vext.devCompilerPath": {
+          "type": "string",
+          "description": "Path to local Vext compiler (exe or directory). If set, extension will use this compiler instead of downloading from GitHub."
+        }
+      }
+    },
     "languages": [
       {
         "id": "vext",

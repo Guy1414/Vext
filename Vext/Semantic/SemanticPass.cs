@@ -50,7 +50,7 @@ namespace Vext.Compiler.Semantic
         private static void ReportWarning(string message, int startLine, int startCol, int endCol) => Diagnostic.ReportWarning(message, startLine, startCol, startLine, endCol);
         private static void ReportInfo(string message, int startLine, int startCol, int endCol) => Diagnostic.ReportInfo(message, startLine, startCol, startLine, endCol);
         private static void ReportHint(string message, int startLine, int startCol, int endCol) => Diagnostic.ReportHint(message, startLine, startCol, startLine, endCol);
- 
+
         private static void ReportTypeMismatch(string targetType, string sourceType, int line, int startCol, int endCol, string context = "")
         {
             string message = string.IsNullOrEmpty(context)
@@ -63,8 +63,7 @@ namespace Vext.Compiler.Semantic
             if (sourceType == "numeral" && (targetType == "int" || targetType == "float"))
             {
                 ReportHint($"Hint: Use '({targetType})' to cast this expression to '{targetType}'", line, startCol, endCol);
-            }
-            else if (sourceType == "float" && targetType == "int")
+            } else if (sourceType == "float" && targetType == "int")
             {
                 ReportHint($"Hint: Use '(int)' to cast this expression to 'int'", line, startCol, endCol);
             }
@@ -286,8 +285,7 @@ namespace Vext.Compiler.Semantic
 
                         v.Initializer = Fold(v.Initializer);
                         assignedSlots.Peek().Set(v.SlotIndex, true);
-                    }
-                    else if (v.VariableType == "auto")
+                    } else if (v.VariableType == "auto")
                     {
                         ReportError("Cannot infer type for 'auto' variable without an initializer", v.Line, v.StartColumn, v.EndColumn);
                         v.VariableType = "error";
@@ -615,11 +613,12 @@ namespace Vext.Compiler.Semantic
 
         private void TryInferType(ExpressionNode node, string hintedType)
         {
-            if (hintedType == "auto" || hintedType == "error" || hintedType == "void") return;
+            if (hintedType == "auto" || hintedType == "error" || hintedType == "void")
+                return;
 
             if (node is VariableNode v)
             {
-                var decl = ResolveVariable(v.Name);
+                VariableDeclarationNode? decl = ResolveVariable(v.Name);
                 if (decl != null && decl.VariableType == "auto")
                 {
                     decl.VariableType = hintedType;
@@ -781,7 +780,7 @@ namespace Vext.Compiler.Semantic
         /// "error" if the type cannot be determined or if the expression is invalid.</returns>
         private string GetExpressionType(ExpressionNode expr)
         {
-            if (expressionTypeCache.TryGetValue(expr, out var cached))
+            if (expressionTypeCache.TryGetValue(expr, out string? cached))
                 return cached;
 
             string type = ComputeExpressionType(expr);
@@ -878,13 +877,11 @@ namespace Vext.Compiler.Semantic
                 {
                     TryInferType(b.Left, right);
                     left = right;
-                }
-                else if (right == "auto" && left != "auto" && left != "error")
+                } else if (right == "auto" && left != "auto" && left != "error")
                 {
                     TryInferType(b.Right, left);
                     right = left;
-                }
-                else if (left == "auto" && right == "auto" && op is "+" or "-" or "*" or "/" or "%" or "**")
+                } else if (left == "auto" && right == "auto" && op is "+" or "-" or "*" or "/" or "%" or "**")
                 {
                     // If BOTH are auto in a numeric context, solve them as numeral
                     TryInferType(b.Left, "numeral");
@@ -1024,7 +1021,7 @@ namespace Vext.Compiler.Semantic
                 foreach (string hint in hints.Distinct())
                     ReportHint(hint, f.Line, f.StartColumn, f.EndColumn);
 
-                AddToken(f.Line, f.StartColumn, f.EndColumn, "function", "call");
+                AddToken(f.Line, f.FunctionNameStartColumn, f.FunctionNameEndColumn, "function", "call");
                 return "error";
 
             }
@@ -1040,7 +1037,7 @@ namespace Vext.Compiler.Semantic
                         UsedModules.Add(vRec.Name);
                         // Add tokens for Module.Func
                         AddToken(vRec.Line, vRec.StartColumn, vRec.EndColumn, "variable", "readonly", "static");
-                        AddToken(m.Line, m.MemberNameStartColumn, m.MemberNameStartColumn + (m.MemberNameEndColumn - m.MemberNameStartColumn), "function", "call");
+                        AddToken(m.Line, m.MemberNameStartColumn, m.MemberNameEndColumn, "function", "call");
 
                         foreach (FunctionDefinitionNode fn in builtIns)
                         {
@@ -1191,12 +1188,12 @@ namespace Vext.Compiler.Semantic
                 if (left == "int" && right == "int")
                     return "int";
 
-                if ((left == "float" || left == "int" || left == "auto" || left == "numeral") && 
+                if ((left == "float" || left == "int" || left == "auto" || left == "numeral") &&
                     (right == "float" || right == "int" || right == "auto" || right == "numeral"))
                 {
                     if (left == "float" || right == "float" || left == "auto" || right == "auto")
                         return "float";
-                    
+
                     return "numeral";
                 }
 

@@ -49,7 +49,7 @@
       "action": { "indent": "indent" }
     },
     {
-      "beforeText": "^\\s*(?:int|float|bool|string|auto|void)\\s+\\w+\\s*\\(.*\\)\\s*$",
+      "beforeText": "^\\s*(?:int|float|bool|string|auto|numeral|void)\\s+\\w+\\s*\\(.*\\)\\s*$",
       "action": { "indent": "indent" }
     }
   ]
