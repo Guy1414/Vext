@@ -62,6 +62,8 @@ namespace Vext.Shared.Runtime
 
         /// <summary>Returns the numeric value as a double, regardless of whether it is Int or Float.</summary>
         public readonly double ToDouble() => Type == VextType.Int ? (double)AsInt : AsFloat;
+        /// <summary>Returns the numeric value as a long, regardless of whether it is Int or Float.</summary>
+        public readonly long ToLong() => Type == VextType.Float ? (long)AsFloat : AsInt;
 
         /// <summary>Returns a string representation of the VextValue.</summary>
         public override readonly string ToString()

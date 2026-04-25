@@ -86,8 +86,8 @@ namespace Vext.Runtime.VM
                 {
                     case VextVMBytecode.LOAD_CONST:
                         {
-                            VextValue val = (VextValue)(instr.ArgVal ?? VextValue.Null());
-                            Push(ref sp, val);
+                            VextValue vextVal = (VextValue)(instr.ArgVal ?? VextValue.Null());
+                            Push(ref sp, vextVal);
                             break;
                         }
 
@@ -112,7 +112,7 @@ namespace Vext.Runtime.VM
                         {
                             VextValue right = Pop(ref sp);
                             VextValue left = Pop(ref sp);
-                            Push(ref sp, VextValue.FromInt(left.AsInt + right.AsInt));
+                            Push(ref sp, VextValue.FromInt(left.ToLong() + right.ToLong()));
                             break;
                         }
 
@@ -156,8 +156,8 @@ namespace Vext.Runtime.VM
 
                                 if (bothInt)
                                 {
-                                    long lInt = left.AsInt;
-                                    long rInt = right.AsInt;
+                                    long lInt = left.ToLong();
+                                    long rInt = right.ToLong();
                                     VextValue res = instr.Op switch
                                     {
                                         VextVMBytecode.SUB => VextValue.FromInt(lInt - rInt),
@@ -329,6 +329,31 @@ namespace Vext.Runtime.VM
                             throw new Exception($"DEC_VAR applied to non-numeric variable at index {instr.ArgInt}");
                         break;
 
+                    case VextVMBytecode.CAST_INT:
+                        VextValue val = Pop(ref sp);
+                        if (val.IsNumeric)
+                            Push(ref sp, VextValue.FromInt((long)val.ToDouble()));
+                        else
+                            throw new Exception($"Cannot CAST_INT value of type {val.Type}");
+                        break;
+
+                    case VextVMBytecode.CAST_FLOAT:
+                        VextValue valF = Pop(ref sp);
+                        if (valF.IsNumeric)
+                            Push(ref sp, VextValue.FromFloat(valF.ToDouble()));
+                        else
+                            throw new Exception($"Cannot CAST_FLOAT value of type {valF.Type}");
+                        break;
+
+                    case VextVMBytecode.CAST_BOOL:
+                        VextValue valB = Pop(ref sp);
+                        if (valB.Type == VextType.Bool)
+                            Push(ref sp, valB);
+                        else if (valB.IsNumeric)
+                            Push(ref sp, VextValue.FromBool(valB.ToDouble() != 0));
+                        else
+                            throw new Exception($"Cannot CAST_BOOL value of type {valB.Type}");
+                        break;
                 }
                 ip++;
             }

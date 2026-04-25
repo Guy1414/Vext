@@ -77,7 +77,7 @@ class Program
 
         // --- 8. Functions & Nested Calls ---
         float multiply(float a, float b) { return a * b; }
-        int addThree(auto a, auto b, auto c) { return a + b + c; } // auto allows int/float mix
+        auto addThree(auto a, auto b, auto c) { return a + b + c; } // auto allows int/float mix
 
         int sq = square(3);
         int val = addThree(1, 2, sq);

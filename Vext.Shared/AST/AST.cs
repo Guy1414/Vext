@@ -121,6 +121,12 @@ namespace Vext.Shared.AST
         public required ExpressionNode? Expression { get; set; } = null;
     }
 
+    public class CastNode : ExpressionNode
+    {
+        public string TargetType { get; set; } = string.Empty;
+        public ExpressionNode Expression { get; set; } = null!;
+    }
+
     public class FunctionCallNode : ExpressionNode
     {
         public required string FunctionName { get; set; }

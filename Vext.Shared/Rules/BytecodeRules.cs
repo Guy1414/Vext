@@ -1,4 +1,4 @@
-﻿namespace Vext.Shared.Rules
+namespace Vext.Shared.Rules
 {
     /// <summary>
     /// Represents a single bytecode instruction for the Vext virtual machine.
@@ -117,5 +117,12 @@
         DEC_VAR,
         /// <summary>Jump if var {op} constant</summary>
         JMP_IF_VAR_OP_CONST,
+        /// <summary>Casts the top stack value to int.</summary>
+        CAST_INT,
+        /// <summary>Casts the top stack value to float.</summary>
+        CAST_FLOAT,
+        // No CAST_STRING because of the .ToString() method
+        /// <summary>Casts the top stack value to bool.</summary>
+        CAST_BOOL,
     }
 }

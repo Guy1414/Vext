@@ -50,6 +50,25 @@ namespace Vext.Compiler.Semantic
         private static void ReportWarning(string message, int startLine, int startCol, int endCol) => Diagnostic.ReportWarning(message, startLine, startCol, startLine, endCol);
         private static void ReportInfo(string message, int startLine, int startCol, int endCol) => Diagnostic.ReportInfo(message, startLine, startCol, startLine, endCol);
         private static void ReportHint(string message, int startLine, int startCol, int endCol) => Diagnostic.ReportHint(message, startLine, startCol, startLine, endCol);
+ 
+        private static void ReportTypeMismatch(string targetType, string sourceType, int line, int startCol, int endCol, string context = "")
+        {
+            string message = string.IsNullOrEmpty(context)
+                ? $"Type mismatch: cannot convert '{sourceType}' to '{targetType}'"
+                : $"Type mismatch for {context}: expected '{targetType}' but got '{sourceType}'";
+
+            ReportError(message, line, startCol, endCol);
+
+            // Hinting for numeric types
+            if (sourceType == "numeral" && (targetType == "int" || targetType == "float"))
+            {
+                ReportHint($"Hint: Use '({targetType})' to cast this expression to '{targetType}'", line, startCol, endCol);
+            }
+            else if (sourceType == "float" && targetType == "int")
+            {
+                ReportHint($"Hint: Use '(int)' to cast this expression to 'int'", line, startCol, endCol);
+            }
+        }
 
         public void Pass()
         {
@@ -263,16 +282,21 @@ namespace Vext.Compiler.Semantic
                         }
 
                         if (!AreTypesCompatible(v.VariableType, initType))
-                            ReportError($"Type mismatch for variable '{v.Name}': expected '{v.VariableType}' but got '{initType}'", v.Line, v.StartColumn, v.EndColumn);
+                            ReportTypeMismatch(v.VariableType, initType, v.Line, v.StartColumn, v.EndColumn, $"variable '{v.Name}'");
 
                         v.Initializer = Fold(v.Initializer);
-                    }
-
-                    if (v.Initializer != null)
                         assignedSlots.Peek().Set(v.SlotIndex, true);
+                    }
+                    else if (v.VariableType == "auto")
+                    {
+                        ReportError("Cannot infer type for 'auto' variable without an initializer", v.Line, v.StartColumn, v.EndColumn);
+                        v.VariableType = "error";
+                    }
 
                     if (!IsValidType(v.VariableType))
                         ReportError($"Unknown type {v.VariableType}", v.Line, v.StartColumn, v.EndColumn);
+                    else if (v.VariableType == "numeral")
+                        ReportError("'numeral' can only be used for function parameters and return types, not variables.", v.Line, v.StartColumn, v.EndColumn);
 
                     AddToken(v.Line, v.TypeStartColumn, v.TypeEndColumn, "type");
                     AddToken(v.NameLine, v.NameStartColumn, v.NameEndColumn, "variable", "declaration");
@@ -294,8 +318,16 @@ namespace Vext.Compiler.Semantic
                             assignedSlots.Peek().Set(decl.SlotIndex, true);
 
                             string rhsType = GetExpressionType(a.Value);
+
+                            // For compound assignments like +=, validate the underlying operation
+                            if (a.Operator != "=")
+                            {
+                                string op = a.Operator.Substring(0, a.Operator.Length - 1); // Extract '+' from '+='
+                                GetBinaryResultType(decl.VariableType, rhsType, op, a.Line, a.StartColumn, a.EndColumn);
+                            }
+
                             if (!AreTypesCompatible(decl.VariableType, rhsType))
-                                ReportError($"Type mismatch: cannot assign '{rhsType}' to '{decl.VariableType}'", a.Line, a.StartColumn, a.EndColumn);
+                                ReportTypeMismatch(decl.VariableType, rhsType, a.Line, a.StartColumn, a.EndColumn, "assignment");
 
                             // Variable token
                             AddToken(a.Line, a.VariableStartColumn, a.VariableEndColumn, "variable");
@@ -348,7 +380,7 @@ namespace Vext.Compiler.Semantic
                         CheckExpression(r.Expression);
                         string retType = GetExpressionType(r.Expression);
                         if (!AreTypesCompatible(func!.ReturnType, retType))
-                            ReportError($"Function '{func.FunctionName}' expects to return '{func.ReturnType}' but got '{retType}'", r.Line, r.StartColumn, r.EndColumn);
+                            ReportTypeMismatch(func!.ReturnType, retType, r.Line, r.StartColumn, r.EndColumn, $"return value of '{func.FunctionName}'");
                         r.Expression = Fold(r.Expression);
                     } else
                     {
@@ -573,9 +605,27 @@ namespace Vext.Compiler.Semantic
                     foreach (ExpressionNode arg in c.Arguments)
                         CheckExpression(arg);
                     break;
+                case CastNode cast:
+                    CheckExpression(cast.Expression);
+                    break;
             }
 
             GetExpressionType(expr);
+        }
+
+        private void TryInferType(ExpressionNode node, string hintedType)
+        {
+            if (hintedType == "auto" || hintedType == "error" || hintedType == "void") return;
+
+            if (node is VariableNode v)
+            {
+                var decl = ResolveVariable(v.Name);
+                if (decl != null && decl.VariableType == "auto")
+                {
+                    decl.VariableType = hintedType;
+                    v.Type = LanguageSpecs.TypeFromString(hintedType);
+                }
+            }
         }
 
         /// <summary>
@@ -639,11 +689,11 @@ namespace Vext.Compiler.Semantic
                                         };
                                     }
 
-                                    if (leftValue is int li && rightValue is int ri)
+                                    if (leftValue is long li && rightValue is int ri)
                                         return new LiteralNode { Value = li + ri, Line = b.Line, StartColumn = b.StartColumn, EndColumn = b.EndColumn };
                                     if (leftValue is double ld && rightValue is double rd)
                                         return new LiteralNode { Value = ld + rd, Line = b.Line, StartColumn = b.StartColumn, EndColumn = b.EndColumn };
-                                    if (leftValue is int li2 && rightValue is double rd2)
+                                    if (leftValue is long li2 && rightValue is double rd2)
                                         return new LiteralNode { Value = li2 + rd2, Line = b.Line, StartColumn = b.StartColumn, EndColumn = b.EndColumn };
                                     if (leftValue is double ld2 && rightValue is int ri2)
                                         return new LiteralNode { Value = ld2 + ri2, Line = b.Line, StartColumn = b.StartColumn, EndColumn = b.EndColumn };
@@ -651,22 +701,22 @@ namespace Vext.Compiler.Semantic
                                     return b;
 
                                 case "-":
-                                    if (leftValue is int li3 && rightValue is int ri3)
+                                    if (leftValue is long li3 && rightValue is int ri3)
                                         return new LiteralNode { Value = li3 - ri3, Line = b.Line, StartColumn = b.StartColumn, EndColumn = b.EndColumn };
                                     if (leftValue is double ld3 && rightValue is double rd3)
                                         return new LiteralNode { Value = ld3 - rd3, Line = b.Line, StartColumn = b.StartColumn, EndColumn = b.EndColumn };
-                                    if (leftValue is int li4 && rightValue is double rd4)
+                                    if (leftValue is long li4 && rightValue is double rd4)
                                         return new LiteralNode { Value = li4 - rd4, Line = b.Line, StartColumn = b.StartColumn, EndColumn = b.EndColumn };
                                     if (leftValue is double ld4 && rightValue is int ri4)
                                         return new LiteralNode { Value = ld4 - ri4, Line = b.Line, StartColumn = b.StartColumn, EndColumn = b.EndColumn };
                                     break;
 
                                 case "*":
-                                    if (leftValue is int li5 && rightValue is int ri5)
+                                    if (leftValue is long li5 && rightValue is int ri5)
                                         return new LiteralNode { Value = li5 * ri5, Line = b.Line, StartColumn = b.StartColumn, EndColumn = b.EndColumn };
                                     if (leftValue is double ld5 && rightValue is double rd5)
                                         return new LiteralNode { Value = ld5 * rd5, Line = b.Line, StartColumn = b.StartColumn, EndColumn = b.EndColumn };
-                                    if (leftValue is int li6 && rightValue is double rd6)
+                                    if (leftValue is long li6 && rightValue is double rd6)
                                         return new LiteralNode { Value = li6 * rd6, Line = b.Line, StartColumn = b.StartColumn, EndColumn = b.EndColumn };
                                     if (leftValue is double ld6 && rightValue is int ri6)
                                         return new LiteralNode { Value = ld6 * ri6, Line = b.Line, StartColumn = b.StartColumn, EndColumn = b.EndColumn };
@@ -677,11 +727,11 @@ namespace Vext.Compiler.Semantic
                                     {
                                         ReportError("Division by zero is not allowed", b.Line, b.StartColumn, b.EndColumn);
                                         return b;
-                                    } else if (leftValue is int li7 && rightValue is int ri8)
+                                    } else if (leftValue is long li7 && rightValue is int ri8)
                                         return new LiteralNode { Value = li7 / ri8, Line = b.Line, StartColumn = b.StartColumn, EndColumn = b.EndColumn };
                                     else if (leftValue is double ld7 && rightValue is double rd8)
                                         return new LiteralNode { Value = ld7 / rd8, Line = b.Line, StartColumn = b.StartColumn, EndColumn = b.EndColumn };
-                                    else if (leftValue is int li8 && rightValue is double rd9)
+                                    else if (leftValue is long li8 && rightValue is double rd9)
                                         return new LiteralNode { Value = li8 / rd9, Line = b.Line, StartColumn = b.StartColumn, EndColumn = b.EndColumn };
                                     else if (leftValue is double ld8 && rightValue is int ri9)
                                         return new LiteralNode { Value = ld8 / ri9, Line = b.Line, StartColumn = b.StartColumn, EndColumn = b.EndColumn };
@@ -737,7 +787,7 @@ namespace Vext.Compiler.Semantic
             string type = ComputeExpressionType(expr);
 
             // Populate the enum Type on the AST node for the bytecode generator
-            if (type != "error")
+            if (type != "error" && type != "void")
             {
                 expr.Type = LanguageSpecs.TypeFromString(type);
             }
@@ -812,39 +862,68 @@ namespace Vext.Compiler.Semantic
                         return "error";
                 }
             }
+            if (expr is CastNode cast)
+            {
+                GetExpressionType(cast.Expression);
+                return cast.TargetType;
+            }
             if (expr is BinaryExpressionNode b)
             {
-                string leftType = GetExpressionType(b.Left);
-                string rightType = GetExpressionType(b.Right);
+                string left = GetExpressionType(b.Left);
+                string right = GetExpressionType(b.Right);
                 string op = b.Operator;
+
+                // Inference: If one side is auto and the other is concrete, solve the auto side
+                if (left == "auto" && right != "auto" && right != "error")
+                {
+                    TryInferType(b.Left, right);
+                    left = right;
+                }
+                else if (right == "auto" && left != "auto" && left != "error")
+                {
+                    TryInferType(b.Right, left);
+                    right = left;
+                }
+                else if (left == "auto" && right == "auto" && op is "+" or "-" or "*" or "/" or "%" or "**")
+                {
+                    // If BOTH are auto in a numeric context, solve them as numeral
+                    TryInferType(b.Left, "numeral");
+                    TryInferType(b.Right, "numeral");
+                    left = "numeral";
+                    right = "numeral";
+                }
 
                 // Add token for operator
                 AddToken(b.Line, b.OperatorColumnStart, b.OperatorColumnEnd, "operator");
 
-                if (leftType == "error" || rightType == "error")
+                if (left == "error" || right == "error")
                     return "error";
+
                 if (op is "+" or "-" or "*" or "/" or "%" or "**")
                 {
-                    return GetBinaryResultType(leftType, rightType, op, b.Line, b.StartColumn, b.EndColumn);
+                    return GetBinaryResultType(left, right, op, b.Line, b.StartColumn, b.EndColumn);
                 }
+
                 if (op is "==" or "!=" or "<" or ">" or "<=" or ">=")
                 {
-                    if (!AreTypesCompatible(leftType, rightType) && !AreTypesCompatible(rightType, leftType))
+                    if (!AreTypesCompatible(left, right) && !AreTypesCompatible(right, left))
                     {
-                        ReportError($"Cannot compare '{leftType}' and '{rightType}'", b.Line, b.StartColumn, b.EndColumn);
+                        ReportError($"Cannot compare '{left}' and '{right}'", b.Line, b.StartColumn, b.EndColumn);
                         return "error";
                     }
                     return "bool";
                 }
+
                 if (op is "&&" or "||")
                 {
-                    if (leftType != "bool" || rightType != "bool")
+                    if (left != "bool" || right != "bool")
                     {
                         ReportError("Logical operators require boolean operands", b.Line, b.StartColumn, b.EndColumn);
                         return "error";
                     }
                     return "bool";
                 }
+
                 return "error";
             }
             if (expr is FunctionCallNode f)
@@ -922,8 +1001,29 @@ namespace Vext.Compiler.Semantic
                     }
                 }
 
-                // No matching function
+                // No matching function - try to provide helpful hints for castable mismatches
+                List<string> hints = [];
+                foreach (FunctionDefinitionNode fn in viable)
+                {
+                    List<FunctionParameterNode> ps = fn.Arguments ?? [];
+                    for (int i = 0; i < f.Arguments.Count; i++)
+                    {
+                        string argType = GetExpressionType(f.Arguments[i]);
+                        if (!AreTypesCompatible(ps[i].Type, argType))
+                        {
+                            if ((argType == "numeral" && (ps[i].Type == "int" || ps[i].Type == "float")) ||
+                                (argType == "float" && ps[i].Type == "int"))
+                            {
+                                hints.Add($"Argument {i + 1} is '{argType}' but '{f.FunctionName}' expects '{ps[i].Type}'. Use '({ps[i].Type})' to cast.");
+                            }
+                        }
+                    }
+                }
+
                 ReportError($"No matching overload for function '{f.FunctionName}'", f.Line, f.StartColumn, f.EndColumn);
+                foreach (string hint in hints.Distinct())
+                    ReportHint(hint, f.Line, f.StartColumn, f.EndColumn);
+
                 AddToken(f.Line, f.StartColumn, f.EndColumn, "function", "call");
                 return "error";
 
@@ -961,7 +1061,31 @@ namespace Vext.Compiler.Semantic
                                 }
                             }
                         }
+                        // Overload mismatch hints for module calls
+                        List<string> moduleHints = [];
+                        foreach (FunctionDefinitionNode fn in builtIns)
+                        {
+                            List<FunctionParameterNode> ps = fn.Arguments ?? [];
+                            if (m.Arguments != null && ps.Count == m.Arguments.Count)
+                            {
+                                for (int i = 0; i < ps.Count; i++)
+                                {
+                                    string argType = GetExpressionType(m.Arguments[i]);
+                                    if (!AreTypesCompatible(ps[i].Type, argType))
+                                    {
+                                        if ((argType == "numeral" && (ps[i].Type == "int" || ps[i].Type == "float")) ||
+                                            (argType == "float" && ps[i].Type == "int"))
+                                        {
+                                            moduleHints.Add($"Argument {i + 1} is '{argType}' but '{fullName}' expects '{ps[i].Type}'. Use '({ps[i].Type})' to cast.");
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
                         ReportError($"No matching overload for function '{fullName}'", m.Line, m.StartColumn, m.EndColumn);
+                        foreach (string hint in moduleHints.Distinct())
+                            ReportHint(hint, m.Line, m.StartColumn, m.EndColumn);
                         return "error";
                     }
                 }
@@ -1064,11 +1188,17 @@ namespace Vext.Compiler.Semantic
                 if (left == "string" || right == "string")
                     return "string";
 
-                if (left == right)
-                    return left;
+                if (left == "int" && right == "int")
+                    return "int";
 
-                if ((left == "int" && right == "float") || (left == "float" && right == "int"))
-                    return "float";
+                if ((left == "float" || left == "int" || left == "auto" || left == "numeral") && 
+                    (right == "float" || right == "int" || right == "auto" || right == "numeral"))
+                {
+                    if (left == "float" || right == "float" || left == "auto" || right == "auto")
+                        return "float";
+                    
+                    return "numeral";
+                }
 
                 ReportError($"Operator '+' cannot be applied to '{left}' and '{right}'", line, startColumn, endColumn);
                 return "error";
@@ -1089,7 +1219,7 @@ namespace Vext.Compiler.Semantic
             if (target == "auto" || source == "auto")
                 return true;
             if (target == "numeral")
-                return source == "int" || source == "float";
+                return source == "int" || source == "float" || source == "numeral";
             if (target == "error" || source == "error")
                 return true;
             if (target == source)

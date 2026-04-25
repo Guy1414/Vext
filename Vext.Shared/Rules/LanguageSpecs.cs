@@ -30,15 +30,30 @@ namespace Vext.Shared.Rules
             Float,
             Bool,
             String,
+            Numeral,
             Unknown
         }
+
+        /// <summary>
+        /// Gets the keywords that can be used as variable types.
+        /// </summary>
+        public static readonly string[] TypeKeywords = ["int", "float", "bool", "string", "numeral", "auto"];
+
+        /// <summary>
+        /// Checks if a string is a type keyword.
+        /// </summary>
+        /// <param name="s">The string to check.</param>
+        /// <returns>True if the string is a type keyword, false otherwise.</returns>
+        public static bool IsTypeKeyword(string s) => TypeKeywords.Contains(s.ToLowerInvariant());
 
         /// <summary>
         /// Gets the variable types supported by the Vext programming language wtih auto.
         /// </summary>
         public static readonly HashSet<string> VariableTypes =
         [
-            ..Enum.GetNames<Types>().Select(t => t.ToLowerInvariant()),
+            ..Enum.GetNames<Types>()
+                .Where(t => t != nameof(Types.Unknown) && t != nameof(Types.Numeral))
+                .Select(t => t.ToLowerInvariant()),
             "auto"
         ];
 
@@ -50,7 +65,7 @@ namespace Vext.Shared.Rules
         /// <summary>
         /// Gets the return types supported by the Vext programming language.
         /// </summary>
-        public static readonly HashSet<string> ReturnTypes = [.. VariableTypes, "void"];
+        public static readonly HashSet<string> ReturnTypes = [.. VariableTypes, "void", "numeral"];
 
         /// <summary>
         /// Gets all keywords supported by the Vext programming language, including
@@ -104,6 +119,7 @@ namespace Vext.Shared.Rules
                 "float" => Types.Float,
                 "bool" => Types.Bool,
                 "string" => Types.String,
+                "numeral" => Types.Numeral,
                 _ => Types.Unknown // Default to Unknown
             };
         }

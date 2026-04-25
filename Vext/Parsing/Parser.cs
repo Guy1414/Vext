@@ -40,7 +40,7 @@ namespace Vext.Compiler.Parsing
 
                 // Stop at statement-starting keywords (but not in the middle of an expression)
                 if (tok.TokenType == TokenType.Keyword &&
-                    (LanguageSpecs.ReturnTypes.Contains(tok.Value) ||
+                    (ReturnTypes.Contains(tok.Value) ||
                      tok.Value == "if" || tok.Value == "while" || tok.Value == "for" || tok.Value == "return"))
                 {
                     break;
@@ -117,7 +117,7 @@ namespace Vext.Compiler.Parsing
                 return ParseStatement();
             } else if (token.TokenType == TokenType.Keyword)
             {
-                if (LanguageSpecs.ReturnTypes.Contains(token.Value))
+                if (ReturnTypes.Contains(token.Value))
                 {
                     if (Peek().TokenType == TokenType.Identifier && Peek(2).TokenType == TokenType.Punctuation && Peek(2).Value == "(")
                     {
@@ -305,7 +305,7 @@ namespace Vext.Compiler.Parsing
                         // Stop at closing brace or statement keywords
                         if ((t.TokenType == TokenType.Punctuation && t.Value == "}") ||
                             (t.TokenType == TokenType.Keyword &&
-                             (LanguageSpecs.ReturnTypes.Contains(t.Value) ||
+                             (ReturnTypes.Contains(t.Value) ||
                               t.Value == "if" || t.Value == "while" || t.Value == "for" || t.Value == "return")))
                         {
                             break;
@@ -326,7 +326,7 @@ namespace Vext.Compiler.Parsing
                 FunctionName = name.Value,
                 Arguments = arguments,
                 Body = body,
-                Line = returnType.Line,
+                Line = name.Line,
                 StartColumn = returnType.StartColumn,
                 EndColumn = tokens[currentToken - 1].EndColumn,
                 NameLine = name.Line,
@@ -772,9 +772,28 @@ namespace Vext.Compiler.Parsing
             if (token.TokenType == TokenType.Punctuation && token.Value == "(")
             {
                 Advance(); // consume '('
-                ExpressionNode expr = ParseExpression();
+
+                // Check for cast: (int)expr
+                if (IsTypeKeyword(CurrentToken().Value) && Peek(1).TokenType == TokenType.Punctuation && Peek(1).Value == ")")
+                {
+                    Token typeToken = CurrentToken();
+                    Advance(); // consume type keyword
+                    Expect(TokenType.Punctuation, ")"); // consume ')'
+                    
+                    ExpressionNode castExpr = ParsePrimary(CurrentToken()); // parse the thing being cast
+                    return new CastNode
+                    {
+                        TargetType = typeToken.Value,
+                        Expression = castExpr,
+                        Line = token.Line,
+                        StartColumn = token.StartColumn,
+                        EndColumn = castExpr.EndColumn
+                    };
+                }
+
+                ExpressionNode nestedExpr = ParseExpression();
                 Expect(TokenType.Punctuation, ")");
-                left = expr;
+                left = nestedExpr;
             } else if (token.TokenType == TokenType.Numeric)
             {
                 Advance();

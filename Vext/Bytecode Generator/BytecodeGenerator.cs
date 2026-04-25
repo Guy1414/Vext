@@ -39,6 +39,21 @@ namespace Vext.Compiler.Bytecode_Generator
                     LineNumber = v.Line,
                     ColumnNumber = v.StartColumn
                 });
+            } else if (expr is CastNode cast)
+            {
+                EmitExpression(cast.Expression, instructions);
+                VextVMBytecode? castOp = cast.TargetType switch
+                {
+                    "int" => VextVMBytecode.CAST_INT,
+                    "float" => VextVMBytecode.CAST_FLOAT,
+                    "bool" => VextVMBytecode.CAST_BOOL,
+                    "string" => null, // Strings don't need a cast instruction (ToString is handled by CONCAT)
+                    _ => throw new Exception($"Unsupported cast to {cast.TargetType}")
+                };
+                if (castOp.HasValue)
+                {
+                    instructions.Add(new Instruction { Op = castOp.Value, LineNumber = cast.Line, ColumnNumber = cast.StartColumn });
+                }
             } else if (expr is BinaryExpressionNode b)
             {
                 if (b.Operator == "&&")
@@ -80,7 +95,7 @@ namespace Vext.Compiler.Bytecode_Generator
                     EmitExpression(b.Right, instructions);
                     VextVMBytecode op = b.Operator switch
                     {
-                        "+" => ChooseAddInstruction(b.Left, b.Right),
+                        "+" => ChooseAddInstruction(b.Left, b.Right, b.Line, b.StartColumn),
                         "-" => VextVMBytecode.SUB,
                         "*" => VextVMBytecode.MUL,
                         "/" => VextVMBytecode.DIV,
@@ -194,10 +209,10 @@ namespace Vext.Compiler.Bytecode_Generator
             }
         }
 
-        private static VextVMBytecode ChooseAddInstruction(ExpressionNode left, ExpressionNode right)
+        private static VextVMBytecode ChooseAddInstruction(ExpressionNode left, ExpressionNode right, int line, int startColumn)
         {
             // Helper to resolve Type from ExpressionNode
-            static Types GetType(ExpressionNode expr)
+            Types GetType(ExpressionNode expr)
             {
                 return expr.Type switch
                 {
@@ -205,8 +220,9 @@ namespace Vext.Compiler.Bytecode_Generator
                     Types.Float => Types.Float,
                     Types.Bool => Types.Bool,
                     Types.String => Types.String,
-                    Types.Unknown => throw new Exception("Unknown type encountered"),
-                    _ => throw new Exception($"Unsupported type {expr.Type}")
+                    Types.Numeral => Types.Float, // Numeral acts as Float for bytecode dispatch
+                    Types.Unknown => throw new Exception($"Internal Compiler Error: Unresolved type at line {line}, column {startColumn}. This should have been caught by the semantic pass."),
+                    _ => throw new Exception($"Internal Compiler Error: Unsupported type {expr.Type} at line {line}, column {startColumn}")
                 };
             }
 
@@ -400,7 +416,7 @@ namespace Vext.Compiler.Bytecode_Generator
                     // Determine the correct operation
                     VextVMBytecode op = assign.Operator switch
                     {
-                        "+=" => ChooseAddInstruction(lhsExpr, assign.Value),
+                        "+=" => ChooseAddInstruction(lhsExpr, assign.Value, assign.Line, assign.StartColumn),
                         "-=" => VextVMBytecode.SUB,
                         "*=" => VextVMBytecode.MUL,
                         _ => throw new Exception($"Unsupported operator {assign.Operator}")
