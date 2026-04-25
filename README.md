@@ -60,6 +60,12 @@ Explore the internal architecture, modules, and implementation details:
 
 ---
 
+## Activity
+
+![Alt](https://repobeats.axiom.co/api/embed/b5869f1ccef5f3c30ad8f33cabf770ce3aa69a05.svg "Repobeats analytics image")
+
+---
+
 ## Overview
 
 Vext is a programming language designed for performance, simplicity, and expressive syntax. It features full expressions, deep function calls, constant folding, and a custom virtual machine for execution.
