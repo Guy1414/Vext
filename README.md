@@ -79,7 +79,7 @@ Vext is a programming language designed for performance, simplicity, and express
   - Comparison: `== != < > <= >=`  
   - Logic: `&& || !`  
   - Unary: `++ -- -`  
-  - Assignment / Compound: `= += -= *= /=`  
+  - Assignment / Compound: `= += -= *=`  
   - String concatenation: `+` (works with numbers and booleans)  
 - **Strings:** Escape sequences (`\n`, `\t`, `\"`, `\'`, `\\`), automatic conversion when concatenating other types  
 
@@ -126,7 +126,7 @@ The IO module is loaded only when used, keeping the runtime more lightweight.
 - `Math.Tan(num)`
 - `Math.Log(num)`
 - `Math.Exp(num)`
-- `Math.Random()` / `Math.random(min, max)`
+- `Math.Random()` / `Math.Random(min, max)`
 - `Math.Abs(num)`
 - `Math.Round(num)`
 - `Math.Floor(num)`
@@ -138,7 +138,7 @@ The IO module is loaded only when used, keeping the runtime more lightweight.
 Works on any variable using the `.` operator:
 - `.Type`: Returns the type name as a string (e.g., `"int"`, `"string"`).
 - `.ToString()`: Returns the string representation of the value.
-- `.Length()`: (Strings only) Returns the length of the string.
+- `.Length`: (Strings only) Returns the length of the string.
 
 ### Editor Support (LSP)
 The Vext project includes a VSCode extension and a Language Server Protocol (LSP) implementation:
@@ -165,7 +165,7 @@ Vext features a full compilation pipeline:
 - `LiteralNode` (numbers, strings, booleans, null)  
 - `VariableNode`  
 - `FunctionCallNode`  
-- `MemberAccessNode` (Covers `Module.Func`, `.type`, `.ToString()`, `.length()`)  
+- `MemberAccessNode` (Covers `Module.Func`, `.Type`, `.ToString()`, `.Length`)  
 
 **Statements:**
 - `VariableDeclarationNode`  
@@ -207,7 +207,7 @@ int square(int n) { return n * n; }
 string greet(string name = "Guy") { return "Hello, " + name + "!"; }
 
 IO.Println(greet("Vext")); // "Hello, Vext!"
-IO.Println(greet());        // "Hello, User!"
+IO.Println(greet());        // "Hello, Guy!"
 
 // --- 3. Unary & Compound Operators ---
 i++;
