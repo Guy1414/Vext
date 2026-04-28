@@ -77,8 +77,8 @@ Vext is a programming language designed for performance, simplicity, and express
 ## Features
 
 ### Core Language
-- **Variables:** Declaration, use, type checking, `auto` type inference  
-- **Types:** `int`, `float`, `bool`, `string`, `auto`  
+- **Variables:** Declaration, use, type checking, `auto` type inference, explicit casting `(type)val`  
+- **Types:** `int`, `float`, `bool`, `string`, `auto`, `numeral`  
 - **Expressions:** Nested arithmetic, boolean logic, comparisons, unary operators, function calls, mixed-type math  
 - **Operators:**  
   - Arithmetic: `+ - * / % **`  
@@ -168,7 +168,7 @@ Vext features a full compilation pipeline:
 **Expressions:**
 - `BinaryExpressionNode` (`+`, `-`, `*`, `/`, `**`, `%`, etc.)  
 - `UnaryExpressionNode` (`++`, `--`, `-`, `!`)  
-- `LiteralNode` (numbers, strings, booleans, null)  
+- `LiteralNode` (numbers, strings, booleans)  
 - `VariableNode`  
 - `FunctionCallNode`  
 - `MemberAccessNode` (Covers `Module.Func`, `.Type`, `.ToString()`, `.Length`)  
