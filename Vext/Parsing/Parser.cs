@@ -779,7 +779,7 @@ namespace Vext.Compiler.Parsing
                     Token typeToken = CurrentToken();
                     Advance(); // consume type keyword
                     Expect(TokenType.Punctuation, ")"); // consume ')'
-                    
+
                     ExpressionNode castExpr = ParsePrimary(CurrentToken()); // parse the thing being cast
                     return new CastNode
                     {

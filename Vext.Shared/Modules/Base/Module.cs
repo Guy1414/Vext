@@ -21,10 +21,10 @@ namespace Vext.Shared.Modules.Base
 
         public void Add(string name, int arity, string returnType, Func<List<object>, object> native, params (string Name, string Type)[] parameters)
         {
-            var fn = new Function(name, arity, native)
+            Function fn = new Function(name, arity, native)
             {
                 ReturnType = returnType,
-                Parameters = parameters.Select(p => new FunctionParameterNode { Name = p.Name, Type = p.Type }).ToList()
+                Parameters = [.. parameters.Select(p => new FunctionParameterNode { Name = p.Name, Type = p.Type })]
             };
             Add(name, fn);
         }

@@ -48,8 +48,7 @@ namespace Vext.Runtime.VM
                                     existing.Add(fn);
                                 else if (functions[fn.Name] is Function single)
                                     functions[fn.Name] = new List<Function> { single, fn };
-                            }
-                            else
+                            } else
                             {
                                 functions[fn.Name] = fn;
                             }
@@ -220,11 +219,12 @@ namespace Vext.Runtime.VM
 
                     case VextVMBytecode.JMP:
                         int target = instr.ArgInt;
-                        if (target < 0 || target >= instructions.Count)
+                        if (target < 0 || target > instructions.Count)
                             throw new Exception($"Invalid jump target {target}.");
 
                         ip = instr.ArgInt;
                         continue;
+
 
                     case VextVMBytecode.JMP_IF_FALSE:
                         {
