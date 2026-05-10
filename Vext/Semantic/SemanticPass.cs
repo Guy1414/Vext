@@ -2,7 +2,7 @@ using System.Collections;
 
 using Vext.Compiler.Diagnostics;
 using Vext.Shared.AST;
-using Vext.Shared.Modules;
+using Vext.Shared.Modules.Base;
 using Vext.Shared.Rules;
 
 namespace Vext.Compiler.Semantic

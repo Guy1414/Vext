@@ -2,7 +2,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 using Vext.Shared.AST;
-using Vext.Shared.Modules;
+using Vext.Shared.Modules.Base;
 using Vext.Shared.Rules;
 using Vext.Shared.Runtime;
 
@@ -24,36 +24,41 @@ namespace Vext.Runtime.VM
         private readonly Dictionary<string, Module> modules = [];
 
         /// <summary>
-        /// Initializes a new instance of the VextVM class with the specified modules and default functions.
+        /// Initializes a new instance of the VextVM class with the specified modules.
         /// </summary>
         /// <param name="modulesList">A list of modules to load into the virtual machine. If null, no modules are loaded.</param>
-        /// <param name="defaults">An object containing default functions to load into the virtual machine. If null, no default functions are
-        /// loaded.</param>
-        public VextVM(List<Module>? modulesList = null, DefaultFunctions? defaults = null)
+        public VextVM(List<Module>? modulesList = null)
         {
             // Load modules
             if (modulesList != null)
             {
                 foreach (Module module in modulesList)
                 {
-                    modules[module.Name] = module;
+                    if (!module.IsGlobal)
+                        modules[module.Name] = module;
 
                     foreach (List<Function> funcList in module.Functions.Values)
+                    {
+                        // Store the list of overloads to resolve by arity at call time
                         foreach (Function fn in funcList)
-                            functions[fn.Name] = fn;
-                }
-            }
-
-            // Load default functions
-            if (defaults != null)
-            {
-                foreach (KeyValuePair<string, List<Function>> kvp in defaults.Functions)
-                {
-                    // store the list of overloads to resolve by arity at call time
-                    functions[kvp.Key] = kvp.Value;
+                        {
+                            if (functions.ContainsKey(fn.Name))
+                            {
+                                if (functions[fn.Name] is List<Function> existing)
+                                    existing.Add(fn);
+                                else if (functions[fn.Name] is Function single)
+                                    functions[fn.Name] = new List<Function> { single, fn };
+                            }
+                            else
+                            {
+                                functions[fn.Name] = fn;
+                            }
+                        }
+                    }
                 }
             }
         }
+
 
         /// <summary>
         /// Executes a sequence of virtual machine instructions and returns the result of the computation.

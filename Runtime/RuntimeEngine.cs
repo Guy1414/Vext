@@ -1,7 +1,9 @@
 using System.Diagnostics;
 
 using Vext.Runtime.VM;
-using Vext.Shared.Modules;
+using Vext.Shared.Modules.Base;
+using Vext.Shared.Modules.Builtins;
+using Vext.Shared.Modules.Library;
 using Vext.Shared.Rules;
 using Vext.Shared.Runtime;
 
@@ -28,20 +30,16 @@ namespace Vext.Runtime
             output ??= new RuntimeOutput(writer, reader);
             output.SetStopwatch(sw);
 
-            List<Module> activeModules = [];
+            List<Module> activeModules = [new CoreBuiltins().Initialize()];
+
             if (usedModules.Contains("Math"))
-                activeModules.Add(new MathModule { Name = "Math" }.Initialize());
+                activeModules.Add(new MathModule().Initialize());
 
             if (usedModules.Contains("IO"))
-                activeModules.Add(new IOModule { Name = "IO" }.Initialize(output));
+                activeModules.Add(new IOModule().Initialize(output));
 
-            DefaultFunctions defaults = new DefaultFunctions();
-            defaults.Initialize();
+            VextVM vm = new VextVM(modulesList: activeModules);
 
-            VextVM vm = new VextVM(
-                modulesList: activeModules,
-                defaults: defaults
-            );
 
             int sp = 0;
             vm.Run(instructions, ref sp);

@@ -5,7 +5,9 @@ using Vext.Compiler.Lexing;
 using Vext.Compiler.Parsing;
 using Vext.Compiler.Semantic;
 using Vext.Shared.AST;
-using Vext.Shared.Modules;
+using Vext.Shared.Modules.Base;
+using Vext.Shared.Modules.Builtins;
+using Vext.Shared.Modules.Library;
 using Vext.Shared.Rules;
 using Vext.Shared.Runtime;
 
@@ -124,19 +126,21 @@ namespace Vext.Compiler
         }
         private static void RegisterBuiltIns(SemanticPass pass)
         {
-            Module math = new MathModule { Name = "Math" }.Initialize();
-            foreach (List<Function> func in math.Functions.Values)
-                pass.RegisterBuiltInFunctions(func, math.Name);
+            List<Module> allModules =
+            [
+                new CoreBuiltins().Initialize(),
+                new MathModule().Initialize(),
+                new IOModule().Initialize(new RuntimeOutput(TextWriter.Null, TextReader.Null))
+            ];
 
-            Module io = new IOModule { Name = "IO" }.Initialize(new RuntimeOutput(TextWriter.Null, TextReader.Null));
-            foreach (List<Function> func in io.Functions.Values)
-                pass.RegisterBuiltInFunctions(func, io.Name);
-
-            DefaultFunctions defaults = new DefaultFunctions();
-            defaults.Initialize();
-
-            foreach (List<Function> func in defaults.Functions.Values)
-                pass.RegisterBuiltInFunctions(func);
+            foreach (Module module in allModules)
+            {
+                string? prefix = module.IsGlobal ? null : module.Name;
+                foreach (List<Function> funcList in module.Functions.Values)
+                {
+                    pass.RegisterBuiltInFunctions(funcList, prefix, module.Name);
+                }
+            }
         }
     }
 }

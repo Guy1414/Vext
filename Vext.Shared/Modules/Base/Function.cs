@@ -1,6 +1,6 @@
-﻿using Vext.Shared.AST;
+using Vext.Shared.AST;
 
-namespace Vext.Shared.Modules
+namespace Vext.Shared.Modules.Base
 {
     /// <summary>
     /// Represents a function within a module or as a defaultFunction.

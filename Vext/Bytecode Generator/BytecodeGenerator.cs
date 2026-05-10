@@ -1,5 +1,5 @@
 using Vext.Shared.AST;
-using Vext.Shared.Modules;
+using Vext.Shared.Modules.Base;
 using Vext.Shared.Rules;
 using Vext.Shared.Runtime;
 

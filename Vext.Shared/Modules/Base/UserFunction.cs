@@ -1,7 +1,7 @@
-﻿using Vext.Shared.AST;
+using Vext.Shared.AST;
 using Vext.Shared.Rules;
 
-namespace Vext.Shared.Modules
+namespace Vext.Shared.Modules.Base
 {
     public class UserFunction
     {
