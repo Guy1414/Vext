@@ -245,7 +245,6 @@ class Program
                     }
                 }
             }
-
             // Sort and filter out any overlapping tokens to prevent VS Code errors
             List<TokenInfo> sortedTokens = [.. processedTokens
                 .OrderBy(t => t.Line)
