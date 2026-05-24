@@ -19,7 +19,7 @@ namespace Vext.Shared.Modules.Base
             list.Add(fn);
         }
 
-        public void Add(string name, int arity, string returnType, Func<List<object>, object> native, params (string Name, string Type)[] parameters)
+        public void Add(string name, int arity, string returnType, Func<object?[], object?> native, params (string Name, string Type)[] parameters)
         {
             Function fn = new Function(name, arity, native)
             {

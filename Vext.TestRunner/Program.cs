@@ -320,19 +320,28 @@ class Program
         Console.ResetColor();
     }
 
-    static void DisplayState(Dictionary<int, string> varMap, VextValue[] values)
+    static void DisplayState(Dictionary<int, string> varMap, VextValue[]? values)
     {
+        if (values == null || values.Length == 0)
+        {
+            Console.WriteLine(" (no state available)");
+            return;
+        }
+
         Console.WriteLine($" {"Variable",-20} │ {"Type",-10} │ {"Value",-30}");
         Console.WriteLine(new string('─', 65));
 
-        for (int i = 0; i < values.Length; i++)
+        foreach (KeyValuePair<int, string> entry in varMap.OrderBy(kvp => kvp.Key))
         {
-            VextValue val = values[i]!;
-
-            if (!varMap.ContainsKey(i) || val.Type == VextType.Null)
+            int slot = entry.Key;
+            if (slot < 0 || slot >= values.Length)
                 continue;
 
-            string name = varMap[i];
+            VextValue val = values[slot];
+            if (val.Type == VextType.Null)
+                continue;
+
+            string name = entry.Value;
             string displayValue = val.Type switch
             {
                 VextType.Int => val.AsInt.ToString(),

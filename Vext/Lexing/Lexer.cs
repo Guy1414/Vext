@@ -20,7 +20,7 @@ namespace Vext.Compiler.Lexing
 
         public List<Token> Tokenize()
         {
-            List<Token> tokens = [];
+            List<Token> tokens = new List<Token>(Math.Max(16, vextCode.Length / 3));
 
             while (currentIndex < vextCode.Length)
             {
@@ -51,7 +51,7 @@ namespace Vext.Compiler.Lexing
                 } else
                 {
                     tokens.Add(new Token(TokenType.Unknown, current.ToString(), currentLine, currentColumn, currentColumn));
-                    ReportError($"Unexpected character '{current}'", currentLine, currentColumn, currentLine, currentColumn - 1);
+                    ReportError($"Unexpected character '{current}'", currentLine, currentColumn, currentLine, currentColumn);
                     Advance();
                 }
             }
@@ -260,15 +260,22 @@ namespace Vext.Compiler.Lexing
             int startCol = currentColumn;
             char c0 = vextCode[currentIndex];
             char c1 = Peek();
-            char c2 = Peek(2);
-
-            string? op;
-            if (c2 != '\0' && LanguageSpecs.MultiCharOperators.Contains($"{c0}{c1}{c2}"))
-                op = $"{c0}{c1}{c2}";
-            else if (c1 != '\0' && LanguageSpecs.MultiCharOperators.Contains($"{c0}{c1}"))
-                op = $"{c0}{c1}";
-            else
-                op = c0.ToString();
+            string op = c0 switch
+            {
+                '+' when c1 == '+' => "++",
+                '+' when c1 == '=' => "+=",
+                '-' when c1 == '-' => "--",
+                '-' when c1 == '=' => "-=",
+                '*' when c1 == '*' => "**",
+                '*' when c1 == '=' => "*=",
+                '=' when c1 == '=' => "==",
+                '!' when c1 == '=' => "!=",
+                '<' when c1 == '=' => "<=",
+                '>' when c1 == '=' => ">=",
+                '&' when c1 == '&' => "&&",
+                '|' when c1 == '|' => "||",
+                _ => c0.ToString()
+            };
 
             Advance(op.Length);
             return new Token(TokenType.Operator, op, currentLine, startCol, currentColumn - 1);

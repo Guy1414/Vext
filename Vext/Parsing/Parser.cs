@@ -12,6 +12,7 @@ namespace Vext.Compiler.Parsing
     internal class Parser(List<Token> tokens)
     {
         private readonly List<Token> tokens = tokens;
+        private readonly Token lastToken = tokens.Count > 0 ? tokens[^1] : new Token(TokenType.EOF, "", 0, 0, 0);
         private int currentToken = 0;
 
         private static void ReportError(string message, int startLine, int startCol, int endLine, int endCol) => Diagnostic.ReportError(message, startLine, startCol, endLine, endCol);
@@ -803,7 +804,7 @@ namespace Vext.Compiler.Parsing
                     left = new LiteralNode { Value = double.Parse(token.Value, CultureInfo.InvariantCulture), Type = Types.Float, Line = token.Line, StartColumn = token.StartColumn, EndColumn = tokens[currentToken - 1].EndColumn };
                 } else
                 {
-                    left = new LiteralNode { Value = int.Parse(token.Value, CultureInfo.InvariantCulture), Type = Types.Int, Line = token.Line, StartColumn = token.StartColumn, EndColumn = tokens[currentToken - 1].EndColumn };
+                    left = new LiteralNode { Value = long.Parse(token.Value, CultureInfo.InvariantCulture), Type = Types.Int, Line = token.Line, StartColumn = token.StartColumn, EndColumn = tokens[currentToken - 1].EndColumn };
                 }
             } else if (token.TokenType == TokenType.String)
             {
@@ -901,8 +902,8 @@ namespace Vext.Compiler.Parsing
 
             if (currentToken >= tokens.Count)
             {
-                ReportError("Unexpected end of file while parsing expression", tokens.Count > 0 ? tokens.Last().Line : 0, tokens.Count > 0 ? tokens.Last().StartColumn : 0, tokens.Count > 0 ? tokens.Last().Line : 0, tokens.Count > 0 ? tokens.Last().EndColumn : 0);
-                return new LiteralNode { Value = 0, IsError = true, Line = tokens.Count > 0 ? tokens.Last().Line : 0, StartColumn = tokens.Count > 0 ? tokens.Last().StartColumn : 0, EndColumn = tokens.Count > 0 ? tokens.Last().StartColumn : 0 };
+                ReportError("Unexpected end of file while parsing expression", lastToken.Line, lastToken.StartColumn, lastToken.Line, lastToken.EndColumn);
+                return new LiteralNode { Value = 0, IsError = true, Line = lastToken.Line, StartColumn = lastToken.StartColumn, EndColumn = lastToken.StartColumn };
             }
 
             // Parse the left-hand side primary expression
@@ -975,7 +976,7 @@ namespace Vext.Compiler.Parsing
             if (currentToken + offset >= tokens.Count)
             {
                 // return EOF token instead of throwing
-                return new Token(TokenType.EOF, "", tokens.Count > 0 ? tokens.Last().Line : 0, 0, 0);
+                return new Token(TokenType.EOF, "", lastToken.Line, 0, 0);
             }
 
             return tokens[currentToken + offset];
@@ -986,7 +987,7 @@ namespace Vext.Compiler.Parsing
             if (currentToken >= tokens.Count)
             {
                 // return EOF token instead of throwing
-                return new Token(TokenType.EOF, "", tokens.Count > 0 ? tokens.Last().Line : 0, 0, 0);
+                return new Token(TokenType.EOF, "", lastToken.Line, 0, 0);
             }
             return tokens[currentToken];
         }

@@ -8,7 +8,7 @@ namespace Vext.Shared.Modules.Base
     /// <param name="name"></param>
     /// <param name="arity"></param>
     /// <param name="native"></param>
-    public class Function(string name, int arity, Func<List<object>, object> native)
+    public class Function(string name, int arity, Func<object?[], object?> native)
     {
         /// <summary>
         /// Represents the name of the function.
@@ -21,7 +21,7 @@ namespace Vext.Shared.Modules.Base
         /// <summary>
         /// Represents the native implementation of the function in C#.
         /// </summary>
-        public Func<List<object>, object> Native { get; set; } = native;
+        public Func<object?[], object?> Native { get; set; } = native;
 
         /// <summary>
         /// Represents the list of parameters for the function.

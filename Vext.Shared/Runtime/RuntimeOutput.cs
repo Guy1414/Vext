@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.Text;
 
 namespace Vext.Shared.Runtime
@@ -70,7 +71,7 @@ namespace Vext.Shared.Runtime
         public double ReadFloat()
         {
             string input = ReadLine();
-            return double.TryParse(input, out double result) ? result : 0.0;
+            return double.TryParse(input, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out double result) ? result : 0.0;
         }
 
         /// <summary>

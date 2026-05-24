@@ -126,7 +126,7 @@
         /// Gets the list of reported errors.
         /// </summary>
         /// <returns></returns>
-        public static List<ErrorDescriptor> GetErrors()
+        public static IReadOnlyList<ErrorDescriptor> GetErrors()
         {
             return _errors;
         }

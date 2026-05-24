@@ -30,8 +30,20 @@ namespace Vext.Compiler.Semantic
         public Dictionary<int, string> GetVariableMap() => slotToNameMap;
 
         public List<SemanticToken> SemanticTokens { get; } = [];
+        private static readonly List<string> EmptyModifiers = [];
+        private static readonly List<string> DeclarationModifier = ["declaration"];
+        private static readonly List<string> ControlModifier = ["control"];
+        private static readonly List<string> ReadOnlyModifier = ["readonly"];
+        private static readonly List<string> FunctionCallModifier = ["call"];
+        private static readonly List<string> VariableParameterDeclarationModifiers = ["parameter", "declaration"];
+        private static readonly List<string> VariableReadonlyStaticModifiers = ["readonly", "static"];
 
-        private void AddToken(int line, int startCol, int endCol, string type, params string[] modifiers)
+        private void AddToken(int line, int startCol, int endCol, string type)
+        {
+            AddToken(line, startCol, endCol, type, EmptyModifiers);
+        }
+
+        private void AddToken(int line, int startCol, int endCol, string type, List<string> modifiers)
         {
             if (line == 0)
                 return;
@@ -42,7 +54,7 @@ namespace Vext.Compiler.Semantic
                 StartColumn = startCol,
                 EndColumn = endCol,
                 Type = type,
-                Modifiers = [.. modifiers]
+                Modifiers = modifiers
             });
         }
 
@@ -113,16 +125,25 @@ namespace Vext.Compiler.Semantic
                     builtInFunctions[fullName] = list;
                 }
                 int slot = 0;
+                List<FunctionParameterNode> args = [];
+                if (f.Parameters != null)
+                {
+                    foreach (FunctionParameterNode p in f.Parameters)
+                    {
+                        args.Add(new FunctionParameterNode
+                        {
+                            Name = p.Name,
+                            Type = p.Type,
+                            SlotIndex = slot++,
+                        });
+                    }
+                }
+
                 list.Add(new FunctionDefinitionNode
                 {
                     ModuleName = moduleName ?? prefix,
                     FunctionName = f.Name,
-                    Arguments = f.Parameters?.Select(p => new FunctionParameterNode
-                    {
-                        Name = p.Name,
-                        Type = p.Type,
-                        SlotIndex = slot++,
-                    }).ToList() ?? [],
+                    Arguments = args,
                     ReturnType = f.ReturnType ?? "void",
                     Body = []
                 });
@@ -138,9 +159,21 @@ namespace Vext.Compiler.Semantic
         /// reported as errors. Only valid function definitions are added to the internal function registry.</remarks>
         private void CollectFunctions()
         {
-            foreach (FunctionDefinitionNode stmt in statements.OfType<FunctionDefinitionNode>())
+            foreach (StatementNode statement in statements)
             {
-                if (functions.Any(f => f.FunctionName == stmt.FunctionName && ParametersMatch(f.Arguments, stmt.Arguments)))
+                if (statement is not FunctionDefinitionNode stmt)
+                    continue;
+
+                bool duplicate = false;
+                foreach (FunctionDefinitionNode f in functions)
+                {
+                    if (f.FunctionName == stmt.FunctionName && ParametersMatch(f.Arguments, stmt.Arguments))
+                    {
+                        duplicate = true;
+                        break;
+                    }
+                }
+                if (duplicate)
                     ReportError($"Function '{stmt.FunctionName}' with these parameters is already defined", stmt.Line, stmt.StartColumn, stmt.EndColumn);
 
                 if (!IsValidType(stmt.ReturnType))
@@ -170,13 +203,13 @@ namespace Vext.Compiler.Semantic
                 AddToken(stmt.Line, stmt.ReturnTypeStartColumn, stmt.ReturnTypeEndColumn, "type");
 
                 // Token for Function Name
-                AddToken(stmt.NameLine, stmt.NameStartColumn, stmt.NameEndColumn, "function", "declaration");
+                AddToken(stmt.NameLine, stmt.NameStartColumn, stmt.NameEndColumn, "function", DeclarationModifier);
 
                 if (stmt.Arguments != null)
                     foreach (FunctionParameterNode p in stmt.Arguments)
                     {
                         AddToken(p.Line, p.TypeStartColumn, p.TypeEndColumn, "type");
-                        AddToken(p.NameLine, p.NameStartColumn, p.NameEndColumn, "variable", "parameter", "declaration");
+                        AddToken(p.NameLine, p.NameStartColumn, p.NameEndColumn, "variable", VariableParameterDeclarationModifiers);
                     }
             }
         }
@@ -208,8 +241,6 @@ namespace Vext.Compiler.Semantic
 
                     assignedSlots.Peek().Set(decl.SlotIndex, true);
                 }
-
-                RebuildVisibleVariables();
 
                 foreach (StatementNode? stmt in func.Body)
                     AnalyzeStatement(stmt, func);
@@ -297,7 +328,7 @@ namespace Vext.Compiler.Semantic
                         ReportError("'numeral' can only be used for function parameters and return types, not variables.", v.Line, v.StartColumn, v.EndColumn);
 
                     AddToken(v.Line, v.TypeStartColumn, v.TypeEndColumn, "type");
-                    AddToken(v.NameLine, v.NameStartColumn, v.NameEndColumn, "variable", "declaration");
+                    AddToken(v.NameLine, v.NameStartColumn, v.NameEndColumn, "variable", DeclarationModifier);
                     break;
 
                 case AssignmentStatementNode a:
@@ -372,7 +403,7 @@ namespace Vext.Compiler.Semantic
                         ReportError("'return' statement outside of a function", r.Line, r.StartColumn, r.EndColumn);
                         break;
                     }
-                    AddToken(r.Line, r.KeywordColumnStart, r.KeywordColumnEnd, "keyword", "control"); // "return"
+                    AddToken(r.Line, r.KeywordColumnStart, r.KeywordColumnEnd, "keyword", ControlModifier); // "return"
                     if (r.Expression != null)
                     {
                         CheckExpression(r.Expression);
@@ -389,7 +420,7 @@ namespace Vext.Compiler.Semantic
 
                 case IfStatementNode i:
                     {
-                        AddToken(i.Line, i.StartColumn, i.EndColumn, "keyword", "control"); // "if"
+                        AddToken(i.Line, i.StartColumn, i.EndColumn, "keyword", ControlModifier); // "if"
                         CheckExpression(i.Condition);
                         BitArray beforeIf = new BitArray(assignedSlots.Peek());
 
@@ -399,7 +430,7 @@ namespace Vext.Compiler.Semantic
                         if (i.ElseBody != null)
                         {
                             if (i.ElseLine > 0)
-                                AddToken(i.ElseLine, i.ElseStartColumn, i.ElseStartColumn + 4, "keyword", "control"); // "else"
+                                AddToken(i.ElseLine, i.ElseStartColumn, i.ElseStartColumn + 4, "keyword", ControlModifier); // "else"
 
                             assignedSlots.Pop();
                             assignedSlots.Push(new BitArray(beforeIf));
@@ -420,7 +451,7 @@ namespace Vext.Compiler.Semantic
                     }
 
                 case WhileStatementNode w:
-                    AddToken(w.Line, w.KeywordColumnStart, w.KeywordColumnEnd, "keyword", "control"); // "while"
+                    AddToken(w.Line, w.KeywordColumnStart, w.KeywordColumnEnd, "keyword", ControlModifier); // "while"
                     CheckExpression(w.Condition);
 
                     BitArray beforeW = new BitArray(assignedSlots.Peek());
@@ -440,7 +471,7 @@ namespace Vext.Compiler.Semantic
                     break;
 
                 case ForStatementNode fo:
-                    AddToken(fo.Line, fo.KeywordColumnStart, fo.KeywordColumnEnd, "keyword", "control"); // "for"
+                    AddToken(fo.Line, fo.KeywordColumnStart, fo.KeywordColumnEnd, "keyword", ControlModifier); // "for"
                     PushScope();
                     if (fo.Initialization != null)
                     {
@@ -653,6 +684,7 @@ namespace Vext.Compiler.Semantic
                             {
                                 "-" => r.Value switch
                                 {
+                                    long l => new LiteralNode { Value = -l, Line = u.Line, StartColumn = u.StartColumn, EndColumn = u.EndColumn },
                                     int i => new LiteralNode { Value = -i, Line = u.Line, StartColumn = u.StartColumn, EndColumn = u.EndColumn },
                                     double d => new LiteralNode { Value = -d, Line = u.Line, StartColumn = u.StartColumn, EndColumn = u.EndColumn },
                                     _ => u
@@ -688,56 +720,56 @@ namespace Vext.Compiler.Semantic
                                         };
                                     }
 
-                                    if (leftValue is long li && rightValue is int ri)
+                                    if (leftValue is long li && rightValue is long ri)
                                         return new LiteralNode { Value = li + ri, Line = b.Line, StartColumn = b.StartColumn, EndColumn = b.EndColumn };
                                     if (leftValue is double ld && rightValue is double rd)
                                         return new LiteralNode { Value = ld + rd, Line = b.Line, StartColumn = b.StartColumn, EndColumn = b.EndColumn };
                                     if (leftValue is long li2 && rightValue is double rd2)
                                         return new LiteralNode { Value = li2 + rd2, Line = b.Line, StartColumn = b.StartColumn, EndColumn = b.EndColumn };
-                                    if (leftValue is double ld2 && rightValue is int ri2)
+                                    if (leftValue is double ld2 && rightValue is long ri2)
                                         return new LiteralNode { Value = ld2 + ri2, Line = b.Line, StartColumn = b.StartColumn, EndColumn = b.EndColumn };
 
                                     return b;
 
                                 case "-":
-                                    if (leftValue is long li3 && rightValue is int ri3)
+                                    if (leftValue is long li3 && rightValue is long ri3)
                                         return new LiteralNode { Value = li3 - ri3, Line = b.Line, StartColumn = b.StartColumn, EndColumn = b.EndColumn };
                                     if (leftValue is double ld3 && rightValue is double rd3)
                                         return new LiteralNode { Value = ld3 - rd3, Line = b.Line, StartColumn = b.StartColumn, EndColumn = b.EndColumn };
                                     if (leftValue is long li4 && rightValue is double rd4)
                                         return new LiteralNode { Value = li4 - rd4, Line = b.Line, StartColumn = b.StartColumn, EndColumn = b.EndColumn };
-                                    if (leftValue is double ld4 && rightValue is int ri4)
+                                    if (leftValue is double ld4 && rightValue is long ri4)
                                         return new LiteralNode { Value = ld4 - ri4, Line = b.Line, StartColumn = b.StartColumn, EndColumn = b.EndColumn };
                                     break;
 
                                 case "*":
-                                    if (leftValue is long li5 && rightValue is int ri5)
+                                    if (leftValue is long li5 && rightValue is long ri5)
                                         return new LiteralNode { Value = li5 * ri5, Line = b.Line, StartColumn = b.StartColumn, EndColumn = b.EndColumn };
                                     if (leftValue is double ld5 && rightValue is double rd5)
                                         return new LiteralNode { Value = ld5 * rd5, Line = b.Line, StartColumn = b.StartColumn, EndColumn = b.EndColumn };
                                     if (leftValue is long li6 && rightValue is double rd6)
                                         return new LiteralNode { Value = li6 * rd6, Line = b.Line, StartColumn = b.StartColumn, EndColumn = b.EndColumn };
-                                    if (leftValue is double ld6 && rightValue is int ri6)
+                                    if (leftValue is double ld6 && rightValue is long ri6)
                                         return new LiteralNode { Value = ld6 * ri6, Line = b.Line, StartColumn = b.StartColumn, EndColumn = b.EndColumn };
                                     break;
 
                                 case "/":
-                                    if ((rightValue is int ri7 && ri7 == 0) || (rightValue is double rd7 && rd7 == 0))
+                                    if ((rightValue is long ri7 && ri7 == 0) || (rightValue is double rd7 && rd7 == 0))
                                     {
                                         ReportError("Division by zero is not allowed", b.Line, b.StartColumn, b.EndColumn);
                                         return b;
-                                    } else if (leftValue is long li7 && rightValue is int ri8)
+                                    } else if (leftValue is long li7 && rightValue is long ri8)
                                         return new LiteralNode { Value = li7 / ri8, Line = b.Line, StartColumn = b.StartColumn, EndColumn = b.EndColumn };
                                     else if (leftValue is double ld7 && rightValue is double rd8)
                                         return new LiteralNode { Value = ld7 / rd8, Line = b.Line, StartColumn = b.StartColumn, EndColumn = b.EndColumn };
                                     else if (leftValue is long li8 && rightValue is double rd9)
                                         return new LiteralNode { Value = li8 / rd9, Line = b.Line, StartColumn = b.StartColumn, EndColumn = b.EndColumn };
-                                    else if (leftValue is double ld8 && rightValue is int ri9)
+                                    else if (leftValue is double ld8 && rightValue is long ri9)
                                         return new LiteralNode { Value = ld8 / ri9, Line = b.Line, StartColumn = b.StartColumn, EndColumn = b.EndColumn };
                                     break;
 
                                 case "**":
-                                    if ((leftValue is int || leftValue is double) && (rightValue is int || rightValue is double))
+                                    if ((leftValue is long || leftValue is int || leftValue is double) && (rightValue is long || rightValue is int || rightValue is double))
                                     {
                                         double pow = Math.Pow(Convert.ToDouble(leftValue), Convert.ToDouble(rightValue));
                                         return new LiteralNode { Value = pow, Line = b.Line, StartColumn = b.StartColumn, EndColumn = b.EndColumn };
@@ -800,6 +832,7 @@ namespace Vext.Compiler.Semantic
             {
                 string type = l.Value switch
                 {
+                    long => "int",
                     int => "int",
                     double => "float",
                     bool => "bool",
@@ -985,6 +1018,7 @@ namespace Vext.Compiler.Semantic
                             ExpressionNode? initializer = ps[i].Initializer;
                             if (initializer != null)
                             {
+                                _ = GetExpressionType(initializer);
                                 f.Arguments.Add(initializer);
                             }
                         }
@@ -993,7 +1027,7 @@ namespace Vext.Compiler.Semantic
                             UsedModules.Add(fn.ModuleName);
 
                         f.ReturnType = fn.ReturnType;
-                        AddToken(f.Line, f.FunctionNameStartColumn, f.FunctionNameEndColumn, "function", "call");
+                        AddToken(f.Line, f.FunctionNameStartColumn, f.FunctionNameEndColumn, "function", FunctionCallModifier);
                         return fn.ReturnType;
                     }
                 }
@@ -1021,7 +1055,7 @@ namespace Vext.Compiler.Semantic
                 foreach (string hint in hints.Distinct())
                     ReportHint(hint, f.Line, f.StartColumn, f.EndColumn);
 
-                AddToken(f.Line, f.FunctionNameStartColumn, f.FunctionNameEndColumn, "function", "call");
+                AddToken(f.Line, f.FunctionNameStartColumn, f.FunctionNameEndColumn, "function", FunctionCallModifier);
                 return "error";
 
             }
@@ -1036,8 +1070,8 @@ namespace Vext.Compiler.Semantic
                         m.IsModuleCall = true;
                         UsedModules.Add(vRec.Name);
                         // Add tokens for Module.Func
-                        AddToken(vRec.Line, vRec.StartColumn, vRec.EndColumn, "variable", "readonly", "static");
-                        AddToken(m.Line, m.MemberNameStartColumn, m.MemberNameEndColumn, "function", "call");
+                        AddToken(vRec.Line, vRec.StartColumn, vRec.EndColumn, "variable", VariableReadonlyStaticModifiers);
+                        AddToken(m.Line, m.MemberNameStartColumn, m.MemberNameEndColumn, "function", FunctionCallModifier);
 
                         foreach (FunctionDefinitionNode fn in builtIns)
                         {
@@ -1095,21 +1129,21 @@ namespace Vext.Compiler.Semantic
                 // Instance methods/properties (Intrinsic)
                 if (m.MemberName == "Type" && m.Arguments == null)
                 {
-                    AddToken(m.Line, m.MemberNameStartColumn, m.MemberNameEndColumn, "property", "readonly");
+                    AddToken(m.Line, m.MemberNameStartColumn, m.MemberNameEndColumn, "property", ReadOnlyModifier);
                     m.ReturnType = "string";
                     return "string";
                 }
 
                 if (m.MemberName == "ToString" && m.Arguments != null && m.Arguments.Count == 0)
                 {
-                    AddToken(m.Line, m.MemberNameStartColumn, m.MemberNameEndColumn, "function", "call");
+                    AddToken(m.Line, m.MemberNameStartColumn, m.MemberNameEndColumn, "function", FunctionCallModifier);
                     m.ReturnType = "string";
                     return "string";
                 }
 
                 if (m.MemberName == "Length" && m.Arguments == null)
                 {
-                    AddToken(m.Line, m.MemberNameStartColumn, m.MemberNameEndColumn, "property", "readonly");
+                    AddToken(m.Line, m.MemberNameStartColumn, m.MemberNameEndColumn, "property", ReadOnlyModifier);
                     m.ReturnType = "int";
                     return "int";
                 }

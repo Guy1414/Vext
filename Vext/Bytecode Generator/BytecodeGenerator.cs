@@ -9,13 +9,15 @@ namespace Vext.Compiler.Bytecode_Generator
 {
     internal class BytecodeGenerator
     {
-        private static readonly Dictionary<int, Types> slotTypes = [];
+        private static Dictionary<int, Types> slotTypes = [];
+        public static void ResetState() => slotTypes = [];
         public static void EmitExpression(ExpressionNode expr, List<Instruction> instructions)
         {
             if (expr is LiteralNode l)
             {
                 VextValue vl = l.Value switch
                 {
+                    long lInt => VextValue.FromInt(lInt),
                     int i => VextValue.FromInt(i),
                     double d => VextValue.FromFloat(d),
                     bool b => VextValue.FromBool(b),
@@ -221,7 +223,16 @@ namespace Vext.Compiler.Bytecode_Generator
                     Types.Bool => Types.Bool,
                     Types.String => Types.String,
                     Types.Numeral => Types.Float, // Numeral acts as Float for bytecode dispatch
-                    Types.Unknown => throw new Exception($"Internal Compiler Error: Unresolved type at line {line}, column {startColumn}. This should have been caught by the semantic pass."),
+                    Types.Unknown when expr is LiteralNode lit => lit.Value switch
+                    {
+                        long or int => Types.Int,
+                        double or float => Types.Float,
+                        bool => Types.Bool,
+                        string => Types.String,
+                        _ => throw new Exception($"Internal Compiler Error: Unresolved literal type at line {line}, column {startColumn}.")
+                    },
+                    Types.Unknown when expr is VariableNode => Types.Int,
+                    Types.Unknown => Types.Float,
                     _ => throw new Exception($"Internal Compiler Error: Unsupported type {expr.Type} at line {line}, column {startColumn}")
                 };
             }

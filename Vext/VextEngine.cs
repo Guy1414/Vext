@@ -60,7 +60,7 @@ namespace Vext.Compiler
             // Clear diagnostics from previous compilations
             Clear();
 
-            List<Instruction> instructions = [];
+            List<Instruction> instructions = new List<Instruction>(Math.Max(16, code.Length / 4));
             Stopwatch sw = new Stopwatch();
 
             // 1. Lexing
@@ -83,12 +83,13 @@ namespace Vext.Compiler
             double semTime = sw.Elapsed.TotalMilliseconds;
             Dictionary<int, string> varMap = semanticPass.GetVariableMap();
 
-            if (GetErrors().Count > 0)
+            IReadOnlyList<ErrorDescriptor> diagnostics = GetErrors();
+            if (diagnostics.Count > 0)
                 return new CompilationResult(
                     code,
                     statements,
                     [],
-                    GetErrors(),
+                    [.. diagnostics],
                     tokens,
                     semanticPass.SemanticTokens,
                     varMap,
@@ -103,15 +104,18 @@ namespace Vext.Compiler
 
             // 4. Bytecode Generation
             sw.Restart();
+            BytecodeGenerator.ResetState();
             foreach (StatementNode stmt in statements)
                 BytecodeGenerator.EmitStatement(stmt, instructions);
             double bcTime = sw.Elapsed.TotalMilliseconds;
+
+            diagnostics = GetErrors();
 
             return new CompilationResult(
                 code,
                 statements,
                 instructions,
-                GetErrors(),
+                [.. diagnostics],
                 tokens,
                 semanticPass.SemanticTokens,
                 varMap,

@@ -20,6 +20,7 @@ namespace Vext.Runtime.VM
     {
         private VextValue[] stack = new VextValue[256];
         private VextValue[] variables = new VextValue[64];
+        private int maxWrittenSlot = -1;
         private readonly Dictionary<string, object> functions = [];
         private readonly Dictionary<string, Module> modules = [];
 
@@ -29,6 +30,8 @@ namespace Vext.Runtime.VM
         /// <param name="modulesList">A list of modules to load into the virtual machine. If null, no modules are loaded.</param>
         public VextVM(List<Module>? modulesList = null)
         {
+            Array.Fill(variables, VextValue.Null());
+
             // Load modules
             if (modulesList != null)
             {
@@ -42,11 +45,11 @@ namespace Vext.Runtime.VM
                         // Store the list of overloads to resolve by arity at call time
                         foreach (Function fn in funcList)
                         {
-                            if (functions.ContainsKey(fn.Name))
+                            if (functions.TryGetValue(fn.Name, out object? existingFunc))
                             {
-                                if (functions[fn.Name] is List<Function> existing)
+                                if (existingFunc is List<Function> existing)
                                     existing.Add(fn);
-                                else if (functions[fn.Name] is Function single)
+                                else if (existingFunc is Function single)
                                     functions[fn.Name] = new List<Function> { single, fn };
                             } else
                             {
@@ -104,12 +107,11 @@ namespace Vext.Runtime.VM
 
                     case VextVMBytecode.STORE_VAR:
                         if (sp == 0)
-                        {
-                            Console.Error.WriteLine($"ERROR: Tried to STORE_VAR {instr.Arg} but stack is empty!");
-                            break;
-                        }
+                            throw new Exception($"Stack empty: cannot STORE_VAR at index {instr.ArgInt}.");
                         EnsureCapacity(instr.ArgInt);
                         variables[instr.ArgInt] = Pop(ref sp);
+                        if (instr.ArgInt > maxWrittenSlot)
+                            maxWrittenSlot = instr.ArgInt;
                         break;
 
                     case VextVMBytecode.ADD_INT:
@@ -208,6 +210,28 @@ namespace Vext.Runtime.VM
                                     VextVMBytecode.EQ => VextValue.FromBool(left.AsBool == right.AsBool),
                                     VextVMBytecode.NEQ => VextValue.FromBool(left.AsBool != right.AsBool),
                                     _ => throw new Exception($"Operator {instr.Op} not supported for Booleans.")
+                                };
+                                Push(ref sp, res);
+                            }
+                            // Handle String Equality
+                            else if (left.Type == VextType.String && right.Type == VextType.String)
+                            {
+                                VextValue res = instr.Op switch
+                                {
+                                    VextVMBytecode.EQ => VextValue.FromBool(string.Equals(left.AsString, right.AsString, StringComparison.Ordinal)),
+                                    VextVMBytecode.NEQ => VextValue.FromBool(!string.Equals(left.AsString, right.AsString, StringComparison.Ordinal)),
+                                    _ => throw new Exception($"Operator {instr.Op} not supported for Strings.")
+                                };
+                                Push(ref sp, res);
+                            }
+                            // Handle Null Equality
+                            else if (left.Type == VextType.Null || right.Type == VextType.Null)
+                            {
+                                VextValue res = instr.Op switch
+                                {
+                                    VextVMBytecode.EQ => VextValue.FromBool(left.Type == right.Type),
+                                    VextVMBytecode.NEQ => VextValue.FromBool(left.Type != right.Type),
+                                    _ => throw new Exception($"Operator {instr.Op} not supported for Null.")
                                 };
                                 Push(ref sp, res);
                             } else
@@ -374,11 +398,13 @@ namespace Vext.Runtime.VM
             if (funcNode is string funcName)
             {
                 // MODULE CALL
-                if (funcName.Contains('.'))
+                int dotIndex = funcName.IndexOf('.');
+                if (dotIndex > 0 && dotIndex < funcName.Length - 1)
                 {
-                    string[] parts = funcName.Split('.');
-                    string moduleName = parts[0];
-                    string functionName = parts[1];
+                    string moduleName = funcName[..dotIndex];
+                    string functionName = funcName[(dotIndex + 1)..];
+                    if (functionName.Contains('.'))
+                        throw new Exception($"Malformed module function name '{funcName}'.");
 
                     if (!modules.TryGetValue(moduleName, out Module? module))
                         throw new Exception($"Module '{moduleName}' not loaded.");
@@ -402,15 +428,13 @@ namespace Vext.Runtime.VM
                     }
 
                     // Filter by arity first
-                    List<Function> viable = [.. candidates.Where(fn => (fn.Parameters?.Count ?? 0) == argCount)];
-                    if (viable.Count == 0)
-                        throw new Exception($"Module '{moduleName}' has no overload for '{functionName}' taking {argCount} args.");
-
-                    // Then filter by runtime argument types
                     Function? matched = null;
-                    foreach (Function fn in viable)
+                    foreach (Function fn in candidates)
                     {
                         List<FunctionParameterNode> ps = fn.Parameters ?? [];
+                        if (ps.Count != argCount)
+                            continue;
+
                         bool ok = true;
                         for (int i = 0; i < ps.Count; i++)
                         {
@@ -429,8 +453,10 @@ namespace Vext.Runtime.VM
                     if (matched == null)
                         throw new Exception($"Module '{moduleName}' has no overload for '{functionName}' matching runtime argument types.");
 
-                    return MapToVextValue(matched.Native([.. args]));
+                    return MapToVextValue(matched.Native(args));
                 }
+                if (dotIndex >= 0)
+                    throw new Exception($"Malformed function name '{funcName}'.");
 
                 // GLOBAL / USER FUNCTION
                 if (!functions.TryGetValue(funcName, out object? funcObj))
@@ -454,14 +480,13 @@ namespace Vext.Runtime.VM
                         };
                     }
 
-                    List<Function> viable = [.. candidatesList.Where(fn => (fn.Parameters?.Count ?? 0) == argCount)];
-                    if (viable.Count == 0)
-                        throw new Exception($"Function '{funcName}' has no overload taking {argCount} args.");
-
                     Function? matched = null;
-                    foreach (Function fn in viable)
+                    foreach (Function fn in candidatesList)
                     {
                         List<FunctionParameterNode> ps = fn.Parameters ?? [];
+                        if (ps.Count != argCount)
+                            continue;
+
                         bool ok = true;
                         for (int i = 0; i < ps.Count; i++)
                         {
@@ -477,7 +502,7 @@ namespace Vext.Runtime.VM
                     if (matched == null)
                         throw new Exception($"Function '{funcName}' has no overload matching runtime argument types.");
 
-                    return MapToVextValue(matched.Native([.. args]));
+                    return MapToVextValue(matched.Native(args));
                 }
 
                 // Native global
@@ -497,22 +522,37 @@ namespace Vext.Runtime.VM
                         };
                     }
 
-                    return MapToVextValue(nativeFunc.Native([.. args]));
+                    return MapToVextValue(nativeFunc.Native(args));
                 }
 
                 // USER FUNCTION
                 if (funcObj is UserFunction userFunc)
                 {
-                    //Console.WriteLine($"[CALL] Entering {userFunc.Name} with SP={sp}");
+                    int oldMax = maxWrittenSlot;
+                    if (userFunc.ArgumentSlots.Count == 0)
+                        PopulateTouchedSlots(userFunc);
 
-                    // Snapshot locals
-                    VextValue[] snapshot = (VextValue[])variables.Clone();
+                    int touchedCount = userFunc.ArgumentSlots.Count;
+                    VextValue[] localsSnapshot = touchedCount > 0 ? new VextValue[touchedCount] : [];
+                    for (int i = 0; i < touchedCount; i++)
+                    {
+                        int slot = userFunc.ArgumentSlots[i];
+                        if (slot < variables.Length)
+                            localsSnapshot[i] = variables[slot];
+                        else
+                            localsSnapshot[i] = VextValue.Null();
+                    }
 
                     // Run function body
                     VextValue ret = Run(userFunc.Body, ref sp);
 
-                    // Restore locals
-                    variables = snapshot;
+                    for (int i = 0; i < touchedCount; i++)
+                    {
+                        int slot = userFunc.ArgumentSlots[i];
+                        EnsureCapacity(slot);
+                        variables[slot] = localsSnapshot[i];
+                    }
+                    maxWrittenSlot = Math.Max(oldMax, maxWrittenSlot);
 
                     return ret;
                 }
@@ -562,17 +602,34 @@ namespace Vext.Runtime.VM
             return false;
         }
 
+        private static void PopulateTouchedSlots(UserFunction userFunc)
+        {
+            HashSet<int> seen = [];
+            foreach (Instruction instruction in userFunc.Body)
+            {
+                if (instruction.Op is VextVMBytecode.LOAD_VAR or VextVMBytecode.STORE_VAR or VextVMBytecode.INC_VAR or VextVMBytecode.DEC_VAR)
+                {
+                    int slot = instruction.ArgInt;
+                    if (slot >= 0 && seen.Add(slot))
+                        userFunc.ArgumentSlots.Add(slot);
+                }
+            }
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void EnsureCapacity(int index)
         {
             if (index >= variables.Length)
             {
+                int oldSize = variables.Length;
                 // Double the size until it fits the index
                 int newSize = variables.Length * 2;
                 while (index >= newSize)
                     newSize *= 2;
 
                 Array.Resize(ref variables, newSize);
+                for (int i = oldSize; i < newSize; i++)
+                    variables[i] = VextValue.Null();
             }
         }
 
@@ -598,6 +655,15 @@ namespace Vext.Runtime.VM
         /// </summary>
         /// <returns>An array of <see cref="VextValue"/> objects representing the variables. The array may be empty if no
         /// variables are defined.</returns>
-        public VextValue[] GetVariables() => variables;
+        public VextValue[] GetVariables()
+        {
+            int length = maxWrittenSlot + 1;
+            if (length <= 0)
+                return [];
+
+            VextValue[] result = new VextValue[length];
+            Array.Copy(variables, result, length);
+            return result;
+        }
     }
 }
