@@ -213,7 +213,7 @@ int square(int n) { return n * n; }
 string greet(string name = "Guy") { return "Hello, " + name + "!"; }
 
 IO.Println(greet("Vext")); // "Hello, Vext!"
-IO.Println(greet());        // "Hello, Guy!"
+IO.Println(greet());        // "Hello, User!"
 
 // --- 3. Unary & Compound Operators ---
 i++;
@@ -252,7 +252,7 @@ while (k < 3) {
 
 // --- 8. Functions & Nested Calls ---
 float multiply(float a, float b) { return a * b; }
-int addThree(auto a, auto b, auto c) { return a + b + c; } // auto allows int/float mix
+auto addThree(auto a, auto b, auto c) { return a + b + c; } // auto allows int/float mix
 
 int sq = square(3);
 int val = addThree(1, 2, sq);
@@ -334,21 +334,21 @@ IO.Println("Sqrt of 16: " + Math.Sqrt(16));
 **This program ran in:**
 ```
 --- COMPILATION PHASE ---
- Lexing          | 1021  tokens   |   3.3328 ms
+ Lexing          | 1021  tokens   |   5.3904 ms
 ──────────────────────────────────────────────────
- Parsing         | 84    nodes    |   6.7881 ms
+ Parsing         | 84    nodes    |   5.6647 ms
 ──────────────────────────────────────────────────
- Semantics       | 0     errors   |  11.9968 ms
+ Semantics       | 0     errors   |  11.3555 ms
 ──────────────────────────────────────────────────
- Bytecode Gen    | 435   ops      |   4.4066 ms
+ Bytecode Gen    | 451   ops      |   4.2062 ms
 ──────────────────────────────────────────────────
 
-[√] Compilation finished in 29.5373 ms
+[√] Compilation finished in 29.1732 ms
 ```
 **Execution:**
 ```
 --- EXECUTION PHASE ---
-[√] Execution finished in 16.6389 ms
+[√] Execution finished in 17.3660 ms
 ```
 **What the code actually printed**
 ```
@@ -369,7 +369,7 @@ While: 2
 Loop: 0
 Loop: 1
 Loop: 2
-Deep chain: -9155818042444218343
+Deep chain: 121
 sum: 57, result: 9.56636, concat: Hello, World! auto text 52 4.78318!
 complexBool: True, testNegation: False
 val: 12, calc: 40, message: Hello, Vext!
@@ -392,7 +392,7 @@ Sqrt of 16: 4
 ```
 =================================================================
 
-Total Run Time: 46.1762 ms
+Total Run Time: 46.5392 ms
 
 =================================================================
 ```
@@ -846,7 +846,23 @@ CALL                 │
 ─────────────────────────────────────────────────────
 STORE_VAR            │
 ─────────────────────────────────────────────────────
-LOAD_CONST           │ 10
+LOAD_CONST           │ 2
+─────────────────────────────────────────────────────
+LOAD_CONST           │ 3
+─────────────────────────────────────────────────────
+ADD_INT              │
+─────────────────────────────────────────────────────
+LOAD_CONST           │ 5
+─────────────────────────────────────────────────────
+LOAD_CONST           │ 1
+─────────────────────────────────────────────────────
+SUB                  │
+─────────────────────────────────────────────────────
+MUL                  │
+─────────────────────────────────────────────────────
+LOAD_CONST           │ 2
+─────────────────────────────────────────────────────
+DIV                  │
 ─────────────────────────────────────────────────────
 LOAD_CONST           │ 2
 ─────────────────────────────────────────────────────
@@ -1008,7 +1024,23 @@ CONCAT_STRING        │
 ─────────────────────────────────────────────────────
 CALL_VOID            │
 ─────────────────────────────────────────────────────
-LOAD_CONST           │ -20
+LOAD_CONST           │ 3
+─────────────────────────────────────────────────────
+LOAD_CONST           │ 5
+─────────────────────────────────────────────────────
+ADD_INT              │
+─────────────────────────────────────────────────────
+LOAD_CONST           │ 2
+─────────────────────────────────────────────────────
+LOAD_CONST           │ 7
+─────────────────────────────────────────────────────
+SUB                  │
+─────────────────────────────────────────────────────
+MUL                  │
+─────────────────────────────────────────────────────
+LOAD_CONST           │ 2
+─────────────────────────────────────────────────────
+DIV                  │
 ─────────────────────────────────────────────────────
 LOAD_CONST           │ 2
 ─────────────────────────────────────────────────────
