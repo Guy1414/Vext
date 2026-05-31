@@ -1035,7 +1035,11 @@ namespace Vext.Compiler.Parsing
                 int rStartCol = reportPos.EndColumn; // point at the end of the previous token
                 int rEndCol = reportPos.EndColumn;
 
-                ReportError($"Expected {type}{(value != null ? $" '{value}'" : "")} but found '{tok.Value}' ({tok.TokenType})", rLine, rStartCol, rLine, rEndCol);
+                string message = tok.Line != reportPos.Line
+                    ? $"Expected {type}{(value != null ? $" '{value}'" : "")}"
+                    : $"Expected {type}{(value != null ? $" '{value}'" : "")} but found '{tok.Value}' ({tok.TokenType})";
+
+                ReportError(message, rLine, rStartCol, rLine, rEndCol);
 
                 // return a best-effort token so parsing can continue
                 return tok;

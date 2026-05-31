@@ -11,7 +11,9 @@ import {
   Position,
   SemanticTokensBuilder,
   CompletionItem,
-  CompletionItemKind
+  CompletionItemKind,
+  CodeAction,
+  CodeActionKind
 } from "vscode-languageserver/node";
 import { InsertTextFormat, RequestType } from 'vscode-languageserver';
 import { TextDocument } from "vscode-languageserver-textdocument";
@@ -211,6 +213,7 @@ connection.onInitialize((_params: InitializeParams) => {
         triggerCharacters: ["."]
       },
       hoverProvider: true,
+      codeActionProvider: true,
       semanticTokensProvider: {
         legend: {
           tokenTypes: [
@@ -538,6 +541,38 @@ function extractIdentifierFromDocument(doc: TextDocument, fullText: string, toke
   const name = fullText.substring(startOffset, endOffset);
   return name;
 }
+
+connection.onCodeAction((params) => {
+  const codeActions: CodeAction[] = [];
+  const diagnostics = params.context.diagnostics;
+
+  for (const diagnostic of diagnostics) {
+    if (diagnostic.message && diagnostic.message.includes("Did you mean '")) {
+      const match = diagnostic.message.match(/Did you mean '([^']+)'\?/);
+      if (match) {
+        const suggestion = match[1];
+        const action = CodeAction.create(
+          `Change to '${suggestion}'`,
+          {
+            changes: {
+              [params.textDocument.uri]: [
+                {
+                  range: diagnostic.range,
+                  newText: suggestion
+                }
+              ]
+            }
+          },
+          CodeActionKind.QuickFix
+        );
+        action.diagnostics = [diagnostic];
+        codeActions.push(action);
+      }
+    }
+  }
+
+  return codeActions;
+});
 
 connection.onShutdown(() => {
   try { compiler?.dispose(); } catch { }
