@@ -43,6 +43,24 @@ namespace Vext.Compiler.Semantic
             AddToken(line, startCol, endCol, type, EmptyModifiers);
         }
 
+        /// <summary>
+        /// Returns true if the given identifier corresponds to a known module name or a registered
+        /// built-in function prefix. This helps disambiguate module references from regular variables.
+        /// </summary>
+        private bool IsModuleName(string ident)
+        {
+            if (knownModules.Contains(ident))
+                return true;
+
+            // Also check registered built-in functions for prefixes like "IO." or "Math."
+            foreach (string full in builtInFunctions.Keys)
+            {
+                if (full.StartsWith(ident + "."))
+                    return true;
+            }
+            return false;
+        }
+
         private void AddToken(int line, int startCol, int endCol, string type, List<string> modifiers)
         {
             if (line == 0)
@@ -598,11 +616,18 @@ namespace Vext.Compiler.Semantic
                     if (decl == null)
                     {
                         ReportError(
-                            $"Variable '{v.Name}' used before declaration",
+                            $"Undefined variable '{v.Name}'",
                             v.Line,
                             v.StartColumn,
                             v.EndColumn
                         );
+
+                        // Suggest similar module names
+                        foreach (string module in knownModules)
+                        {
+                            if (LevenshteinDistance(v.Name, module) is > 0 and <= 2)
+                                ReportHint($"Did you mean '{module}'?", v.Line, v.StartColumn, v.EndColumn);
+                        }
                     } else
                     {
                         v.SlotIndex = decl.SlotIndex;
@@ -856,9 +881,17 @@ namespace Vext.Compiler.Semantic
             }
             if (expr is VariableNode v)
             {
-                VariableDeclarationNode? varDecl = FindVisibleVariable(v.SlotIndex);
+                VariableDeclarationNode? varDecl = ResolveVariable(v.Name);
                 if (varDecl != null)
+                {
+                    v.SlotIndex = varDecl.SlotIndex;
                     return varDecl.VariableType;
+                }
+
+                if (IsModuleName(v.Name))
+                {
+                    return "module";
+                }
 
                 return "error";
             }
@@ -1032,28 +1065,58 @@ namespace Vext.Compiler.Semantic
                     }
                 }
 
-                // No matching function - try to provide helpful hints for castable mismatches
-                List<string> hints = [];
-                foreach (FunctionDefinitionNode fn in viable)
+                if (candidates.Count == 0)
                 {
-                    List<FunctionParameterNode> ps = fn.Arguments ?? [];
-                    for (int i = 0; i < f.Arguments.Count; i++)
+                    ReportError($"No function named '{f.FunctionName}'", f.Line, f.StartColumn, f.EndColumn);
+
+                    HashSet<string> suggestions = [];
+
+                    // Suggest if it looks like a module-prefixed name (e.g. IOPrintln → IO.Println)
+                    foreach (string module in knownModules)
                     {
-                        string argType = GetExpressionType(f.Arguments[i]);
-                        if (!AreTypesCompatible(ps[i].Type, argType))
+                        if (f.FunctionName.StartsWith(module) && f.FunctionName.Length > module.Length)
                         {
-                            if ((argType == "numeral" && (ps[i].Type == "int" || ps[i].Type == "float")) ||
-                                (argType == "float" && ps[i].Type == "int"))
+                            string dotForm = $"{module}.{f.FunctionName[module.Length..]}";
+                            if (builtInFunctions.ContainsKey(dotForm))
+                                suggestions.Add(dotForm);
+                        }
+                    }
+
+                    // Suggest similar function names by edit distance
+                    foreach (string name in functionLookup.Keys.Concat(builtInFunctions.Keys))
+                    {
+                        if (LevenshteinDistance(f.FunctionName, name) <= 2)
+                            suggestions.Add(name);
+                    }
+
+                    foreach (string s in suggestions)
+                        ReportHint($"Did you mean '{s}'?", f.Line, f.StartColumn, f.EndColumn);
+                }
+                else
+                {
+                    // Overload exists but arguments don't match - provide castable mismatch hints
+                    List<string> hints = [];
+                    foreach (FunctionDefinitionNode fn in viable)
+                    {
+                        List<FunctionParameterNode> ps = fn.Arguments ?? [];
+                        for (int i = 0; i < f.Arguments.Count; i++)
+                        {
+                            string argType = GetExpressionType(f.Arguments[i]);
+                            if (!AreTypesCompatible(ps[i].Type, argType))
                             {
-                                hints.Add($"Argument {i + 1} is '{argType}' but '{f.FunctionName}' expects '{ps[i].Type}'. Use '({ps[i].Type})' to cast.");
+                                if ((argType == "numeral" && (ps[i].Type == "int" || ps[i].Type == "float")) ||
+                                    (argType == "float" && ps[i].Type == "int"))
+                                {
+                                    hints.Add($"Argument {i + 1} is '{argType}' but '{f.FunctionName}' expects '{ps[i].Type}'. Use '({ps[i].Type})' to cast.");
+                                }
                             }
                         }
                     }
-                }
 
-                ReportError($"No matching overload for function '{f.FunctionName}'", f.Line, f.StartColumn, f.EndColumn);
-                foreach (string hint in hints.Distinct())
-                    ReportHint(hint, f.Line, f.StartColumn, f.EndColumn);
+                    ReportError($"No matching overload for function '{f.FunctionName}'", f.Line, f.StartColumn, f.EndColumn);
+                    foreach (string hint in hints.Distinct())
+                        ReportHint(hint, f.Line, f.StartColumn, f.EndColumn);
+                }
 
                 AddToken(f.Line, f.FunctionNameStartColumn, f.FunctionNameEndColumn, "function", FunctionCallModifier);
                 return "error";
@@ -1061,8 +1124,7 @@ namespace Vext.Compiler.Semantic
             }
             if (expr is MemberAccessNode m)
             {
-                // 1. Check if it's a module call FIRST: Module.Func()
-                if (m.Receiver is VariableNode vRec && ResolveVariable(vRec.Name) == null)
+                if (m.Receiver is VariableNode vRec)
                 {
                     string fullName = $"{vRec.Name}.{m.MemberName}";
                     if (builtInFunctions.TryGetValue(fullName, out List<FunctionDefinitionNode>? builtIns))
@@ -1261,6 +1323,29 @@ namespace Vext.Compiler.Semantic
                 return source == "string";
 
             return false;
+        }
+
+        private static int LevenshteinDistance(string a, string b)
+        {
+            if (a.Length == 0) return b.Length;
+            if (b.Length == 0) return a.Length;
+
+            int[,] d = new int[a.Length + 1, b.Length + 1];
+            for (int i = 0; i <= a.Length; i++) d[i, 0] = i;
+            for (int j = 0; j <= b.Length; j++) d[0, j] = j;
+
+            for (int i = 1; i <= a.Length; i++)
+            {
+                for (int j = 1; j <= b.Length; j++)
+                {
+                    int cost = a[i - 1] == b[j - 1] ? 0 : 1;
+                    d[i, j] = Math.Min(
+                        Math.Min(d[i - 1, j] + 1, d[i, j - 1] + 1),
+                        d[i - 1, j - 1] + cost);
+                }
+            }
+
+            return d[a.Length, b.Length];
         }
 
         private static bool ParametersMatch(List<FunctionParameterNode>? a, List<FunctionParameterNode>? b)

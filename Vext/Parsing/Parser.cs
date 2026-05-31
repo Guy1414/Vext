@@ -1028,7 +1028,14 @@ namespace Vext.Compiler.Parsing
             if (!Match(type, value))
             {
                 Token tok = currentToken < tokens.Count ? tokens[currentToken] : new Token(TokenType.EOF, "", 0, 0, 0);
-                ReportError($"Expected {type}{(value != null ? $" '{value}'" : "")} at token {currentToken}, {CurrentToken().Value} {CurrentToken().TokenType}", tok.Line, tok.StartColumn, tok.Line, tok.EndColumn);
+
+                Token reportPos = (currentToken > 0 && currentToken - 1 < tokens.Count) ? tokens[currentToken - 1] : tok;
+
+                int rLine = reportPos.Line;
+                int rStartCol = reportPos.EndColumn; // point at the end of the previous token
+                int rEndCol = reportPos.EndColumn;
+
+                ReportError($"Expected {type}{(value != null ? $" '{value}'" : "")} but found '{tok.Value}' ({tok.TokenType})", rLine, rStartCol, rLine, rEndCol);
 
                 // return a best-effort token so parsing can continue
                 return tok;

@@ -45,7 +45,7 @@ namespace Vext.Shared.AST
 
     public class VariableNode : ExpressionNode // identifiers
     {
-        public int SlotIndex;
+        public int SlotIndex = -1;
         public required string Name { get; set; }
     }
 
@@ -75,7 +75,7 @@ namespace Vext.Shared.AST
 
     public class VariableDeclarationNode : StatementNode
     {
-        public int SlotIndex;
+        public int SlotIndex = -1;
         public required string VariableType { get; set; }
         public int TypeStartColumn;
         public int TypeEndColumn;
@@ -169,7 +169,7 @@ namespace Vext.Shared.AST
         /// <summary>
         /// The slot index assigned to this parameter for variable storage.
         /// </summary>
-        public int SlotIndex { get; set; }
+        public int SlotIndex { get; set; } = -1;
         /// <summary>
         /// The data type of the parameter (e.g., "int", "float", "string").
         /// </summary>
