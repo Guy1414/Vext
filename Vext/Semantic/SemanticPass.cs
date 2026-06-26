@@ -1091,8 +1091,7 @@ namespace Vext.Compiler.Semantic
 
                     foreach (string s in suggestions)
                         ReportHint($"Did you mean '{s}'?", f.Line, f.StartColumn, f.EndColumn);
-                }
-                else
+                } else
                 {
                     // Overload exists but arguments don't match - provide castable mismatch hints
                     List<string> hints = [];
@@ -1327,12 +1326,16 @@ namespace Vext.Compiler.Semantic
 
         private static int LevenshteinDistance(string a, string b)
         {
-            if (a.Length == 0) return b.Length;
-            if (b.Length == 0) return a.Length;
+            if (a.Length == 0)
+                return b.Length;
+            if (b.Length == 0)
+                return a.Length;
 
             int[,] d = new int[a.Length + 1, b.Length + 1];
-            for (int i = 0; i <= a.Length; i++) d[i, 0] = i;
-            for (int j = 0; j <= b.Length; j++) d[0, j] = j;
+            for (int i = 0; i <= a.Length; i++)
+                d[i, 0] = i;
+            for (int j = 0; j <= b.Length; j++)
+                d[0, j] = j;
 
             for (int i = 1; i <= a.Length; i++)
             {
