@@ -179,9 +179,9 @@
     "postinstall": "cd client && npm install && cd ../server && npm install && cd .."
   },
   "devDependencies": {
-    "@types/node": "^20.5.7",
+    "@types/node": "^26.1.0",
     "esbuild": "^0.28.1",
-    "typescript": "^5.2.2"
+    "typescript": "^6.0.3"
   },
   "dependencies": {
     "node-fetch": "^3.3.2"
